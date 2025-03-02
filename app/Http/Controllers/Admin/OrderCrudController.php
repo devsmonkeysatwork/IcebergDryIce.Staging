@@ -22,6 +22,7 @@ class OrderCrudController extends CrudController
     CRUD::setModel(Order::class);
     CRUD::setRoute(config('backpack.base.route_prefix') . '/orders');
     CRUD::setEntityNameStrings('order', 'orders');
+    CRUD::setListView('vendor.backpack.crud.order-list');
   }
 
   protected function setupListOperation()
@@ -39,41 +40,205 @@ class OrderCrudController extends CrudController
     CRUD::column('origin')->label('Origin');
     CRUD::column('recurring')->label('Recurring');
 
-    $this->addCustomFilters();
+//    $orders = Order::select('id', 'customer_name')->get();
 
-    // Add buttons to filter orders
-    CRUD::addButtonFromView('top', 'all_orders', 'orders_all');
-    CRUD::addButtonFromView('top', 'todays_orders', 'orders_today');
-    CRUD::addButtonFromView('top', 'future_orders', 'orders_future');
-    CRUD::addButtonFromView('top', 'past_orders', 'orders_past');
+//    CRUD::addButtonFromView('top', 'custom_filter', 'buttons.custom_filter');
+//
+//      // Apply filter logic
+//      if (request()->filled('status')) {
+//          CRUD::addClause('where', 'status', request('status'));
+//      }
+//      if (request()->filled('type')) {
+//          CRUD::addClause('where', 'recurring', request('type'));
+//      }
+//
+//      if (request()->filled('order_id')) {
+//          CRUD::addClause('where', 'id', request('order_id'));
+//      }
+
+//      if (request()->filled('transfer_status')) {
+//          CRUD::addClause('where', 'transfer_status', request('transfer_status'));
+//      }
+//      if (request()->filled('customer_id')) {
+//          CRUD::addClause('where', 'customer_id', request('customer_id'));
+//      }
+
+
+
+      // Dropdown filter for Order Type
+//     CRUD::addFilter([
+//         'name'  => 'type',
+//         'type'  => 'dropdown',
+//         'label' => 'Type',
+//                            ], [
+//                                'standard' => 'Standard',
+//                                'express' => 'Express',
+//                            ], function ($value) {
+//                                CRUD::addClause('where', 'type', $value);
+//                            });
+//
+//    // Dropdown filter for Order Status
+//    CRUD::addFilter([
+//        'name'  => 'status',
+//        'type'  => 'dropdown',
+//        'label' => 'Status',
+//    ], [
+//        'pending'   => 'Pending',
+//        'shipped'   => 'Shipped',
+//        'delivered' => 'Delivered',
+//    ], function ($value) {
+//        CRUD::addClause('where', 'status', $value);
+//    });
+//
+//    // Dropdown filter for Transfer Status
+//    CRUD::addFilter([
+//        'name'  => 'transfer_status',
+//        'type'  => 'dropdown',
+//        'label' => 'Transfer Status',
+//    ], [
+//        'transferred' => 'Transferred',
+//        'not_transferred' => 'Not Transferred',
+//    ], function ($value) {
+//        CRUD::addClause('where', 'transfer_status', $value);
+//    });
+
+//    $this->addCustomFilters();
+//
+//    // Add buttons to filter orders
+//    CRUD::addButtonFromView('top', 'all_orders', 'orders_all');
+//    CRUD::addButtonFromView('top', 'todays_orders', 'orders_today');
+//    CRUD::addButtonFromView('top', 'future_orders', 'orders_future');
+//    CRUD::addButtonFromView('top', 'past_orders', 'orders_past');
   }
 
-  protected function setupCreateOperation()
-  {
-    CRUD::setValidation(OrderRequest::class);
 
-    CRUD::field('customer_name');
-    CRUD::field('email');
-    CRUD::field('phone');
-    CRUD::field('amount_of_ice');
-    CRUD::field('amount_of_boxes');
-    CRUD::field('origin')->type('enum')->options(['online' => 'Online', 'manual' => 'Manual']);
-    CRUD::field('recurring')->type('enum')->options(['recurring' => 'Recurring', 'non-recurring' => 'Non-recurring']);
-    CRUD::field('location_name');
-    CRUD::field('address');
-    CRUD::field('unit')->label('Unit');
-    CRUD::field('city');
-    CRUD::field('postal_code');
-    CRUD::field('province')->type('enum')->options(['BC' => 'BC', 'AB' => 'AB']);
-    CRUD::field('country')->label('Country');
-    CRUD::field('pickup_delivery')->type('enum')->options(['pickup' => 'Pickup', 'delivery' => 'Delivery']);
-    CRUD::field('status')->type('enum')->options(['valid' => 'Valid', 'skip' => 'Skip', 'cancelled' => 'Cancelled']);
-    CRUD::field('delivery_date')->type('datetime')->format('YYYY-MM-DD HH:mm');
-    CRUD::field('notes')->type('textarea');
-    CRUD::field('total_cost');
-  }
 
-  protected function setupUpdateOperation()
+
+    public function setupCreateOperation()
+    {
+        CRUD::setValidation(OrderRequest::class);
+
+        // Customer Details
+        CRUD::addField([
+            'name'  => 'customer_name',
+            'label' => 'Customer Name',
+            'type'  => 'text',
+            'wrapperAttributes' => ['class' => 'form-group col-md-6'],
+        ]);
+        CRUD::addField([
+            'name'  => 'email',
+            'type'  => 'email',
+            'wrapperAttributes' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        CRUD::addField([
+            'name'  => 'phone',
+            'type'  => 'text',
+            'wrapperAttributes' => ['class' => 'form-group col-md-6'],
+        ]);
+        CRUD::addField([
+            'name'  => 'amount_of_ice',
+            'type'  => 'number',
+            'wrapperAttributes' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        CRUD::addField([
+            'name'  => 'amount_of_boxes',
+            'type'  => 'number',
+            'wrapperAttributes' => ['class' => 'form-group col-md-6'],
+        ]);
+        CRUD::addField([
+            'name'  => 'origin',
+            'type'  => 'select_from_array',
+            'options' => ['online' => 'Online', 'manual' => 'Manual'],
+            'wrapperAttributes' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        CRUD::addField([
+            'name'  => 'recurring',
+            'type'  => 'select_from_array',
+            'options' => ['recurring' => 'Recurring', 'non-recurring' => 'Non-recurring'],
+            'wrapperAttributes' => ['class' => 'form-group col-md-6'],
+        ]);
+        CRUD::addField([
+            'name'  => 'location_name',
+            'type'  => 'text',
+            'wrapperAttributes' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        // Address Fields
+        CRUD::addField([
+            'name'  => 'address',
+            'type'  => 'text',
+            'wrapperAttributes' => ['class' => 'form-group col-md-6'],
+        ]);
+        CRUD::addField([
+            'name'  => 'unit',
+            'label' => 'Unit',
+            'type'  => 'text',
+            'wrapperAttributes' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        CRUD::addField([
+            'name'  => 'city',
+            'type'  => 'text',
+            'wrapperAttributes' => ['class' => 'form-group col-md-6'],
+        ]);
+        CRUD::addField([
+            'name'  => 'postal_code',
+            'type'  => 'text',
+            'wrapperAttributes' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        CRUD::addField([
+            'name'  => 'province',
+            'type'  => 'select_from_array',
+            'options' => ['BC' => 'BC', 'AB' => 'AB'],
+            'wrapperAttributes' => ['class' => 'form-group col-md-6'],
+        ]);
+        CRUD::addField([
+            'name'  => 'country',
+            'label' => 'Country',
+            'type'  => 'text',
+            'wrapperAttributes' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        CRUD::addField([
+            'name'  => 'pickup_delivery',
+            'type'  => 'select_from_array',
+            'options' => ['pickup' => 'Pickup', 'delivery' => 'Delivery'],
+            'wrapperAttributes' => ['class' => 'form-group col-md-6'],
+        ]);
+        CRUD::addField([
+            'name'  => 'status',
+            'type'  => 'select_from_array',
+            'options' => ['valid' => 'Valid', 'skip' => 'Skip', 'cancelled' => 'Cancelled'],
+            'wrapperAttributes' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        CRUD::addField([
+            'name'  => 'delivery_date',
+            'type'  => 'datetime',
+            'datetime_picker_options' => [
+                'format' => 'YYYY-MM-DD HH:mm'
+            ],
+            'wrapperAttributes' => ['class' => 'form-group col-md-6'],
+        ]);
+        CRUD::addField([
+            'name'  => 'total_cost',
+            'type'  => 'number',
+            'wrapperAttributes' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        CRUD::addField([
+            'name'  => 'notes',
+            'type'  => 'textarea',
+            'wrapperAttributes' => ['class' => 'form-group col-md-12'],
+        ]);
+    }
+
+
+    protected function setupUpdateOperation()
   {
     $this->setupCreateOperation();
   }

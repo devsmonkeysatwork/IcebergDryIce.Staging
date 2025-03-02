@@ -1,3 +1,4 @@
+/*
 // Import Bootstrap functions first
 @import "~bootstrap/scss/functions";
 
@@ -6,6 +7,7 @@ $primary: #0256C5;
 
 // Import Bootstrap
 @import "~bootstrap/scss/bootstrap";
+*/
 
 body {
   background-color: var(--tblr-body-bg);
@@ -145,7 +147,7 @@ body {
   background-color: rgba(var(--bs-dark-rgb), 1) !important;
   color: var(--tblr-secondary-text-emphasis);
   text-transform: capitalize;
-  padding: 10px 0;  
+  padding: 10px 0;
 }
 
 .row table thead tr th {

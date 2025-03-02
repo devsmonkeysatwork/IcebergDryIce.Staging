@@ -23,6 +23,8 @@ class VariablesCrudController extends CrudController
     CRUD::setModel(\App\Models\Variable::class);
     CRUD::setRoute(config('backpack.base.route_prefix') . '/variables');
     CRUD::setEntityNameStrings('variable', 'variables');
+    CRUD::setCreateView('vendor.backpack.crud.variable-create');
+
   }
 
   protected function setupListOperation()

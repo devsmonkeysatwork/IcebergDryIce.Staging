@@ -1,11 +1,11 @@
-// Import Bootstrap functions first
-@import "~bootstrap/scss/functions";
+/*// Import Bootstrap functions first*/
+/*@import "~bootstrap/scss/functions";*/
 
-// Override Bootstrap variables
-$primary: #0256C5;
+/*// Override Bootstrap variables*/
+/*primary: #0256C5;*/
 
-// Import Bootstrap
-@import "~bootstrap/scss/bootstrap";
+/*// Import Bootstrap*/
+/*@import "~bootstrap/scss/bootstrap";*/
 
 body {
   background-color: var(--tblr-body-bg);
@@ -145,7 +145,7 @@ body {
   background-color: rgba(var(--bs-dark-rgb), 1) !important;
   color: var(--tblr-secondary-text-emphasis);
   text-transform: capitalize;
-  padding: 10px 0;  
+  padding: 10px 0;
 }
 
 .row table thead tr th {
@@ -229,6 +229,7 @@ td.status {
   background-color: #0246a5;
   color: var(--tblr-light);
 }
+
 
 @media (min-width: 1400px) {
   .container-xxl,

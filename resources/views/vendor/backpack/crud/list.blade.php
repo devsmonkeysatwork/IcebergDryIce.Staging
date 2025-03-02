@@ -8,13 +8,23 @@ trans('backpack::crud.list') => false,
 ];
 
 // if breadcrumbs aren't defined in the CrudController, use the default breadcrumbs
-$breadcrumbs = $breadcrumbs ?? $defaultBreadcrumbs;
+// $breadcrumbs = $breadcrumbs ?? $defaultBreadcrumbs;
 @endphp
 
 @section('header')
-<section class="header-operation container-fluid animated fadeIn d-flex mb-2 align-items-baseline d-print-none" bp-section="page-header">
-  <h1 class="text-capitalize mb-0" bp-section="page-heading">{!! $crud->getHeading() ?? $crud->entity_name_plural !!}</h1>
-  <p class="ms-2 ml-2 mb-0" id="datatable_info_stack" bp-section="page-subheading">{!! $crud->getSubheading() ?? '' !!}</p>
+<section class="header-operation container-fluid animated fadeIn d-flex mb-2 align-items-baseline d-print-none justify-content-between" bp-section="page-header">
+  <div>
+      <h1 class="text-capitalize mb-0" bp-section="page-heading">{!! $crud->getHeading() ?? $crud->entity_name_plural !!}</h1>
+      <p class="ms-2 ml-2 d-none mb-0" id="datatable_info_stack" bp-section="page-subheading">{!! $crud->getSubheading() ?? '' !!}</p>
+  </div>
+   <div>
+       <small>
+           <a href="{{ url('admin/manual-payments') }}" class="btn btn-add d-none btn-sm mx-3"><i class="la la-wallet"></i> Manual Payment</a>
+
+           <a href="{{ url('admin/orders/create') }}" class="btn btn-add d-none btn-sm"><i class="la la-plus"></i> New Order</a>
+       </small>
+   </div>
+
 </section>
 @endsection
 
@@ -85,24 +95,24 @@ $breadcrumbs = $breadcrumbs ?? $defaultBreadcrumbs;
         </thead>
         <tbody>
         </tbody>
-        <tfoot>
-          <tr>
-            {{-- Table columns --}}
-            @foreach ($crud->columns() as $column)
-            <th>
-              {{-- Bulk checkbox --}}
-              @if($loop->first && $crud->getOperationSetting('bulkActions'))
-              {!! View::make('crud::columns.inc.bulk_actions_checkbox')->render() !!}
-              @endif
-              {!! $column['label'] !!}
-            </th>
-            @endforeach
+{{--        <tfoot>--}}
+{{--          <tr>--}}
+{{--            --}}{{-- Table columns --}}
+{{--            @foreach ($crud->columns() as $column)--}}
+{{--            <th>--}}
+{{--              --}}{{-- Bulk checkbox --}}
+{{--              @if($loop->first && $crud->getOperationSetting('bulkActions'))--}}
+{{--              {!! View::make('crud::columns.inc.bulk_actions_checkbox')->render() !!}--}}
+{{--              @endif--}}
+{{--              {!! $column['label'] !!}--}}
+{{--            </th>--}}
+{{--            @endforeach--}}
 
-            @if ( $crud->buttons()->where('stack', 'line')->count() )
-            <th>{{ trans('backpack::crud.actions') }}</th>
-            @endif
-          </tr>
-        </tfoot>
+{{--            @if ( $crud->buttons()->where('stack', 'line')->count() )--}}
+{{--            <th>{{ trans('backpack::crud.actions') }}</th>--}}
+{{--            @endif--}}
+{{--          </tr>--}}
+{{--        </tfoot>--}}
       </table>
     </div>
 
@@ -120,6 +130,7 @@ $breadcrumbs = $breadcrumbs ?? $defaultBreadcrumbs;
 @endsection
 
 @section('after_styles')
+
 {{-- DATA TABLES --}}
 @basset('https://cdn.datatables.net/1.13.1/css/dataTables.bootstrap5.min.css')
 @basset('https://cdn.datatables.net/fixedheader/3.3.1/css/fixedHeader.dataTables.min.css')
@@ -127,7 +138,55 @@ $breadcrumbs = $breadcrumbs ?? $defaultBreadcrumbs;
 
 {{-- CRUD LIST CONTENT - crud_list_styles stack --}}
 @stack('crud_list_styles')
+
+
+    <style>
+
+        .container-fluid .btn-add {
+            padding: 8px 16px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+
+        .btn-add {
+            background-color: var(--tblr-primary);
+            border: none;
+            color: var(--tblr-light);
+            border-radius: 4px;
+        }
+
+        #crudTable_wrapper #crudTable, #crudTable_wrapper table.dataTable {
+            border: none;
+            background: transparent;
+        }
+
+        .table thead th {
+            font-family: Nunito Sans;
+            font-weight: 700;
+            font-size: 14px;
+            line-height: 19.1px;
+            letter-spacing: 0px;
+        }
+        .table td{
+           border: none;
+        }
+
+        table tr {
+            border-collapse: separate;
+            border-spacing: 0 15px;
+        }
+
+
+
+        footer {
+            display: none;
+        }
+
+    </style>
+
 @endsection
+
 
 @section('after_scripts')
 @include('crud::inc.datatables_logic')

@@ -2,11 +2,13 @@
 
 <li class="nav-item"><a class="nav-link" href="{{ backpack_url('dashboard') }}"><i class="la la-home nav-icon"></i> {{ trans('backpack::base.dashboard') }}</a></li>
 
-<x-backpack::menu-item title="Users" icon="la la-user" :link="backpack_url('user')" />
-<x-backpack::menu-item title="Orders" icon="la la-shopping-cart" :link="backpack_url('orders?all=true')" />
+{{--<x-backpack::menu-item title="Users" icon="la la-user" :link="backpack_url('user')" />--}}
+{{--<x-backpack::menu-item title="Orders" icon="la la-shopping-cart" :link="backpack_url('orders?all=true')" />--}}
+
+<x-backpack::menu-item title="Orders" icon="la la-shopping-cart" :link="backpack_url('orders')" />
 
 <x-backpack::menu-dropdown title="Lists" icon="la la-list">
-  <x-backpack::menu-dropdown-item title="Postal Codes" icon="la la-map" :link="backpack_url('postal-codes')" />
+{{--  <x-backpack::menu-dropdown-item title="Postal Codes" icon="la la-map" :link="backpack_url('postal-codes')" />--}}
   <!-- <x-backpack::menu-dropdown-item title="One-off Orders" icon="la la-shopping-cart" :link="backpack_url('one-off-orders')" /> -->
   <x-backpack::menu-dropdown-item title="Ice Orders" icon="la la-snowflake" :link="backpack_url('ice-orders')" />
   <x-backpack::menu-dropdown-item title="Variables" icon="la la-cogs" :link="backpack_url('variables')" />
