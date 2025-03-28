@@ -7,9 +7,35 @@ use App\Http\Controllers\Admin\InventoryPageController;
 use App\Http\Controllers\Admin\WarehouseSaleCrudController;
 
 
-Route::get('/', function () {
-    return view('welcome');
+// routes/web.php
+Route::get('/', [App\Http\Controllers\WebsiteController::class, 'index'])->name('home');
+
+Route::get('/dryice_uses', function () {
+    return view('website.dryice.dryice_uses');
 });
+Route::get('/dryice_safety', function () {
+    return view('website.dryice.safety');
+});
+Route::get('/blasting_info', function () {
+    return view('website.blasting.blasting_info');
+});
+Route::get('/blasting_examples', function () {
+    return view('website.blasting.blasting_example');
+});
+Route::get('/blasting_manuals', function () {
+    return view('website.blasting.blasting_manuals');
+});
+Route::get('/blasting_services', function () {
+    return view('website.blasting.blasting_services');
+});
+
+Route::get('/contact', [App\Http\Controllers\WebsiteController::class, 'contact'])->name('contact');
+
+Route::get('/order', [App\Http\Controllers\WebsiteController::class, 'order'])->name('order');
+
+Route::get('/location', [App\Http\Controllers\WebsiteController::class, 'location'])->name('location');
+
+Route::get('/review', [App\Http\Controllers\WebsiteController::class, 'review'])->name('review');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

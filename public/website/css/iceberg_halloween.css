@@ -1,0 +1,294 @@
+/* HALLOWEEN - Files to update!!
+
+/includes/css/iceberg.css
+/index.php
+/includes/banner.php
+
+*/
+.forsale_menu	{ text-align: center; width: 20%; border: solid; }
+.selected		{ background-color: #FFF; color: #009; font-weight: 600; font-size: large; border: solid;}
+
+.action 		{  /*background-color: #AAA;  /* DEFAULT */  background-color: #111; /* HALLOWEEN */}
+.online			{  /*color: #0C0; /* DEFAULT */ color: #F00; /* HALLOWEEN */ }
+.print_orders_table {  /*background-color: #CCC; /* DEFAULT */ background-color: #000; color: #930; /* HALLOWEEN */ }
+
+.border			{ border: groove 2px;	}
+#cancelled 		{ color: #444;			}
+.textbox_data	{   border-radius: 5px; background-color: #FFF; color: #03F; border: 1px solid #999; font-size: medium; padding: 1px; }
+.textbox_data2	{   border-radius: 5px; background-color: #FFF; color: #0A0; border: 1px solid #999; font-size: medium; padding: 1px; }
+.textbox_data3	{   border-radius: 5px; background-color: #222; color: #FC3; border: 1px solid #FC3; font-size: medium; padding: 1px; font-weight: 600; text-align: right;}
+
+.info			{
+/*					border: 2px solid #003; border-radius: 10px; 
+					color: #003; font-size: large; text-align: left; 
+					padding: 5px; margin: 20px 0px 0px 0px;	 /* DEFAULT */
+					border: 2px solid #FFF; border-radius: 10px; 
+					color: #FC3; font-size: large; text-align: left; 
+					padding: 5px; margin: 20px 0px 0px 0px;	/* HALLOWEEN */
+				}
+.info_header	{/*	background-color: #FFF;	color: #003; font-size: largest; text-align: center; font-weight: 900; /* DEFAULT */
+					background-color: #111;	color: #C90; font-size: largest; text-align: center; font-weight: 900; /* HALLOWEEN */
+				}
+
+#smallButton {
+	height:	19px;
+	width:	45px;
+	font-size: 90%;
+}
+.is_button 		{	padding:				7px 10px 7px 10px;
+					margin:					5px;
+					font-weight:			600;
+					font-size:				medium;
+					border-radius:			15px;
+					background:				#FFF;
+					color:					#F90;
+					border:					outset 2px #F90;
+}
+.rpt_btn 		{	padding:				2px;
+					margin:					2px;
+					border-radius:			5px;
+					background:				#FFF;
+					color:					#000;
+					border:					outset 2px #666;
+}
+.circle {
+/*					padding: 3px 7px 3px 7px; */
+					padding: 2px 6px 2px 6px;
+					border-radius: 20px;
+}
+
+#yup td { border-top: thin solid; }
+#thSale th {
+/*	background:		#000033;	color: #FFFFFF; /* DEFAULT */
+	background:		#CC9900;	color: #000000; /* HALLOWEEN */
+}
+
+#t1 {
+/*	background:				#000033;	/* DEFAULT */
+	background:				#663300;	/* HALLOWEEN */
+	border:					groove 1px;
+	color:					#FFFFFF;
+	font-size:				bigger;
+	font-weight:			600;
+	padding:				0px 0px 0px 15px;
+	margin:					10px 0px 15px 0px;
+	width:					750px;
+}
+h1 {
+	font-size:				1.5em;
+/*	color:					#0B75AF;	/* DEFAULT */
+	color:					#FF9900;	/* HALLOWEEN */
+	text-shadow:			1px 1px 1px #000;
+	text-transform:			uppercase;
+	margin:					10px 0px 15px 0px;
+}
+
+a {
+	color:					#FF9900;	/* HALLOWEEN only */
+}
+
+body {
+/*	background: 			url('https://www.icebergdryice.com/images/background/background.jpg') no-repeat;
+	background-color: 		#FFFFFF; /* DEFAULT */
+	background: 			url('https://www.icebergdryice.com/images/background/HWNbackground.jpg') repeat-x;
+	color:					#CC9900;
+	background-color:		#000000; /* HALLOWEEN */
+	background-attachment:	fixed;
+	background-position:	bottom right; 
+	font-family:			'Aerial', sans-serif;
+/*	font-family:			'Raleway', sans-serif;	*/
+/*	font-family:			'Oxygen', sans-serif;	*/
+/*	font-family:			'comic sans ms';	*/
+	font-size:				0.9em;
+}
+
+#icon {
+	position:			absolute;
+	top:				-20px;
+	left:				-60px;
+	z-index:			-2;
+}
+
+.frost {
+	filter:					alpha(opacity=20); /* ie 8 */
+	position:				absolute;
+	z-index:				-1;		/* for absolute positioning only */
+	width:					800px;
+	background-attachment:	fixed;
+}
+#frost_header {
+/*	opacity: 0.2;	/* DEFAULT */
+	opacity: 0.4;	/* HALLOWEEN */
+	background: url('https://www.icebergdryice.com/images/background/frost_header.gif'); height: 80px;
+}
+
+#frost_footer {
+/*	opacity: 0.6;	/* DEFAULT */
+	opacity: 0.2;	/* HALLOWEEN */
+	background: url('https://www.icebergdryice.com/images/background/frost_footer.gif'); height: 40px;
+}
+
+.layout {
+	position:				relative;
+	width:					800px;
+	margin:					auto;		/* centered */
+}
+#header {
+	top:					25px;
+	height: 				80px;
+	text-align:				center;
+}
+#buttons {
+	top:					30px;
+	text-align:				center;
+	z-index:				10;		/* need this so buttons show up on top of body, else can't click links */
+}
+#vbuttons {
+	position:				absolute;
+	background-color:		#fff;
+	left:					-20px;
+	z-index:				52;
+}
+#content_bg  {
+/*	background:				url('https://www.icebergdryice.com/images/background/frost_body.gif');	/* DEFAULT only - NOT for Hallowe'en*/
+	background:				#000;	/* HALLOWEEN */
+	top:					35px;
+	height:					500px;
+	text-align:				left;
+	font-size:				larger;
+	overflow:				auto;
+}
+#content {
+	padding: 				10px 10px 10px 10px;	
+	min-height:				300px;
+}
+#footer {
+	top:					50px;
+	height:					40px;
+	text-align:				center;
+	font-size:				larger;
+}
+#footer-text {
+	display:				inline-block;
+	width:					180px;
+	text-align:				center;
+	vertical-align:			middle;
+	padding:				3px;
+}
+
+#online_table {
+	font-family:			Verdana, Courier;
+	font-size:				0.8em;
+}
+#warning {
+	color:					#00CC33;
+	font-weight:			bold;
+	width:					80px;
+	display:				inline-block;
+}
+#error {
+	color:					#FF0000;
+	font-weight:			bold;
+	width:					80px;
+	display:				inline-block;
+}
+
+#loading {	display: block;	}
+#noshow {	display: none;	}
+
+.blur {
+	color:				#990000;
+	text-shadow:		2px 2px 4px #990000; /* the greater the px size, the more blurry */	
+}
+.blur a {
+	color:				#990000;
+	text-decoration: 	none;
+}
+/*
+.blur a:hover {
+	color:				#CC0000;
+	text-shadow: 		none;
+}
+*/
+#hideMe {	/* so they all over-lap each other */
+	position:			absolute;
+}
+
+.msg {
+	color:				#000;
+	font-family:		Verdana, Courier;
+	font-size:			1.0em;
+	width:				98%;
+	border:				1px #060 solid;
+	border-radius:		10px;
+	padding:			5px;
+	/*text-align:			center;*/
+}
+
+.msg2 {
+	color:				#000;
+	font-family:		Verdana, Courier;
+	font-size:			1.0em;
+	width:				1300px;
+	border:				1px #060 solid;
+	border-radius:		10px;
+	padding:			5px;
+	background:			#666;
+}
+
+.msg3 {
+	font-family:		Verdana, Courier;
+	font-size:			1.0em;
+	width:				1300px;
+	border:				1px #060 solid;
+	border-radius:		10px;
+	padding:			5px;
+	text-align:			left;
+}
+
+#admin_div {
+	top:					35px;
+	font-family:			Verdana;
+	font-size:				1.0em;
+}
+
+.slab	{ background: #CCCCFF; width: 48px; }
+.gate	{ background: #FFCCCC; width: 48px; }
+.rice	{ background: #CCFFCC; width: 48px; }
+.pellet	{ background: #FFFFCC; width: 48px; }
+
+
+/* -- BUTTONS -- */
+* 									{ margin: 0; padding: 0; }
+a									{ text-decoration: none; }
+ul									{ list-style: none; }
+p                                   { margin: 15px 0; }
+.sub-menu							{ text-align: left; }
+
+/***** 	LEVEL 1		***************************************************************************************/
+ul.dropdown                         { position: relative; font-size: 20px;}
+ul.dropdown li                      { background: #fff; font-weight: bold; float: left; zoom: 1; }
+ul.dropdown li a                    { 
+/*	color: #0B75AF; border-right: 1px solid #0B75AF; width: 140px; display: block; padding: 4px 8px; /* DEFAULT */
+	color: #CC9900; background: #000; border-right: 1px solid #CC9900; width: 140px; display: block; padding: 4px 8px; /* HALLOWEEN */
+}
+ul.dropdown li:last-child a         { border-right: none; } /* Doesn't work in IE */
+ul.dropdown li.hover,
+ul.dropdown li:hover                {
+/*	background: #0B75AF; position: relative; /* DEFAULT */
+	background: #000; position: relative; /* HALLOWEEN */
+}
+ul.dropdown li.hover a              {
+/*	color: #000; /* DEFAULT */
+	color: #C90; /* HALLOWEEN */
+}
+
+/***** 	LEVEL 2		***************************************************************************************/
+ul.dropdown ul 						{ width: 220px; visibility: hidden; position: absolute; top: 100%; left: 0; }
+ul.dropdown ul li 					{ background: #f6f6f6; border-bottom: 1px solid #ccc; font-weight: normal; float: none; }										  
+ul.dropdown ul li a					{ border-right: none; width: 100%; display: inline-block; }		/* IE 6 & 7 Needs Inline Block */
+
+/***** 	LEVEL 3		***************************************************************************************/
+ul.dropdown ul ul 					{ left: 100%; top: 0; }
+ul.dropdown li:hover > ul 			{ visibility: visible; }
+
