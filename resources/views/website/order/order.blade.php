@@ -27,7 +27,7 @@
 
 
 
-        <form action='' method="post" id='order_form'>
+        <form action='{{ route('submitOrder') }}' method="POST" id='order_form'>
             @csrf
             <table>
                 <tr>
@@ -59,6 +59,7 @@
                 </tr>
             </table>
             <br>
+
             <br>
                 <input style='width: 100px; text-align: center; color: #090; border: outset 2px #090;' class='is_button' name='next' value='NEXT' onclick='next_page();'>
 

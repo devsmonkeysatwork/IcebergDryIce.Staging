@@ -24,7 +24,8 @@
         </table>
 
         <br>
-        <form action="" method="post" id='location_form'>
+        <form action="{{ route('storeLocation') }}" method="POST" id='location_form'>
+            @csrf
             <input type='hidden' name='area' id='area'>
 
             <table width="95%">
@@ -79,7 +80,7 @@
                             @endfor
                         </select>
                         <select name="year" id='year' style='width: 80px;' class='textbox_data'>
-                            @for ($i = 2022; $i <= 2024; $i++)
+                            @for ($i = 2022; $i <= 2025; $i++)
                                 <option value="{{ $i }}" {{ old('year', session('cc_order.year', date('Y'))) == $i ? 'selected' : '' }}>{{ $i }}</option>
                             @endfor
                         </select>
@@ -149,7 +150,7 @@
 
             </table>
             <center>
-                <input style='width: 100px; text-align: center; color: #090; border: outset 2px #090;' class='is_button' name='next' value='NEXT' onClick="next_page();">
+                <input style='width: 100px; text-align: center; color: #090; border: outset 2px #090;' type="submit" onclick="next_page()" value="NEXT" class="is_button">
             </center>
         </form>
     </center>
@@ -159,38 +160,61 @@
     </center>
 
     <script type='text/javascript'>
-        function next_page() {
-            if (check_date() === '' && check_address() === '' && check_company_name() === '' && check_contact() === '' && check_phone() === '' && check_email() === '')
-                document.getElementById('location_form').submit();
-        }
+        document.getElementById('location_form').addEventListener('submit', function(e) {
+            let addressError = check_address();
+            let checkDate = check_date();
+            let companyError = check_company_name();
+            let contactError = check_contact();
+            let phoneError = check_phone();
+            let emailError = check_email();
 
-        // date must be tomorrow+, or it needs to be before 830am
-        // date must be a business day
+            if (checkDate || addressError || companyError || contactError || phoneError || emailError) {
+                e.preventDefault(); // Stop form from submitting
+            }
+        });
+
+
+        /*date must be tomorrow+, or it needs to be before 830am
+        date must be a business day*/
         function check_date() {
-            var year = document.getElementById('year').value;
-            var month = document.getElementById('month').value;
-            var day = document.getElementById('day').value;
+            var year = parseInt(document.getElementById('year').value);
+            var month = parseInt(document.getElementById('month').value) - 1; // JS months are 0-indexed
+            var day = parseInt(document.getElementById('day').value);
             var error_msg = '';
 
-            var date = new Date(year, month - 1, day); // javascript dates are base 0
+            var date = new Date(year, month, day);
             var today = new Date();
-            var hour_now = today.getHours();
-            var min_now = today.getMinutes();
-            today.setHours(0, 0, 0, 0);
+            var now = new Date(); // Keep original timestamp for hour check
+
+            var hour_now = now.getHours();
+            var min_now = now.getMinutes();
+
+            today.setHours(0, 0, 0, 0); // midnight today
             var tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
-            if (date.getDay() == 0 || /*date.getDay() == 2 || date.getDay() == 4 ||*/ date.getDay() == 6)
+            // Weekends + specific days (Sun=0, Tue=2, Thu=4, Sat=6)
+            if ([0, 6].includes(date.getDay())) {
                 error_msg += 'Week days only please.<br>';
-            if (date.getYear() == today.getYear() && date.getMonth() == today.getMonth() && date.getDate() == today.getDate()) {
-                if (hour_now == 8 && min_now > 30 || hour_now > 8)
-                    error_msg += 'Same day orders must be completed before 8:30am.<br>';
-            } else if (date < tomorrow)
-                error_msg += 'Orders must be completed before 8:30am day of.<br>';
+            }
 
-            if (error_msg === '')
+            // Same-day order restrictions
+            if (
+                date.getFullYear() === today.getFullYear() &&
+                date.getMonth() === today.getMonth() &&
+                date.getDate() === today.getDate()
+            ) {
+                if ((hour_now === 8 && min_now > 30) || hour_now > 8) {
+                    error_msg += 'Same day orders must be completed before 8:30am.<br>';
+                }
+            } else if (date < tomorrow) {
+                error_msg += 'Orders must be completed before 8:30am day of.<br>';
+            }
+
+            if (error_msg === '') {
                 set_msg('date_notes', '<center><b>VALID</b></center>', false);
-            else
+            } else {
                 set_msg('date_notes', error_msg, true);
+            }
 
             return error_msg;
         }

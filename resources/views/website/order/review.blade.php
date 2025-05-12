@@ -128,29 +128,29 @@
 
                 @php
                     $color = '#666';
-                    if (session()->has('cc_order') && !session('cc_order')->terms) {
-                        $color = '#f00';
-                    }
+//                    if (session()->has('cc_order') && !session('cc_order')->terms) {
+//                        $color = '#f00';
+//                    }
                 @endphp
 
                 <font color="{{ $color }}">
                     <b>
-                        <input type="checkbox" id="accept" required name="accept"
-                               @if(session()->has('cc_order') && session('cc_order')->terms) checked @endif>
+                        <input type="checkbox" id="accept" required name="accept">
+{{--                               @if(session()->has('cc_order') && session('cc_order')->terms) checked @endif>--}}
                         I have read and understand the above safety information and disclaimer.
                     </b>
                 </font>
                 <br>
 
                 <td colspan="4">
-                    {{ session('cc_order')->notes ?? '' }}
+{{--                    {{ session('cc_order')->notes ?? '' }}--}}
 
-                    @if(session()->has('cc_order') && !session('cc_order')->terms)
-                        <br>
-                        <font color="#f00">
-                            <center>TERMS and DISCLAIMER NOT ACCEPTED YET</center>
-                        </font>
-                    @endif
+{{--                    @if(session()->has('cc_order') && !session('cc_order')->terms)--}}
+{{--                        <br>--}}
+{{--                        <font color="#f00">--}}
+{{--                            <center>TERMS and DISCLAIMER NOT ACCEPTED YET</center>--}}
+{{--                        </font>--}}
+{{--                    @endif--}}
                 </td>
                 <input type="image" src="//www.paypal.com/en_US/i/btn/btn_buynow_LG.gif" border="0" name="submit" alt="Make payments with PayPal - its fast, free and secure!">
             </form>

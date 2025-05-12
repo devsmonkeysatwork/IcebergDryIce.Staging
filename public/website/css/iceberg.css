@@ -5,6 +5,10 @@
 /includes/banner.php
 
 */
+
+
+
+
 .forsale_menu {
   text-align: center;
   width: 20%;
@@ -177,14 +181,14 @@ body {
 #frost_header {
   opacity: 0.2; /* DEFAULT */
   /*	opacity: 0.4;	/* HALLOWEEN */
-  background: url("https://www.icebergdryice.com/images/background/frost_header.gif");
+  background: url("../images/frost_header.gif");
   height: 80px;
 }
 
 #frost_footer {
   opacity: 0.6; /* DEFAULT */
   /*	opacity: 0.2;	/* HALLOWEEN */
-  background: url("https://www.icebergdryice.com/images/background/frost_footer.gif");
+  background: url("../images/frost_footer.gif");
   height: 40px;
 }
 
@@ -210,7 +214,7 @@ body {
   z-index: 52;
 }
 #content_bg {
-  background: url("https://www.icebergdryice.com/images/background/frost_body.gif"); /* DEFAULT only - NOT for Hallowe'en*/
+  background: url("../images/frost_body.gif"); /* DEFAULT only - NOT for Hallowe'en*/
   /*	background:				#000;	/* HALLOWEEN */
   top: 35px;
   height: 500px;

@@ -31,9 +31,14 @@ Route::get('/blasting_services', function () {
 
 Route::get('/contact', [App\Http\Controllers\WebsiteController::class, 'contact'])->name('contact');
 
-Route::get('/order', [App\Http\Controllers\WebsiteController::class, 'order'])->name('order');
+Route::get('/order', [App\Http\Controllers\WebsiteController::class, 'showOrderForm'])->name('order');
+
+Route::post('/order', [App\Http\Controllers\WebsiteController::class, 'storeOrder'])->name('submitOrder');
+
 
 Route::get('/location', [App\Http\Controllers\WebsiteController::class, 'location'])->name('location');
+
+Route::post('/location', [App\Http\Controllers\WebsiteController::class, 'storeLocation'])->name('storeLocation');
 
 Route::get('/review', [App\Http\Controllers\WebsiteController::class, 'review'])->name('review');
 

@@ -15,14 +15,24 @@ class WebsiteController extends Controller
     {
         return view('website.contact');
     }
-    public function order()
+    public function showOrderForm()
     {
         return view('website.order.order');
+    }
+    public function storeOrder()
+    {
+        return view('website.order.location');
     }
     public function location()
     {
         return view('website.order.location');
     }
+
+    public function storeLocation()
+    {
+        return redirect()->route('review');
+    }
+
     public function review()
     {
         return view('website.order.review');
