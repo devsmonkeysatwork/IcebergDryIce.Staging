@@ -39,6 +39,7 @@ Route::group([
     Route::crud('postal-codes', 'PostalCodeCrudController');
     Route::crud('one-off-orders', 'OneOffOrdersCrudController');
     Route::crud('ice-orders', 'IceOrdersCrudController');
+    Route::crud('product', 'ProductCrudController');
     Route::crud('variables', 'VariablesCrudController');
     Route::crud('customers', 'CustomersCrudController');
     Route::crud('log-files', 'LogFilesCrudController');
@@ -56,12 +57,13 @@ Route::group([
 
     //Others
     Route::crud('manual-payments', 'ManualPaymentCrudController');
-    Route::get('manual-payments', function () {
-        return view('vendor.backpack.base.manual_payments');
-    })->name('manual-payments');
+    Route::post('admin/manual-payments', [\App\Http\Controllers\Admin\ManualPaymentCrudController::class, 'store'])
+        ->middleware(['web', 'admin']) // important!
+        ->name('manual-payments.store');
 
     Route::crud('emails', 'EmailCrudController');
     Route::get('emails', function () {
         return view('vendor.backpack.base.emails');
     })->name('emails');
+    Route::crud('product', 'ProductCrudController');
 });

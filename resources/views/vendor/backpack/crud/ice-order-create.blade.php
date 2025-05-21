@@ -43,6 +43,16 @@
 		  		>
 			  {!! csrf_field() !!}
 
+              @if ($errors->any())
+                  <div class="alert alert-danger">
+                      <ul class="mb-0">
+                          @foreach ($errors->all() as $error)
+                              <li>{{ $error }}</li>
+                          @endforeach
+                      </ul>
+                  </div>
+              @endif
+
     <div class="row">
         <div class="col-4 px-4">
             <h3 class="form-group-heading m-0"><i class="la la-calendar me-2"></i> Date</h3>

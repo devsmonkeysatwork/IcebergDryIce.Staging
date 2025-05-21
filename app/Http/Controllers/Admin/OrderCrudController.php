@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
+use Illuminate\Http\Request;
 use App\Http\Requests\OrderRequest;
 use App\Models\Order;
 use App\Models\Customer;
@@ -23,93 +24,61 @@ class OrderCrudController extends CrudController
     CRUD::setRoute(config('backpack.base.route_prefix') . '/orders');
     CRUD::setEntityNameStrings('order', 'orders');
     CRUD::setListView('vendor.backpack.crud.order-list');
+
   }
 
   protected function setupListOperation()
   {
-    CRUD::column('id')->label('Order #');
-    CRUD::column('customer_name')->label('Customer Name');
-    CRUD::addColumn([
-      'name' => 'delivery_date',
-      'type' => 'datetime',
-      'label' => 'Delivery Date',
-      'format' => 'YYYY-MM-DD HH:mm'
-    ]);
-    CRUD::column('status')->label('Status');
-    CRUD::column('total_cost')->label('Total');
-    CRUD::column('origin')->label('Origin');
-    CRUD::column('recurring')->label('Recurring');
+      CRUD::column('id')->label('Order #');
+      CRUD::column('customer_name')->label('Customer Name');
+      CRUD::addColumn([
+          'name' => 'delivery_date',
+          'type' => 'datetime',
+          'label' => 'Delivery Date',
+          'format' => 'YYYY-MM-DD HH:mm'
+      ]);
+      CRUD::column('status')->label('Status');
+      CRUD::column('total_cost')->label('Total');
+      CRUD::column('origin')->label('Origin');
+      CRUD::column('recurring')->label('Recurring');
 
-//    $orders = Order::select('id', 'customer_name')->get();
-
-//    CRUD::addButtonFromView('top', 'custom_filter', 'buttons.custom_filter');
-//
-//      // Apply filter logic
-//      if (request()->filled('status')) {
-//          CRUD::addClause('where', 'status', request('status'));
-//      }
-//      if (request()->filled('type')) {
-//          CRUD::addClause('where', 'recurring', request('type'));
-//      }
-//
-//      if (request()->filled('order_id')) {
-//          CRUD::addClause('where', 'id', request('order_id'));
-//      }
-
-//      if (request()->filled('transfer_status')) {
-//          CRUD::addClause('where', 'transfer_status', request('transfer_status'));
-//      }
-//      if (request()->filled('customer_id')) {
-//          CRUD::addClause('where', 'customer_id', request('customer_id'));
-//      }
+      // Sort newest first
+      CRUD::orderBy('id', 'desc');
 
 
-
-      // Dropdown filter for Order Type
-//     CRUD::addFilter([
-//         'name'  => 'type',
-//         'type'  => 'dropdown',
-//         'label' => 'Type',
-//                            ], [
-//                                'standard' => 'Standard',
-//                                'express' => 'Express',
-//                            ], function ($value) {
-//                                CRUD::addClause('where', 'type', $value);
-//                            });
-//
-//    // Dropdown filter for Order Status
-//    CRUD::addFilter([
-//        'name'  => 'status',
-//        'type'  => 'dropdown',
-//        'label' => 'Status',
-//    ], [
-//        'pending'   => 'Pending',
-//        'shipped'   => 'Shipped',
-//        'delivered' => 'Delivered',
-//    ], function ($value) {
-//        CRUD::addClause('where', 'status', $value);
-//    });
-//
-//    // Dropdown filter for Transfer Status
-//    CRUD::addFilter([
-//        'name'  => 'transfer_status',
-//        'type'  => 'dropdown',
-//        'label' => 'Transfer Status',
-//    ], [
-//        'transferred' => 'Transferred',
-//        'not_transferred' => 'Not Transferred',
-//    ], function ($value) {
-//        CRUD::addClause('where', 'transfer_status', $value);
-//    });
-
-//    $this->addCustomFilters();
-//
-//    // Add buttons to filter orders
-//    CRUD::addButtonFromView('top', 'all_orders', 'orders_all');
-//    CRUD::addButtonFromView('top', 'todays_orders', 'orders_today');
-//    CRUD::addButtonFromView('top', 'future_orders', 'orders_future');
-//    CRUD::addButtonFromView('top', 'past_orders', 'orders_past');
   }
+    public function index()
+    {
+        $this->setupListOperation();
+        $crud = $this->crud;
+        // Get pagination parameters
+        $perPage = request('per_page') ?? 10;
+
+        // Get orders with pagination
+        $entries = Order::query()
+            ->when(request('status'), function($query, $status) {
+                return $query->where('status', $status);
+            })
+            ->when(request('transfer_status'), function($query, $transferStatus) {
+                return $query->where('transfer_status', $transferStatus);
+            })
+            ->when(request('recurring'), function($query, $recurring) {
+                return $query->where('recurring', $recurring);
+            })
+            ->when(request('customer_id'), function($query, $customerId) {
+                return $query->where('customer_id', $customerId);
+            })
+            ->orderBy('id', 'desc')
+            ->paginate($perPage);
+
+        // Make sure entries are available to the view
+        return view('vendor.backpack.crud.order-list', compact('entries', 'crud'));
+    }
+    //    public function index()
+//    {
+//        $this->setupListOperation();
+//
+//    }
 
 
 
@@ -315,4 +284,23 @@ class OrderCrudController extends CrudController
 
     return $this->crud->performUpdateAction($id);
   }
+
+    public function ajaxCustomers(Request $request)
+    {
+        $search = $request->input('q');
+
+        $results = Customer::query()
+            ->where('id', 'like', "%{$search}%")
+            ->orWhere('name', 'like', "%{$search}%") // Adjust to match your DB column
+            ->limit(20)
+            ->get(['id', 'name']);
+
+        // Return format Select2 expects: [{id: 1, text: 'Customer Name'}]
+        $formatted = $results->map(function ($customer) {
+            return ['id' => $customer->id, 'text' => $customer->name . ' (ID: ' . $customer->id . ')'];
+        });
+
+        return response()->json($formatted);
+    }
+
 }

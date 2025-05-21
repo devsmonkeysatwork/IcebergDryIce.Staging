@@ -11,6 +11,7 @@
 {{--  <x-backpack::menu-dropdown-item title="Postal Codes" icon="la la-map" :link="backpack_url('postal-codes')" />--}}
   <!-- <x-backpack::menu-dropdown-item title="One-off Orders" icon="la la-shopping-cart" :link="backpack_url('one-off-orders')" /> -->
   <x-backpack::menu-dropdown-item title="Ice Orders" icon="la la-snowflake" :link="backpack_url('ice-orders')" />
+  <x-backpack::menu-dropdown-item title="Products" icon="la la-product-hunt" :link="backpack_url('product')" />
   <x-backpack::menu-dropdown-item title="Variables" icon="la la-cogs" :link="backpack_url('variables')" />
   <x-backpack::menu-dropdown-item title="Customers" icon="la la-users" :link="backpack_url('customers')" />
   <x-backpack::menu-dropdown-item title="Log Files" icon="la la-file-alt" :link="backpack_url('log-files')" />
@@ -25,3 +26,4 @@
   <x-backpack::menu-dropdown-item title="Manual Payments" icon="la la-money-bill-wave" :link="backpack_url('manual-payments')" />
   <x-backpack::menu-dropdown-item title="Emails" icon="la la-envelope" :link="backpack_url('emails')" />
 </x-backpack::menu-dropdown>
+

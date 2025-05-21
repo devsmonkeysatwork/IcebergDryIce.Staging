@@ -1,6 +1,10 @@
+@php
+
+    // This handles cases where $entries might not be a paginator instance
+    $isPaginated = isset($entries) && method_exists($entries, 'links');
+
+@endphp
 @extends(backpack_view('blank'))
-
-
 
 @section('header')
 <section class="header-operation container-fluid animated fadeIn d-flex mb-2 align-items-center d-print-none justify-content-between" bp-section="page-header">
@@ -10,7 +14,7 @@
   </div>
    <div>
        <small>
-           <a href="{{ url('admin/manual-payments') }}" class="btn btn-add btn-manual btn-sm mx-3"><i class="la la-wallet mx-2"></i> Manual Payment</a>
+           <a href="{{ url('admin/manual-payments/create') }}" class="btn btn-add btn-manual btn-sm mx-3"><i class="la la-wallet mx-2"></i> Manual Payment</a>
 
            <a href="{{ url('admin/orders/create') }}" class="btn btn-add btn-sm"><i class="la la-plus mx-2"></i> New Order</a>
        </small>
@@ -31,22 +35,29 @@
     </h3>
     <div class="row my-3 align-items-center">
       <div class="col-sm-10">
-          <div class="d-flex filters">
-              <select name="" id="">
-                  <option value="">Status</option>
-                  <option value="">Status</option>
-              </select>
-              <select name="" id="" class="mx-2">
-                  <option value="">Transfer Status</option>
-              </select>
-              <select name="" id="">
-                  <option value="">Reccurring</option>
-              </select>
-              <select name="" id="" class="mx-2">
-                  <option value="">Customer id</option>
-              </select>
-              <button class="btn btn-primary">Apply</button>
-          </div>
+          <form action="{{ url()->current() }}" method="GET">
+              {{-- Preserve pagination parameter --}}
+              <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
+
+              <div class="d-flex filters">
+                  <select name="status" id="status">
+                      <option value="">Status</option>
+                      <option value="valid" {{ request('status') == 'valid' ? 'selected' : '' }}>Valid</option>
+                      <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                  </select>
+                  <select name="transfer_status" id="transfer_status" class="mx-2">
+                      <option value="">Transfer Status</option>
+                      <!-- Add options here -->
+                  </select>
+                  <select name="recurring" id="recurring">
+                      <option value="">Recurring</option>
+                      <option value="recurring" {{ request('recurring') == 'recurring' ? 'selected' : '' }}>Yes</option>
+                      <option value="non-recurring" {{ request('recurring') == 'non-recurring' ? 'selected' : '' }}>No</option>
+                  </select>
+                  <select name="customer_id" id="customer_id" class="form-control mx-2" style="width: 250px; border-radius: 3px "></select>
+                  <button type="submit" class="btn btn-primary">Apply</button>
+              </div>
+          </form>
       </div>
       <div class="col-sm-2">
 
@@ -73,111 +84,76 @@
                   </thead>
                   <tbody>
 
-                  <tr>
-                      <td>00002</td>
-                      <td>Chris</td>
-                      <td>07/09/2024</td>
-                      <td>Valid</td>
-                      <td>$277.68</td>
-                      <td>Online</td>
-                      <td>No</td>
-                      <td><button class="btn btn-primary btn-view" data-bs-toggle="modal" data-bs-target="#orderSummaryModal">View</button></td>
-                  </tr>
-                  <tr>
-                      <td>00002</td>
-                      <td>Chris</td>
-                      <td>07/09/2024</td>
-                      <td>Valid</td>
-                      <td>$277.68</td>
-                      <td>Online</td>
-                      <td>No</td>
-                      <td><button class="btn btn-primary btn-view" data-bs-toggle="modal" data-bs-target="#orderSummaryModal">View</button></td>
-                  </tr>
-                  <tr>
-                      <td>00002</td>
-                      <td>Chris</td>
-                      <td>07/09/2024</td>
-                      <td>Valid</td>
-                      <td>$277.68</td>
-                      <td>Online</td>
-                      <td>No</td>
-                      <td><button class="btn btn-primary btn-view" data-bs-toggle="modal" data-bs-target="#orderSummaryModal">View</button></td>
-                  </tr>
-
-                  <tr>
-                      <td>00002</td>
-                      <td>Chris</td>
-                      <td>07/09/2024</td>
-                      <td>Valid</td>
-                      <td>$277.68</td>
-                      <td>Online</td>
-                      <td>No</td>
-                      <td><button class="btn btn-primary btn-view" data-bs-toggle="modal" data-bs-target="#orderSummaryModal">View</button></td>
-                  </tr>
-                  <tr>
-                      <td>00002</td>
-                      <td>Chris</td>
-                      <td>07/09/2024</td>
-                      <td>Valid</td>
-                      <td>$277.68</td>
-                      <td>Online</td>
-                      <td>No</td>
-                      <td><button class="btn btn-primary btn-view" data-bs-toggle="modal" data-bs-target="#orderSummaryModal">View</button></td>
-                  </tr>
-                  <tr>
-                      <td>00002</td>
-                      <td>Chris</td>
-                      <td>07/09/2024</td>
-                      <td>Valid</td>
-                      <td>$277.68</td>
-                      <td>Online</td>
-                      <td>No</td>
-                      <td><button class="btn btn-primary btn-view" data-bs-toggle="modal" data-bs-target="#orderSummaryModal">View</button></td>
-                  </tr>
-                  <tr>
-                      <td>00002</td>
-                      <td>Chris</td>
-                      <td>07/09/2024</td>
-                      <td>Valid</td>
-                      <td>$277.68</td>
-                      <td>Online</td>
-                      <td>No</td>
-                      <td><button class="btn btn-primary btn-view" data-bs-toggle="modal" data-bs-target="#orderSummaryModal">View</button></td>
-                  </tr>
-                  <tr>
-                      <td>00002</td>
-                      <td>Chris</td>
-                      <td>07/09/2024</td>
-                      <td>Valid</td>
-                      <td>$277.68</td>
-                      <td>Online</td>
-                      <td>No</td>
-                      <td><button class="btn btn-primary btn-view" data-bs-toggle="modal" data-bs-target="#orderSummaryModal">View</button></td>
-                  </tr>
+                  @foreach($entries as $order)
+                      <tr>
+                          <td>{{ $order->id }}</td>
+                          <td>{{ $order->customer_name }}</td>
+                          <td>{{ \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') }}</td>
+                          <td>{{ $order->status }}</td>
+                          <td>${{ number_format($order->total_cost, 2) }}</td>
+                          <td>{{ $order->origin }}</td>
+                          <td>{{ $order->recurring}}</td>
+                          <td>
+                              <button class="btn btn-primary btn-view"
+                                      data-bs-toggle="modal"
+                                      data-bs-target="#orderSummaryModal"
+                                      data-id="{{ $order->id }}"
+                                      data-customer="{{ $order->customer_name }}"
+                                      data-email="{{ $order->email }}"
+                                      data-phone="{{ $order->phone }}"
+                                      data-ice="{{ $order->amount_of_ice }}"
+                                      data-boxes="{{ $order-> amount_of_boxes}}"
+                                      data-recurring="{{ $order->recurring }}"
+                                      data-address="{{ $order->address }}"
+                                      data-unit="{{ $order->unit }}"
+                                      data-city="{{ $order->city }}"
+                                      data-postal="{{ $order->postal }}"
+                                      data-province="{{ $order->province }}"
+                                      data-country="{{ $order->country }}"
+                                      data-delivery-date="{{ $order->delivery_date }}"
+                                      data-notes="{{ $order->notes }}"
+                                      data-status="{{ $order->status }}"
+                                      data-pickup_delivery="{{ $order->pickup_delivery }}"
+                              >
+                                  View
+                              </button>
+                          </td>
+                      </tr>
+                  @endforeach
 
                   </tbody>
               </table>
           </div>
       </div>
+      {{-- Updated pagination section --}}
       <div class="row mt-3">
-          <div class="col-md-2">
-              <form action="{{ url()->current() }}" method="GET">
-                  <div class="form-group entries">
-                      <label for="per_page">entries per page</label>
-                      <select name="per_page" id="per_page" class="form-control" onchange="this.form.submit()">
-                          <option value="10">10</option>
-                          <option value="25">25</option>
-                          <option value="50">50</option>
-                          <option value="100">100</option>
+          <div class="col-md-6">
+              <form action="{{ url()->current() }}" method="GET" class="mb-3">
+                  {{-- Preserve any existing filter parameters --}}
+                  @foreach(request()->except(['page', 'per_page']) as $key => $value)
+                      <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                  @endforeach
+
+                  <div class="form-group entries d-flex align-items-center">
+                      <label for="per_page" class="mb-0 me-2">Entries per page</label>
+                      <select name="per_page" id="per_page" class="form-control" style="width: auto;" onchange="this.form.submit()">
+                          <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
+                          <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                          <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                          <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
                       </select>
                   </div>
               </form>
           </div>
           <div class="col-md-6">
-              <!-- Pagination links -->
+              <div class="float-end">
+                  {{-- Pagination links (only if $entries is a paginator instance) --}}
+                  @if($isPaginated)
+                      {{ $entries->appends(request()->except('page'))->links('pagination::bootstrap-5') }}
+                  @endif
+              </div>
           </div>
       </div>
-
   </div>
 
 </div>
@@ -198,32 +174,34 @@
                         <h5><i class="la la-shopping-cart"></i> Order</h5>
                         <div class="">
                             <label class="form-label">Order #</label>
-                            <input type="text" class="form-control" value="00002" readonly>
+                            <input id="modal-order-id" class="form-control" readonly>
                         </div>
                         <div class="">
                             <label class="form-label">Name</label>
-                            <input type="text" class="form-control" value="Chris">
+                            <input id="modal-customer-name" class="form-control">
                         </div>
                         <div class="">
                             <label class="form-label">Email</label>
-                            <input type="email" class="form-control" value="admin@icebergdryice.com">
+                            <input id="modal-customer-email" class="form-control">
                         </div>
                         <div class="">
                             <label class="form-label">Phone</label>
-                            <input type="text" class="form-control" value="5555555555">
+                            <input id="modal-customer-phone" class="form-control">
                         </div>
                         <div class="">
                             <label class="form-label">Amount of Ice</label>
-                            <input type="text" class="form-control" value="100 lbs">
+                            <input id="modal-ice-amount" class="form-control">
                         </div>
                         <div class="">
                             <label class="form-label">Amount of Boxes</label>
-                            <input type="text" class="form-control" value="2">
+                            <input id="modal-box-amount" class="form-control">
                         </div>
                         <div class="">
                             <label class="form-label">Recurring</label>
-                            <select class="form-select">
-                                <option>Non-recurring</option>
+                            <select id="modal-recurring" class="form-select">
+                                <option value=""></option>
+                                <option value="recurring" {{ request('recurring') == 'recurring' ? 'selected' : '' }}>Yes</option>
+                                <option value="non-recurring" {{ request('recurring') == 'non-recurring' ? 'selected' : '' }}>No</option>
                             </select>
                         </div>
                     </div>
@@ -238,11 +216,11 @@
                         <div class="row">
                             <div class="col-8">
                                 <label class="form-label">Address</label>
-                                <input type="text" class="form-control" value="175 3rd street W">
+                                <input id="modal-address" class="form-control">
                             </div>
                             <div class="col-4">
                                 <label class="form-label">Unit</label>
-                                <input type="text" class="form-control" value="111">
+                                <input id="modal-unit" class="form-control">
                             </div>
                         </div>
 
@@ -258,41 +236,43 @@
                             <div class="col-md-3">
                                 <label class="form-label">Province</label>
                                 <select class="form-select">
-                                    <option selected>BC</option>
+                                    <select id="modal-province" class="form-select"></select>
                                 </select>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Country</label>
-                                <input type="text" class="form-control" value="Canada">
+                                <input id="modal-country" class="form-control">
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-5">
                                 <label class="form-label">Pickup or Delivery</label>
-                                <select class="form-select">
-                                    <option selected>Delivery</option>
+                                <select id="modal-pickup-or-delivery" class="form-select">
+                                    <option value="pickup" {{ request('pickup_delivery') == 'pickup' ? 'selected' : '' }}>Pick Up</option>
+                                    <option value="delivery" {{ request('pickup_delivery') == 'delivery' ? 'selected' : '' }}>Delivery</option>
                                 </select>
                             </div>
                             <div class="col-4">
                                 <label class="form-label">Status</label>
-                                <select class="form-select">
-                                    <option selected>Valid</option>
+                                <select class="form-select" id="modal-status">
+                                    <option value="valid" {{ request('status') == 'valid' ? 'selected' : '' }}>Valid</option>
+                                    <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                                 </select>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-5">
                                 <label class="form-label">Delivery Date</label>
-                                <input type="text" class="form-control" value="Tomorrow">
+                                <input id="modal-delivery-date" class="form-control">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Delivery Time</label>
-                                <input type="text" class="form-control" value="10:00 am">
+                                <input id="modal-delivery-time" class="form-control">
                             </div>
                         </div>
                         <div class="">
                             <label class="form-label">Notes</label>
-                            <textarea class="form-control">hi</textarea>
+                            <textarea id="modal-notes" class="form-control"></textarea>
                         </div>
                     </div>
 
@@ -422,6 +402,17 @@
             border-radius: 8px;
             border: 1px solid rgba(213, 213, 213, 1)
         }
+        form .select2.select2-container {
+            width: 250px;
+            border-radius: 8px;
+            margin: 0px 10px;
+            border: 1px solid rgba(213, 213, 213, 1);
+            background: white;
+        }
+        span.select2-selection.select2-selection--single, .select2-selection.select2-selection--multiple ul.select2-selection__rendered {
+            border: none;
+            background: transparent;
+        }
         .filters .btn {
             font-family: Nunito Sans;
             font-weight: 700;
@@ -511,11 +502,14 @@
 @endsection
 
 
-@section('after_scripts')
+@push('after_scripts')
 {{--@include('crud::inc.datatables_logic')--}}
 
 {{-- CRUD LIST CONTENT - crud_list_scripts stack --}}
 {{--@stack('crud_list_scripts')--}}
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -535,8 +529,57 @@
                 sidebar.style.zIndex = "1030"; // Reset sidebar z-index after modal closes
             }
         });
+        document.querySelectorAll('.btn-view').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.getElementById('modal-order-id').value = this.dataset.id;
+                document.getElementById('modal-customer-name').value = this.dataset.customer;
+                document.getElementById('modal-customer-email').value = this.dataset.email;
+                document.getElementById('modal-customer-phone').value = this.dataset.phone;
+                document.getElementById('modal-ice-amount').value = this.dataset.ice;
+                document.getElementById('modal-box-amount').value = this.dataset.boxes;
+                document.getElementById('modal-recurring').value = this.dataset.recurring;
+                document.getElementById('modal-address').value = this.dataset.address;
+                document.getElementById('modal-unit').value = this.dataset.unit;
+                document.getElementById('modal-city').value = this.dataset.city;
+                document.getElementById('modal-postal').value = this.dataset.postal;
+                document.getElementById('modal-province').value = this.dataset.province;
+                document.getElementById('modal-country').value = this.dataset.country;
+
+
+
+                document.getElementById('modal-notes').value = this.dataset.notes;
+                document.getElementById('modal-status').value = this.dataset.status;
+                document.getElementById('modal-pickup-or-delivery').value = this.dataset.pickup_delivery;
+            });
+        });
+
 
     });
-</script>
 
-@endsection
+
+    $(document).ready(function() {
+            $('#customer_id').select2({
+                placeholder: 'Search by Customer ID or Name',
+                minimumInputLength: 1,
+                ajax: {
+                    url: '{{ route("ajax.customers") }}',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return {
+                            q: params.term // search term
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                }
+            });
+        });
+    </script>
+
+
+@endpush

@@ -2,18 +2,16 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Requests\ManualPaymentRequest;
-use Illuminate\Http\Request;
-use App\Models\Order;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
+use App\Models\Product;
 
 /**
- * Class ManualPaymentCrudController
+ * Class ProductCrudController
  * @package App\Http\Controllers\Admin
  * @property-read \Backpack\CRUD\app\Library\CrudPanel\CrudPanel $crud
  */
-class ManualPaymentCrudController extends CrudController
+class ProductCrudController extends CrudController
 {
     use \Backpack\CRUD\app\Http\Controllers\Operations\ListOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\CreateOperation;
@@ -28,10 +26,9 @@ class ManualPaymentCrudController extends CrudController
      */
     public function setup()
     {
-        CRUD::setModel(\App\Models\ManualPayment::class);
-        CRUD::setRoute(config('backpack.base.route_prefix') . '/manual-payments');
-        CRUD::setEntityNameStrings('manual payment', 'manual payments');
-        CRUD::setCreateView('vendor.backpack.base.manual_payments');
+        CRUD::setModel(\App\Models\Product::class);
+        CRUD::setRoute(config('backpack.base.route_prefix') . '/product');
+        CRUD::setEntityNameStrings('product', 'products');
     }
 
     /**
@@ -58,13 +55,12 @@ class ManualPaymentCrudController extends CrudController
      */
     protected function setupCreateOperation()
     {
-        CRUD::setValidation(ManualPaymentRequest::class);
+        CRUD::setFromDb(); // set fields from db columns.
 
-        CRUD::field('contact_name')->type('text')->label('Contact Name');
-        CRUD::field('email')->type('email');
-        CRUD::field('order_number')->type('text');
-        CRUD::field('description')->type('textarea');
-        CRUD::field('amount')->type('number');
+        /**
+         * Fields can be defined using the fluent syntax:
+         * - CRUD::field('price')->type('number');
+         */
     }
 
     /**
@@ -77,16 +73,7 @@ class ManualPaymentCrudController extends CrudController
     {
         $this->setupCreateOperation();
     }
-    public function ajaxSearch(\Illuminate\Http\Request $request)
-    {
-        $search = $request->input('q');
 
-        $results = Order::query()
-            ->where('id', 'like', "%{$search}%")
-            ->orWhere('customer_name', 'like', "%{$search}%")
-            ->limit(20)
-            ->get(['id', 'customer_name']);
 
-        return response()->json($results);
-    }
+
 }

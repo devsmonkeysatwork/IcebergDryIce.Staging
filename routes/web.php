@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\InventoryPageController;
 use App\Http\Controllers\Admin\WarehouseSaleCrudController;
+use App\Http\Controllers\Admin\ManualPaymentCrudController;
 
 
 // routes/web.php
@@ -79,6 +80,10 @@ Route::group([
     Route::crud('inventory', 'InventoryCrudController');
     Route::get('/admin/warehouse-sales', [WarehouseSaleCrudController::class, 'index'])->name('admin.warehouse_sales');
     Route::crud('warehouse-sales', 'WarehouseSaleCrudController');
+
+    Route::get('admin/ajax/orders', [ManualPaymentCrudController::class, 'ajaxSearch'])->name('orders.ajax-search');
+    Route::get('admin/ajax/customers', [App\Http\Controllers\Admin\OrderCrudController::class, 'ajaxCustomers'])->name('ajax.customers');
+
 });
 
 // require __DIR__ . '/auth.php';
