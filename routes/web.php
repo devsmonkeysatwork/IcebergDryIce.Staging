@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\InventoryPageController;
 use App\Http\Controllers\Admin\WarehouseSaleCrudController;
 use App\Http\Controllers\Admin\ManualPaymentCrudController;
+use App\Http\Controllers\Admin\OrderCrudController;
 
 
 // routes/web.php
@@ -83,6 +84,7 @@ Route::group([
 
     Route::get('admin/ajax/orders', [ManualPaymentCrudController::class, 'ajaxSearch'])->name('orders.ajax-search');
     Route::get('admin/ajax/customers', [App\Http\Controllers\Admin\OrderCrudController::class, 'ajaxCustomers'])->name('ajax.customers');
+
 
 });
 

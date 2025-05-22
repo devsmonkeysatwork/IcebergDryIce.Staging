@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Admin\OrderCrudController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\DashboardController;
 
@@ -44,6 +45,8 @@ Route::group([
     Route::crud('customers', 'CustomersCrudController');
     Route::crud('log-files', 'LogFilesCrudController');
 
+
+
     // Reports
     Route::crud('inventory', 'InventoryCrudController');
     Route::get('inventory', function () {
@@ -66,4 +69,21 @@ Route::group([
         return view('vendor.backpack.base.emails');
     })->name('emails');
     Route::crud('product', 'ProductCrudController');
+});
+
+
+Route::group([
+    'prefix' => config('backpack.base.route_prefix', 'admin'),
+    'middleware' => array_merge(
+        (array) config('backpack.base.web_middleware', 'web'),
+        (array) config('backpack.base.middleware_key', 'admin')
+    ),
+    'namespace' => 'App\Http\Controllers\Admin',
+], function () {
+
+    // AJAX update/delete for orders
+    Route::put('orders/{id}/ajax-update', [OrderCrudController::class, 'updateOrderAjax'])
+        ->name('admin.orders.ajax-update');
+    Route::delete('orders/{id}/ajax-delete', [OrderCrudController::class, 'deleteOrderAjax'])
+        ->name('admin.orders.ajax-delete');
 });

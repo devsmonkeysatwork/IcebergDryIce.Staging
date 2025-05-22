@@ -94,6 +94,9 @@
                           <td>{{ $order->origin }}</td>
                           <td>{{ $order->recurring}}</td>
                           <td>
+                              @php
+                                  $dateTime = \Carbon\Carbon::parse($order->delivery_date);
+                              @endphp
                               <button class="btn btn-primary btn-view"
                                       data-bs-toggle="modal"
                                       data-bs-target="#orderSummaryModal"
@@ -102,21 +105,23 @@
                                       data-email="{{ $order->email }}"
                                       data-phone="{{ $order->phone }}"
                                       data-ice="{{ $order->amount_of_ice }}"
-                                      data-boxes="{{ $order-> amount_of_boxes}}"
+                                      data-boxes="{{ $order->amount_of_boxes }}"
                                       data-recurring="{{ $order->recurring }}"
                                       data-address="{{ $order->address }}"
                                       data-unit="{{ $order->unit }}"
                                       data-city="{{ $order->city }}"
-                                      data-postal="{{ $order->postal }}"
+                                      data-postal_code="{{ $order->postal_code }}"
                                       data-province="{{ $order->province }}"
                                       data-country="{{ $order->country }}"
-                                      data-delivery-date="{{ $order->delivery_date }}"
+                                      data-delivery-date="{{ $dateTime->format('Y-m-d') }}"
+                                      data-delivery-time="{{ $dateTime->format('H:i') }}"
                                       data-notes="{{ $order->notes }}"
                                       data-status="{{ $order->status }}"
                                       data-pickup_delivery="{{ $order->pickup_delivery }}"
                               >
                                   View
                               </button>
+
                           </td>
                       </tr>
                   @endforeach
@@ -159,6 +164,7 @@
 </div>
 
 <!-- Modal -->
+
 <div class="modal fade" id="orderSummaryModal" tabindex="-1" aria-labelledby="orderSummaryLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -172,36 +178,36 @@
                     <!-- Order Details -->
                     <div class="col-md-3">
                         <h5><i class="la la-shopping-cart"></i> Order</h5>
-                        <div class="">
+                        <div class="mb-2">
                             <label class="form-label">Order #</label>
                             <input id="modal-order-id" class="form-control" readonly>
                         </div>
-                        <div class="">
+                        <div class="mb-2">
                             <label class="form-label">Name</label>
                             <input id="modal-customer-name" class="form-control">
                         </div>
-                        <div class="">
+                        <div class="mb-2">
                             <label class="form-label">Email</label>
                             <input id="modal-customer-email" class="form-control">
                         </div>
-                        <div class="">
+                        <div class="mb-2">
                             <label class="form-label">Phone</label>
                             <input id="modal-customer-phone" class="form-control">
                         </div>
-                        <div class="">
+                        <div class="mb-2">
                             <label class="form-label">Amount of Ice</label>
-                            <input id="modal-ice-amount" class="form-control">
+                            <input id="modal-ice-amount" class="form-control" type="number" min="0" step="1">
                         </div>
-                        <div class="">
+                        <div class="mb-2">
                             <label class="form-label">Amount of Boxes</label>
-                            <input id="modal-box-amount" class="form-control">
+                            <input id="modal-box-amount" class="form-control" type="number" min="0" step="1">
                         </div>
-                        <div class="">
+                        <div class="mb-2">
                             <label class="form-label">Recurring</label>
                             <select id="modal-recurring" class="form-select">
                                 <option value=""></option>
-                                <option value="recurring" {{ request('recurring') == 'recurring' ? 'selected' : '' }}>Yes</option>
-                                <option value="non-recurring" {{ request('recurring') == 'non-recurring' ? 'selected' : '' }}>No</option>
+                                <option value="recurring">Yes</option>
+                                <option value="non-recurring">No</option>
                             </select>
                         </div>
                     </div>
@@ -209,11 +215,11 @@
                     <!-- Delivery Details -->
                     <div class="col-md-5 px-3">
                         <h5><i class="la la-truck"></i> Delivery</h5>
-                        <div class="">
+                        <div class="mb-2">
                             <label class="form-label">Location Name</label>
                             <input type="text" class="form-control" value="Residence">
                         </div>
-                        <div class="row">
+                        <div class="row mb-2">
                             <div class="col-8">
                                 <label class="form-label">Address</label>
                                 <input id="modal-address" class="form-control">
@@ -224,19 +230,23 @@
                             </div>
                         </div>
 
-                        <div class="row">
+                        <div class="row mb-2">
                             <div class="col-md-3">
                                 <label class="form-label">City</label>
-                                <input type="text" class="form-control" value="North Vancouver">
+                                <input id="modal-city" type="text" class="form-control">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Postal</label>
-                                <input type="text" class="form-control" value="V7M0G5">
+                                <input id="modal-postal" type="text" class="form-control">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Province</label>
-                                <select class="form-select">
-                                    <select id="modal-province" class="form-select"></select>
+                                <select id="modal-province" class="form-select">
+                                    <option value="BC">BC</option>
+                                    <option value="AB">AB</option>
+                                    <option value="ON">ON</option>
+                                    <option value="QC">QC</option>
+                                    <!-- Add more provinces as needed -->
                                 </select>
                             </div>
                             <div class="col-md-3">
@@ -244,35 +254,35 @@
                                 <input id="modal-country" class="form-control">
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="row mb-2">
                             <div class="col-5">
                                 <label class="form-label">Pickup or Delivery</label>
                                 <select id="modal-pickup-or-delivery" class="form-select">
-                                    <option value="pickup" {{ request('pickup_delivery') == 'pickup' ? 'selected' : '' }}>Pick Up</option>
-                                    <option value="delivery" {{ request('pickup_delivery') == 'delivery' ? 'selected' : '' }}>Delivery</option>
+                                    <option value="pickup">Pick Up</option>
+                                    <option value="delivery">Delivery</option>
                                 </select>
                             </div>
                             <div class="col-4">
                                 <label class="form-label">Status</label>
                                 <select class="form-select" id="modal-status">
-                                    <option value="valid" {{ request('status') == 'valid' ? 'selected' : '' }}>Valid</option>
-                                    <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                    <option value="valid">Valid</option>
+                                    <option value="cancelled">Cancelled</option>
                                 </select>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="row mb-2">
                             <div class="col-md-5">
                                 <label class="form-label">Delivery Date</label>
-                                <input id="modal-delivery-date" class="form-control">
+                                <input id="modal-delivery-date" type="date" class="form-control">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Delivery Time</label>
-                                <input id="modal-delivery-time" class="form-control">
+                                <input id="modal-delivery-time" type="time" class="form-control">
                             </div>
                         </div>
-                        <div class="">
+                        <div class="mb-2">
                             <label class="form-label">Notes</label>
-                            <textarea id="modal-notes" class="form-control"></textarea>
+                            <textarea id="modal-notes" class="form-control" rows="3"></textarea>
                         </div>
                     </div>
 
@@ -280,32 +290,32 @@
                     <div class="col-md-4">
                         <h5><i class="la la-dollar-sign"></i> Cost Summary</h5>
                         <div class="p-3 rounded" style="background: rgba(245, 246, 250, 1);">
-                            <div class="d-flex justify-content-between align-items-center m-1">
-                                <p class="m-0">Dry Ice (100 lbs @ $1.95/lb):</p>
-                                <strong>$195.00</strong>
+                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-ice">
+                                <p class="m-0">Dry Ice (0 lbs @ $1.95/lb):</p>
+                                <strong>$0.00</strong>
                             </div>
-                            <div class="d-flex justify-content-between align-items-center m-1">
-                                <p class="m-0">Styrofoam Box (2 @ $30/box): </p>
-                                <strong>$60.00</strong>
+                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-box">
+                                <p class="m-0">Styrofoam Box (0 @ $30.00/box): </p>
+                                <strong>$0.00</strong>
                             </div>
-                            <div class="d-flex justify-content-between align-items-center m-1">
+                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-delivery">
                                 <p class="m-0">Pickup/Delivery: </p>
-                                <strong>$20.00</strong>
+                                <strong>$0.00</strong>
                             </div>
                             <hr>
-                            <div class="d-flex justify-content-between align-items-center m-1">
+                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-subtotal">
                                 <p class="m-0">Sub-Total: </p>
-                                <strong>$275.00</strong>
+                                <strong>$0.00</strong>
                             </div>
-                            <div class="d-flex justify-content-between align-items-center m-1">
+                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-tax">
                                 <p class="m-0">Tax (15%):  </p>
-                                <strong>$41.25</strong>
+                                <strong>$0.00</strong>
                             </div>
 
                             <hr>
-                            <div class="d-flex justify-content-between align-items-center m-1">
+                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-total">
                                 <p class="m-0">TOTAL: </p>
-                                <strong>$316.25</strong>
+                                <strong>$0.00</strong>
                             </div>
                         </div>
                     </div>
@@ -314,15 +324,14 @@
 
             <div class="modal-footer border-0 d-flex justify-content-between">
                 <div>
-                    <button class="btn btn-primary">Update</button>
+                    <button id="update-order-btn" class="btn btn-primary">Update</button>
                     <button class="btn btn-secondary mx-2" data-bs-dismiss="modal">Cancel</button>
                 </div>
-                <button class="btn btn-danger">Delete</button>
+                <button id="delete-order-btn" class="btn btn-danger">Delete</button>
             </div>
         </div>
     </div>
-</div>
-<!-- Bootstrap Modal -->
+</div><!-- Bootstrap Modal -->
 
 
 @endsection
@@ -511,26 +520,33 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<!-- SweetAlert2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
+    // Replace the existing JavaScript section in your blade template with this:
+
     document.addEventListener('DOMContentLoaded', function() {
-
         let summaryModal = document.getElementById("orderSummaryModal");
-        let sidebar = document.querySelector("aside.navbar-vertical"); // Adjust selector based on your layout
-
+        let sidebar = document.querySelector("aside.navbar-vertical");
 
         summaryModal.addEventListener("show.bs.modal", function() {
             if (sidebar) {
-                sidebar.style.zIndex = "-1"; // Lower sidebar when modal appears
+                sidebar.style.zIndex = "-1";
             }
         });
 
         summaryModal.addEventListener("hidden.bs.modal", function() {
             if (sidebar) {
-                sidebar.style.zIndex = "1030"; // Reset sidebar z-index after modal closes
+                sidebar.style.zIndex = "1030";
             }
         });
-        document.querySelectorAll('.btn-view').forEach(function (btn) {
-            btn.addEventListener('click', function () {
+
+        // Populate modal with order data
+        document.querySelectorAll('.btn-view').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                // Populate order details
                 document.getElementById('modal-order-id').value = this.dataset.id;
                 document.getElementById('modal-customer-name').value = this.dataset.customer;
                 document.getElementById('modal-customer-email').value = this.dataset.email;
@@ -538,47 +554,293 @@
                 document.getElementById('modal-ice-amount').value = this.dataset.ice;
                 document.getElementById('modal-box-amount').value = this.dataset.boxes;
                 document.getElementById('modal-recurring').value = this.dataset.recurring;
+
+                // Populate delivery details
                 document.getElementById('modal-address').value = this.dataset.address;
                 document.getElementById('modal-unit').value = this.dataset.unit;
                 document.getElementById('modal-city').value = this.dataset.city;
-                document.getElementById('modal-postal').value = this.dataset.postal;
+                document.getElementById('modal-postal').value = this.dataset.postal_code;
                 document.getElementById('modal-province').value = this.dataset.province;
                 document.getElementById('modal-country').value = this.dataset.country;
-
-
-
+                document.getElementById('modal-delivery-date').value = this.dataset.deliveryDate;
+                document.getElementById('modal-delivery-time').value = this.dataset.deliveryTime;
                 document.getElementById('modal-notes').value = this.dataset.notes;
                 document.getElementById('modal-status').value = this.dataset.status;
                 document.getElementById('modal-pickup-or-delivery').value = this.dataset.pickup_delivery;
+
+                // Calculate and display order costs
+                updateCostSummary();
+
+                // Store the order ID for update and delete operations
+                document.getElementById('update-order-btn').dataset.orderId = this.dataset.id;
+                document.getElementById('delete-order-btn').dataset.orderId = this.dataset.id;
             });
         });
 
+        // Dynamic cost calculation
+        function updateCostSummary() {
+            const iceAmount = parseFloat(document.getElementById('modal-ice-amount').value) || 0;
+            const boxAmount = parseFloat(document.getElementById('modal-box-amount').value) || 0;
+            const pickupDelivery = document.getElementById('modal-pickup-or-delivery').value;
 
-    });
+            const pricePerLb = 1.95;
+            const pricePerBox = 30.00;
+            const deliveryFee = pickupDelivery === 'delivery' ? 20.00 : 0.00;
 
+            const iceCost = iceAmount * pricePerLb;
+            const boxCost = boxAmount * pricePerBox;
+            const subTotal = iceCost + boxCost + deliveryFee;
+            const taxRate = 0.15;
+            const tax = subTotal * taxRate;
+            const total = subTotal + tax;
 
-    $(document).ready(function() {
-            $('#customer_id').select2({
-                placeholder: 'Search by Customer ID or Name',
-                minimumInputLength: 1,
-                ajax: {
-                    url: '{{ route("ajax.customers") }}',
-                    dataType: 'json',
-                    delay: 250,
-                    data: function (params) {
-                        return {
-                            q: params.term // search term
-                        };
-                    },
-                    processResults: function (data) {
-                        return {
-                            results: data
-                        };
-                    },
-                    cache: true
+            // Update the cost summary section
+            document.querySelector('#orderSummaryModal .modal-body .cost-summary-ice').innerHTML =
+                `<p class="m-0">Dry Ice (${iceAmount} lbs @ $${pricePerLb.toFixed(2)}/lb):</p>
+             <strong>$${iceCost.toFixed(2)}</strong>`;
+
+            document.querySelector('#orderSummaryModal .modal-body .cost-summary-box').innerHTML =
+                `<p class="m-0">Styrofoam Box (${boxAmount} @ $${pricePerBox.toFixed(2)}/box):</p>
+             <strong>$${boxCost.toFixed(2)}</strong>`;
+
+            document.querySelector('#orderSummaryModal .modal-body .cost-summary-delivery').innerHTML =
+                `<p class="m-0">Pickup/Delivery:</p>
+             <strong>$${deliveryFee.toFixed(2)}</strong>`;
+
+            document.querySelector('#orderSummaryModal .modal-body .cost-summary-subtotal').innerHTML =
+                `<p class="m-0">Sub-Total:</p>
+             <strong>$${subTotal.toFixed(2)}</strong>`;
+
+            document.querySelector('#orderSummaryModal .modal-body .cost-summary-tax').innerHTML =
+                `<p class="m-0">Tax (${(taxRate * 100).toFixed(0)}%):</p>
+             <strong>$${tax.toFixed(2)}</strong>`;
+
+            document.querySelector('#orderSummaryModal .modal-body .cost-summary-total').innerHTML =
+                `<p class="m-0">TOTAL:</p>
+             <strong>$${total.toFixed(2)}</strong>`;
+        }
+
+        // Add event listeners to inputs that affect cost calculation
+        document.getElementById('modal-ice-amount').addEventListener('change', updateCostSummary);
+        document.getElementById('modal-box-amount').addEventListener('change', updateCostSummary);
+        document.getElementById('modal-pickup-or-delivery').addEventListener('change', updateCostSummary);
+
+        // Handle Update Button Click
+        document.getElementById('update-order-btn').addEventListener('click', function() {
+            const orderId = this.dataset.orderId;
+
+            if (!orderId) {
+                alert('Order ID not found');
+                return;
+            }
+
+            // Show loading state
+            this.textContent = 'Updating...';
+            this.disabled = true;
+
+            // Collect all form data
+            const formData = new FormData();
+            formData.append('_method', 'PUT');
+            formData.append('customer_name', document.getElementById('modal-customer-name').value);
+            formData.append('email', document.getElementById('modal-customer-email').value);
+            formData.append('phone', document.getElementById('modal-customer-phone').value);
+            formData.append('amount_of_ice', document.getElementById('modal-ice-amount').value);
+            formData.append('amount_of_boxes', document.getElementById('modal-box-amount').value);
+            formData.append('recurring', document.getElementById('modal-recurring').value);
+            formData.append('address', document.getElementById('modal-address').value);
+            formData.append('unit', document.getElementById('modal-unit').value);
+            formData.append('city', document.getElementById('modal-city').value);
+            formData.append('postal', document.getElementById('modal-postal').value);
+            formData.append('province', document.getElementById('modal-province').value);
+            formData.append('country', document.getElementById('modal-country').value);
+            const date = document.getElementById('modal-delivery-date').value;
+            const time = document.getElementById('modal-delivery-time').value;
+
+            if (date && time) {
+                formData.append('delivery_date', `${date} ${time}:00`); // e.g., "2025-05-20 14:30:00"
+            } else if (date) {
+                formData.append('delivery_date', `${date} 00:00:00`);
+            } else {
+                formData.append('delivery_date', '');
+            }
+            formData.append('notes', document.getElementById('modal-notes').value);
+            formData.append('status', document.getElementById('modal-status').value);
+            formData.append('pickup_delivery', document.getElementById('modal-pickup-or-delivery').value);
+
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]');
+            if (!csrfToken) {
+                console.error('CSRF token not found. Make sure you have <meta name="csrf-token" content="{{ csrf_token() }}"> in your head tag.');
+                this.textContent = 'Update';
+                this.disabled = false;
+                return;
+            }
+
+            // Send AJAX request to update order
+            fetch(`{{ url('admin/orders') }}/${orderId}/ajax-update`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken.getAttribute('content'),
+                    'Accept': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    // Reset button state
+                    this.textContent = 'Update';
+                    this.disabled = false;
+
+                    if (data.success) {
+                        // Close modal
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('orderSummaryModal'));
+                        modal.hide();
+
+                        // Show success notification
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                title: 'Success!',
+                                text: 'Order has been updated successfully',
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            alert('Order updated successfully!');
+                            window.location.reload();
+                        }
+                    } else {
+                        throw new Error(data.message || 'Update failed');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating order:', error);
+
+                    // Reset button state
+                    this.textContent = 'Update';
+                    this.disabled = false;
+
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: error.message || 'Failed to update order. Please try again.',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    } else {
+                        alert('Error updating order: ' + (error.message || 'Please try again.'));
+                    }
+                });
+        });
+
+        // Handle Delete Button Click
+        document.getElementById('delete-order-btn').addEventListener('click', function() {
+            const orderId = this.dataset.orderId;
+
+            if (!orderId) {
+                alert('Order ID not found');
+                return;
+            }
+
+            // Show confirmation dialog
+            const confirmDelete = typeof Swal !== 'undefined' ?
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: "You won't be able to revert this!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, delete it!'
+                }) :
+                Promise.resolve({ isConfirmed: confirm("Are you sure you want to delete this order? You won't be able to revert this!") });
+
+            confirmDelete.then((result) => {
+                if (result.isConfirmed) {
+                    // Get CSRF token
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+                    if (!csrfToken) {
+                        console.error('CSRF token not found');
+                        return;
+                    }
+
+                    // Send AJAX request to delete order
+                    fetch(`{{ url('admin/orders') }}/${orderId}/ajax-delete`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken.getAttribute('content'),
+                            'Accept': 'application/json'
+                        },
+                        credentials: 'same-origin'
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Close modal
+                                const modal = bootstrap.Modal.getInstance(document.getElementById('orderSummaryModal'));
+                                modal.hide();
+
+                                // Show success notification
+                                if (typeof Swal !== 'undefined') {
+                                    Swal.fire({
+                                        title: 'Deleted!',
+                                        text: 'Order has been deleted successfully',
+                                        icon: 'success',
+                                        confirmButtonText: 'OK'
+                                    }).then(() => {
+                                        window.location.reload();
+                                    });
+                                } else {
+                                    alert('Order deleted successfully!');
+                                    window.location.reload();
+                                }
+                            } else {
+                                throw new Error(data.message || 'Delete failed');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error deleting order:', error);
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: error.message || 'Failed to delete order. Please try again.',
+                                    icon: 'error',
+                                    confirmButtonText: 'OK'
+                                });
+                            } else {
+                                alert('Error deleting order: ' + (error.message || 'Please try again.'));
+                            }
+                        });
                 }
             });
         });
+    });
+
+    // Initialize Select2 for customer search
+    $(document).ready(function() {
+        $('#customer_id').select2({
+            placeholder: 'Search by Customer ID or Name',
+            minimumInputLength: 1,
+            ajax: {
+                url: '{{ route("ajax.customers") }}',
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        q: params.term
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            }
+        });
+    });
     </script>
 
 

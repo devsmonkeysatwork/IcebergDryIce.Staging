@@ -12,41 +12,39 @@ use Carbon\Carbon;
 
 class OrderCrudController extends CrudController
 {
-  use \Backpack\CRUD\app\Http\Controllers\Operations\ListOperation;
-  use \Backpack\CRUD\app\Http\Controllers\Operations\CreateOperation;
-  use \Backpack\CRUD\app\Http\Controllers\Operations\UpdateOperation;
-  use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
-  use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
+    use \Backpack\CRUD\app\Http\Controllers\Operations\ListOperation;
+    use \Backpack\CRUD\app\Http\Controllers\Operations\CreateOperation;
+    use \Backpack\CRUD\app\Http\Controllers\Operations\UpdateOperation;
+    use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
+    use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
 
-  public function setup()
-  {
-    CRUD::setModel(Order::class);
-    CRUD::setRoute(config('backpack.base.route_prefix') . '/orders');
-    CRUD::setEntityNameStrings('order', 'orders');
-    CRUD::setListView('vendor.backpack.crud.order-list');
+    public function setup()
+    {
+        CRUD::setModel(Order::class);
+        CRUD::setRoute(config('backpack.base.route_prefix') . '/orders');
+        CRUD::setEntityNameStrings('order', 'orders');
+        CRUD::setListView('vendor.backpack.crud.order-list');
+    }
 
-  }
+    protected function setupListOperation()
+    {
+        CRUD::column('id')->label('Order #');
+        CRUD::column('customer_name')->label('Customer Name');
+        CRUD::addColumn([
+            'name' => 'delivery_date',
+            'type' => 'datetime',
+            'label' => 'Delivery Date',
+            'format' => 'YYYY-MM-DD HH:mm'
+        ]);
+        CRUD::column('status')->label('Status');
+        CRUD::column('total_cost')->label('Total');
+        CRUD::column('origin')->label('Origin');
+        CRUD::column('recurring')->label('Recurring');
 
-  protected function setupListOperation()
-  {
-      CRUD::column('id')->label('Order #');
-      CRUD::column('customer_name')->label('Customer Name');
-      CRUD::addColumn([
-          'name' => 'delivery_date',
-          'type' => 'datetime',
-          'label' => 'Delivery Date',
-          'format' => 'YYYY-MM-DD HH:mm'
-      ]);
-      CRUD::column('status')->label('Status');
-      CRUD::column('total_cost')->label('Total');
-      CRUD::column('origin')->label('Origin');
-      CRUD::column('recurring')->label('Recurring');
+        // Sort newest first
+        CRUD::orderBy('id', 'desc');
+    }
 
-      // Sort newest first
-      CRUD::orderBy('id', 'desc');
-
-
-  }
     public function index()
     {
         $this->setupListOperation();
@@ -74,14 +72,6 @@ class OrderCrudController extends CrudController
         // Make sure entries are available to the view
         return view('vendor.backpack.crud.order-list', compact('entries', 'crud'));
     }
-    //    public function index()
-//    {
-//        $this->setupListOperation();
-//
-//    }
-
-
-
 
     public function setupCreateOperation()
     {
@@ -206,92 +196,222 @@ class OrderCrudController extends CrudController
         ]);
     }
 
-
     protected function setupUpdateOperation()
-  {
-    $this->setupCreateOperation();
-  }
-
-  protected function addCustomFilters()
-  {
-    // $all = request()->query('all');
-    $today = request()->query('today');
-    $future = request()->query('future');
-    $past = request()->query('past');
-
-    if ($today) {
-      CRUD::addClause('whereDate', 'delivery_date', '=', Carbon::today()->toDateString());
-    } elseif ($future) {
-      CRUD::addClause('whereDate', 'delivery_date', '>', Carbon::today()->toDateString());
-    } elseif ($past) {
-      CRUD::addClause('whereDate', 'delivery_date', '<', Carbon::today()->toDateString());
+    {
+        $this->setupCreateOperation();
     }
-  }
 
-  protected function handleCustomerData($data)
-  {
-    $customer = Customer::updateOrCreate(
-      ['email' => $data['email']],
-      [
-        'name' => $data['customer_name'],
-        'phone' => $data['phone'],
-        'address' => $data['address'],
-        'city' => $data['city'],
-        'postal_code' => $data['postal_code'],
-        'province' => $data['province'],
-        'country' => $data['country']
-      ]
-    );
-    return $customer;
-  }
+    protected function addCustomFilters()
+    {
+        $today = request()->query('today');
+        $future = request()->query('future');
+        $past = request()->query('past');
 
-  protected function saveOrder($data)
-  {
-    $customer = $this->handleCustomerData($data);
-    $data['customer_id'] = $customer->id;
+        if ($today) {
+            CRUD::addClause('whereDate', 'delivery_date', '=', Carbon::today()->toDateString());
+        } elseif ($future) {
+            CRUD::addClause('whereDate', 'delivery_date', '>', Carbon::today()->toDateString());
+        } elseif ($past) {
+            CRUD::addClause('whereDate', 'delivery_date', '<', Carbon::today()->toDateString());
+        }
+    }
 
-    return Order::create($data);
-  }
+    protected function handleCustomerData($data)
+    {
+        $customer = Customer::updateOrCreate(
+            ['email' => $data['email']],
+            [
+                'name' => $data['customer_name'],
+                'phone' => $data['phone'],
+                'address' => $data['address'],
+                'city' => $data['city'],
+                'postal_code' => $data['postal_code'],
+                'province' => $data['province'],
+                'country' => $data['country']
+            ]
+        );
+        return $customer;
+    }
 
-  protected function updateOrder($data, $id)
-  {
-    $customer = $this->handleCustomerData($data);
-    $data['customer_id'] = $customer->id;
+    protected function saveOrder($data)
+    {
+        $customer = $this->handleCustomerData($data);
+        $data['customer_id'] = $customer->id;
 
-    $order = Order::findOrFail($id);
-    $order->update($data);
-    return $order;
-  }
+        return Order::create($data);
+    }
 
-  // Override store method to save order and customer
-  public function store()
-  {
-    $request = $this->crud->validateRequest();
-    $data = $request->all();
+    protected function updateOrderData($data, $id)
+    {
+        $customer = $this->handleCustomerData($data);
+        $data['customer_id'] = $customer->id;
 
-    $this->saveOrder($data);
+        $order = Order::findOrFail($id);
+        $order->update($data);
+        return $order;
+    }
 
-    return $this->crud->performSaveAction();
-  }
+    // Override store method to save order and customer
+    public function store()
+    {
+        $request = $this->crud->validateRequest();
+        $data = $request->all();
 
-  // Override update method to update order and customer
-  public function update($id)
-  {
-    $request = $this->crud->validateRequest();
-    $data = $request->all();
+        $this->saveOrder($data);
 
-    $this->updateOrder($data, $id);
+        return $this->crud->performSaveAction();
+    }
 
-    return $this->crud->performUpdateAction($id);
-  }
+    // Override update method to update order and customer
+    public function update($id)
+    {
+        $request = $this->crud->validateRequest();
+        $data = $request->all();
 
+        $this->updateOrderData($data, $id);
+
+        return $this->crud->performUpdateAction($id);
+    }
+
+    /**
+     * Show order details (AJAX endpoint)
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getOrderDetails($id)
+    {
+        try {
+            $order = Order::findOrFail($id);
+            return response()->json($order);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Order not found'], 404);
+        }
+    }
+
+    /**
+     * Update order via AJAX
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function updateOrderAjax(Request $request, $id)
+    {
+        try {
+            $order = Order::findOrFail($id);
+
+            // Validate the request data
+            $validatedData = $request->validate([
+                'customer_name' => 'required|string|max:255',
+                'email' => 'required|email|max:255',
+                'phone' => 'nullable|string|max:20',
+                'amount_of_ice' => 'nullable|numeric|min:0',
+                'amount_of_boxes' => 'nullable|numeric|min:0',
+                'recurring' => 'nullable|string|in:recurring,non-recurring',
+                'address' => 'nullable|string|max:255',
+                'unit' => 'nullable|string|max:50',
+                'city' => 'nullable|string|max:100',
+                'postal' => 'nullable|string|max:20',
+                'province' => 'nullable|string|max:50',
+                'country' => 'nullable|string|max:100',
+                'delivery_date' => 'nullable|date',
+                'notes' => 'nullable|string',
+                'status' => 'required|string|in:valid,cancelled,skip',
+                'pickup_delivery' => 'required|string|in:pickup,delivery'
+            ]);
+
+            // Handle customer creation/update
+            if (isset($validatedData['email']) && isset($validatedData['customer_name'])) {
+                $customer = Customer::updateOrCreate(
+                    ['email' => $validatedData['email']],
+                    [
+                        'name' => $validatedData['customer_name'],
+                        'phone' => $validatedData['phone'] ?? null,
+                        'address' => $validatedData['address'] ?? null,
+                        'city' => $validatedData['city'] ?? null,
+                        'postal_code' => $validatedData['postal'] ?? null,
+                        'province' => $validatedData['province'] ?? null,
+                        'country' => $validatedData['country'] ?? null
+                    ]
+                );
+                $validatedData['customer_id'] = $customer->id;
+            }
+
+            // Calculate total cost
+            $iceCost = ($validatedData['amount_of_ice'] ?? 0) * 1.95;
+            $boxCost = ($validatedData['amount_of_boxes'] ?? 0) * 30.00;
+            $deliveryFee = ($validatedData['pickup_delivery'] === 'delivery') ? 20.00 : 0.00;
+            $subtotal = $iceCost + $boxCost + $deliveryFee;
+            $tax = $subtotal * 0.15;
+            $validatedData['total_cost'] = $subtotal + $tax;
+
+            // Fix field name mapping
+            if (isset($validatedData['postal'])) {
+                $validatedData['postal_code'] = $validatedData['postal'];
+                unset($validatedData['postal']);
+            }
+
+            // Update the order
+            $order->update($validatedData);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order updated successfully',
+                'order' => $order->fresh()
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating order: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete order via AJAX
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function deleteOrderAjax($id)
+    {
+        try {
+            $order = Order::findOrFail($id);
+            $order->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error deleting order: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * AJAX endpoint for customer search
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function ajaxCustomers(Request $request)
     {
         $search = $request->input('q');
 
         $results = Customer::query()
             ->where('id', 'like', "%{$search}%")
-            ->orWhere('name', 'like', "%{$search}%") // Adjust to match your DB column
+            ->orWhere('name', 'like', "%{$search}%")
             ->limit(20)
             ->get(['id', 'name']);
 
@@ -302,5 +422,4 @@ class OrderCrudController extends CrudController
 
         return response()->json($formatted);
     }
-
 }
