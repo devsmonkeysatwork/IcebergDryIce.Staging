@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Mail\CustomerRegisteredMail;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 use Illuminate\Http\Request;
@@ -9,6 +10,8 @@ use App\Http\Requests\OrderRequest;
 use App\Models\Order;
 use App\Models\Customer;
 use Carbon\Carbon;
+use App\Mail\OrderPlacedMail;
+use Illuminate\Support\Facades\Mail;
 
 class OrderCrudController extends CrudController
 {
@@ -194,27 +197,184 @@ class OrderCrudController extends CrudController
             'type'  => 'textarea',
             'wrapperAttributes' => ['class' => 'form-group col-md-12'],
         ]);
+
+
     }
+
+    // In your OrderCrudController or similar
+
+    public function ajaxCreate(Request $request)
+    {
+        // Validation
+        $validated = $request->validate([
+            'customer_name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'phone' => 'required|string|max:20',
+            'amount_of_ice' => 'nullable|numeric|min:0',
+            'amount_of_boxes' => 'nullable|numeric|min:0',
+            'recurring' => 'string|in:recurring,non-recurring',
+            'location_name' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:255',
+            'unit' => 'nullable|string|max:50',
+            'city' => 'nullable|string|max:100',
+            'postal_code' => 'string|max:20',
+            'province' => 'string|max:50',
+            'country' => 'string|max:100',
+            'delivery_date' => 'nullable|date',
+            'notes' => 'nullable|string',
+            'status' => 'required|string|in:valid,cancelled,skip',
+            'pickup_delivery' => 'required|string|in:pickup,delivery'
+        ]);
+
+
+        try {
+            // Handle customer lookup or creation
+            $customer = $this->handleCustomerData($request);
+            // Calculate cost (adjust pricing logic as needed)
+            $iceCost = ($validated['amount_of_ice'] ?? 0) * 5;      // Example: $5 per unit of ice
+            $boxCost = ($validated['amount_of_boxes'] ?? 0) * 2.5;  // Example: $2.50 per box
+            $totalCost = $iceCost + $boxCost;
+
+
+            // Merge calculated and derived fields into validated data
+            $validated['customer_id'] = $customer->id;
+            $validated['total_cost'] = $totalCost;
+
+
+            $validated['origin'] = 'manual'; // ✅ set origin to manual
+
+
+            // Create the order with customer_id
+            $order = Order::create($validated);
+
+            Mail::to($order->email)->send(new OrderPlacedMail($order));
+
+
+            return response()->json(['success' => true, 'order' => $order]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+
+    /**
+     * Handle AJAX submission from review form
+     */
+    public function ajaxCreateFromReview(Request $request)
+    {
+        // Validation - matching review form field names
+        $validated = $request->validate([
+            'customer_name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'phone' => 'required|string|max:20',
+            'amount_of_ice' => 'nullable|numeric|min:10',
+            'amount_of_boxes' => 'nullable|numeric|min:0',
+            'recurring' => 'string|in:recurring,non-recurring',
+            'location_name' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:255',
+            'unit' => 'nullable|string|max:50',
+            'city' => 'nullable|string|max:100',
+            'postal_code' => 'required|string|max:20',
+            'province' => 'required|string|max:50',
+            'country' => 'string|max:100',
+            'delivery_date' => 'nullable|date',
+            'notes' => 'nullable|string',
+            'status' => 'string|in:valid,cancelled,skip',
+            'pickup_delivery' => 'string|in:pickup,delivery',
+            // Review-specific fields
+            'weight_cost' => 'nullable|numeric|min:0',
+            'box_cost' => 'nullable|numeric|min:0',
+            'subtotal' => 'nullable|numeric|min:0',
+            'delivery_cost' => 'nullable|numeric|min:0',
+            'tax' => 'nullable|numeric|min:0',
+            'total_cost' => 'nullable|numeric|min:0',
+            'accept' => 'required|accepted'
+        ]);
+
+        try {
+            // Handle customer lookup or creation
+            $customer = $this->handleCustomerData($request);
+
+            // Use calculated costs from review form or recalculate
+            if (isset($validated['total_cost']) && $validated['total_cost'] > 0) {
+                $totalCost = $validated['total_cost'];
+            } else {
+                // Fallback calculation if not provided
+                $iceCost = ($validated['amount_of_ice'] ?? 0) * 5;
+                $boxCost = ($validated['amount_of_boxes'] ?? 0) * 2.5;
+                $totalCost = $iceCost + $boxCost + ($validated['delivery_cost'] ?? 5.00) + ($validated['tax'] ?? 0);
+            }
+
+            // Prepare order data
+            $orderData = [
+                'customer_id' => $customer->id,
+                'customer_name' => $validated['customer_name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
+                'amount_of_ice' => $validated['amount_of_ice'],
+                'amount_of_boxes' => $validated['amount_of_boxes'] ?? 0,
+                'recurring' => $validated['recurring'] ?? 'non-recurring',
+                'location_name' => $validated['location_name'],
+                'address' => $validated['address'],
+                'unit' => $validated['unit'],
+                'city' => $validated['city'],
+                'postal_code' => $validated['postal_code'],
+                'province' => $validated['province'],
+                'country' => $validated['country'] ?? 'Canada',
+                'delivery_date' => $validated['delivery_date'],
+                'notes' => $validated['notes'],
+                'status' => $validated['status'] ?? 'valid',
+                'pickup_delivery' => $validated['pickup_delivery'] ?? 'delivery',
+                'total_cost' => $totalCost,
+                'origin' => 'online'
+            ];
+
+            // Create the order
+            $order = Order::create($orderData);
+
+            Mail::to($order->email)->send(new OrderPlacedMail($order));
+
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Online Order submitted successfully',
+                'order' => $order,
+                'order_id' => $order->id
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Review form order creation failed: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create order: ' . $e->getMessage()
+            ], 422);
+        }
+    }
+
+    /**
+     * Handle customer data for review form
+     */
 
     protected function setupUpdateOperation()
     {
         $this->setupCreateOperation();
     }
 
-    protected function addCustomFilters()
-    {
-        $today = request()->query('today');
-        $future = request()->query('future');
-        $past = request()->query('past');
-
-        if ($today) {
-            CRUD::addClause('whereDate', 'delivery_date', '=', Carbon::today()->toDateString());
-        } elseif ($future) {
-            CRUD::addClause('whereDate', 'delivery_date', '>', Carbon::today()->toDateString());
-        } elseif ($past) {
-            CRUD::addClause('whereDate', 'delivery_date', '<', Carbon::today()->toDateString());
-        }
-    }
+//    protected function addCustomFilters()
+//    {
+//        $today = request()->query('today');
+//        $future = request()->query('future');
+//        $past = request()->query('past');
+//
+//        if ($today) {
+//            CRUD::addClause('whereDate', 'delivery_date', '=', Carbon::today()->toDateString());
+//        } elseif ($future) {
+//            CRUD::addClause('whereDate', 'delivery_date', '>', Carbon::today()->toDateString());
+//        } elseif ($past) {
+//            CRUD::addClause('whereDate', 'delivery_date', '<', Carbon::today()->toDateString());
+//        }
+//    }
 
     protected function handleCustomerData($data)
     {
@@ -257,10 +417,18 @@ class OrderCrudController extends CrudController
         $request = $this->crud->validateRequest();
         $data = $request->all();
 
-        $this->saveOrder($data);
+        $order = $this->saveOrder($data);
+
+        // Send confirmation email
+        try {
+            Mail::to($order->email)->send(new OrderPlacedMail($order));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send order email: ' . $e->getMessage());
+        }
 
         return $this->crud->performSaveAction();
     }
+
 
     // Override update method to update order and customer
     public function update($id)
@@ -309,10 +477,11 @@ class OrderCrudController extends CrudController
                 'amount_of_ice' => 'nullable|numeric|min:0',
                 'amount_of_boxes' => 'nullable|numeric|min:0',
                 'recurring' => 'nullable|string|in:recurring,non-recurring',
-                'address' => 'nullable|string|max:255',
-                'unit' => 'nullable|string|max:50',
-                'city' => 'nullable|string|max:100',
-                'postal' => 'nullable|string|max:20',
+                'location_name' => 'nullable|string|max:255',
+                'address' => 'string|max:255',
+                'unit' =>  'nullable|string|max:50',
+                'city' => 'string|max:100',
+                'postal_code' => 'string|max:20',
                 'province' => 'nullable|string|max:50',
                 'country' => 'nullable|string|max:100',
                 'delivery_date' => 'nullable|date',
@@ -330,7 +499,7 @@ class OrderCrudController extends CrudController
                         'phone' => $validatedData['phone'] ?? null,
                         'address' => $validatedData['address'] ?? null,
                         'city' => $validatedData['city'] ?? null,
-                        'postal_code' => $validatedData['postal'] ?? null,
+                        'postal_code' => $validatedData['postal_code'] ?? null,
                         'province' => $validatedData['province'] ?? null,
                         'country' => $validatedData['country'] ?? null
                     ]
@@ -399,6 +568,38 @@ class OrderCrudController extends CrudController
         }
     }
 
+
+    public function getCustomerByEmail(Request $request)
+    {
+        $email = $request->get('email');
+
+        if (!$email) {
+            return response()->json(['error' => 'Email is required'], 400);
+        }
+
+        $customer = Customer::select([
+            'name',
+            'email',
+            'phone',
+            'address',
+            'city',
+            'postal_code',
+            'province'
+        ])->where('email', $email)->first();
+
+        if ($customer) {
+            return response()->json([
+                'success' => true,
+                'customer' => $customer
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Customer not found'
+        ], 404);
+    }
+
     /**
      * AJAX endpoint for customer search
      *
@@ -422,4 +623,6 @@ class OrderCrudController extends CrudController
 
         return response()->json($formatted);
     }
+
+
 }

@@ -30,8 +30,8 @@
             <div class="collapse navbar-collapse justify-content-between" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item"><a class="nav-link home text-white" href="{{ url('/') }}">Home</a></li>
-                    <li class="nav-item"><a class="nav-link text-white" href="{{ url('/about') }}">About</a></li>
-                    <li class="nav-item"><a class="nav-link text-white" href="{{ url('/services') }}">Services</a></li>
+                    <li class="nav-item"><a class="nav-link text-white" href="{{ url('/') }}">About</a></li>
+                    <li class="nav-item"><a class="nav-link text-white" href="{{ url('/blasting_services') }}">Services</a></li>
                     <li class="nav-item"><a class="nav-link text-white" href="{{ url('/contact') }}">Contact</a></li>
                 </ul>
                 <a class="nav-link admin text-white" href="{{ backpack_url('dashboard') }}">Welcome Admin!</a>

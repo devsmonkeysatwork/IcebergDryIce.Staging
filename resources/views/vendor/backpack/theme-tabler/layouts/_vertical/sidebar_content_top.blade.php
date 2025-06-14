@@ -28,10 +28,13 @@
                         {{ trans('backpack::base.my_account') }}
                     </a>
                 @endif
-                <a class="nav-link text-danger" href="{{ backpack_url('logout') }}">
-                    <i class="nav-icon la la-sign-out-alt d-block"></i>
-                    {{ trans('backpack::base.logout') }}
-                </a>
+                <form id="logout-form" action="{{ url('logout') }}" method="POST" style="display: inline;">
+                    @csrf
+                    <a  class="nav-link text-danger border-0 bg-transparent" style="cursor: pointer;" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                        <i class="nav-icon la la-sign-out-alt d-block me-3"></i>
+                        {{ trans('backpack::base.logout') }}
+                    </a>
+                </form>
             </div>
         </li>
     @endif

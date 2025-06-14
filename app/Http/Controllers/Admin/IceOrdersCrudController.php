@@ -42,6 +42,10 @@ class IceOrdersCrudController extends CrudController
     CRUD::column('other_cost');
     CRUD::column('weight');
     CRUD::column('totes');
+    $this->crud->removeAllButtonsFromStack('line');
+    $this->crud->addButtonFromView('line', 'view_button', 'view-button', 'beginning');
+
+
   }
 
   protected function setupCreateOperation(){
@@ -67,6 +71,42 @@ class IceOrdersCrudController extends CrudController
 
         return redirect()->to($this->crud->route);
     }
+
+    public function view($id)
+    {
+        $this->crud->hasAccessOrFail('update'); // or 'view'
+
+        $entry = \App\Models\IceOrder::findOrFail($id);
+
+        return view('vendor.backpack.crud.ice-order-edit', [
+            'entry' => $entry,
+            'crud' => $this->crud,
+        ]);
+    }
+
+    public function updateFromView($id)
+    {
+        $this->crud->hasAccessOrFail('update');
+        $data = request()->all();
+
+        $entry = \App\Models\IceOrder::findOrFail($id);
+        $entry->update($data);
+
+        \Alert::success('Ice order updated successfully.')->flash();
+        return redirect()->route('ice-orders.view', $id);
+    }
+
+    public function deleteFromView($id)
+    {
+        $this->crud->hasAccessOrFail('delete');
+
+        \App\Models\IceOrder::findOrFail($id)->delete();
+
+        \Alert::success('Ice Order Deleted.')->flash();
+
+        return redirect($this->crud->route);
+    }
+
 
 
 

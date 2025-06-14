@@ -28,6 +28,8 @@ class CheckIfAdmin
     private function checkIfUserIsAdmin($user)
     {
         return ($user->email == 'admin@icebergdryice.com');
+//        return true; // allow everyone for now
+
     }
 
     /**
@@ -41,7 +43,8 @@ class CheckIfAdmin
         if ($request->ajax() || $request->wantsJson()) {
             return response(trans('backpack::base.unauthorized'), 401);
         } else {
-            return redirect()->guest(backpack_url('login'));
+//            return redirect()->guest(backpack_url('login'));
+            return redirect()->guest(url('/login'));
         }
     }
 

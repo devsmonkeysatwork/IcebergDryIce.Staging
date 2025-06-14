@@ -42,7 +42,9 @@ class ManualPaymentCrudController extends CrudController
      */
     protected function setupListOperation()
     {
-        CRUD::setFromDb(); // set columns from db columns.
+        CRUD::setFromDb();
+        $this->crud->removeAllButtonsFromStack('line');
+        $this->crud->addButtonFromView('line', 'view_button', 'view-button', 'beginning');
 
         /**
          * Columns can be defined using the fluent syntax:
@@ -65,6 +67,43 @@ class ManualPaymentCrudController extends CrudController
         CRUD::field('order_number')->type('text');
         CRUD::field('description')->type('textarea');
         CRUD::field('amount')->type('number');
+    }
+
+    public function view($id)
+    {
+        $this->crud->hasAccessOrFail('update'); // or 'view'
+
+        $entry = \App\Models\ManualPayment::findOrFail($id);
+        $orderNumbers = Order::all();
+
+        return view('vendor.backpack.crud.manualPayments-edit', [
+            'entry' => $entry,
+            'crud' => $this->crud,
+            'orderNumbers' => $orderNumbers,
+        ]);
+    }
+
+    public function updateFromView($id)
+    {
+        $this->crud->hasAccessOrFail('update');
+        $data = request()->all();
+
+        $entry = \App\Models\ManualPayment::findOrFail($id);
+        $entry->update($data);
+
+        \Alert::success('Payment updated successfully.')->flash();
+        return redirect()->route('payments.view', $id);
+    }
+
+    public function deleteFromView($id)
+    {
+        $this->crud->hasAccessOrFail('delete');
+
+        \App\Models\ManualPayment::findOrFail($id)->delete();
+
+        \Alert::success('Payment Deleted.')->flash();
+
+        return redirect($this->crud->route);
     }
 
     /**

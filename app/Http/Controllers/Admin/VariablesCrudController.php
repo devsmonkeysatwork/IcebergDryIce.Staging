@@ -31,6 +31,11 @@ class VariablesCrudController extends CrudController
   {
     CRUD::column('name');
     CRUD::column('value');
+
+    $this->crud->removeAllButtonsFromStack('line');
+    $this->crud->addButtonFromView('line', 'view_button', 'view-button', 'beginning');
+
+
   }
 
   protected function setupCreateOperation()
@@ -40,6 +45,42 @@ class VariablesCrudController extends CrudController
     CRUD::field('name');
     CRUD::field('value');
   }
+
+    public function view($id)
+    {
+        $this->crud->hasAccessOrFail('update'); // or 'view'
+
+        $entry = \App\Models\Variable::findOrFail($id);
+
+        return view('vendor.backpack.crud.variable-edit', [
+            'entry' => $entry,
+            'crud' => $this->crud,
+        ]);
+    }
+
+    public function updateFromView($id)
+    {
+        $this->crud->hasAccessOrFail('update');
+        $data = request()->all();
+
+        $entry = \App\Models\Variable::findOrFail($id);
+        $entry->update($data);
+
+        \Alert::success('Variable updated successfully.')->flash();
+        return redirect()->route('variable.view', $id);
+    }
+
+    public function deleteFromView($id)
+    {
+        $this->crud->hasAccessOrFail('delete');
+
+        \App\Models\Variable::findOrFail($id)->delete();
+
+        \Alert::success('Variable Deleted.')->flash();
+
+        return redirect($this->crud->route);
+    }
+
 
   protected function setupUpdateOperation()
   {

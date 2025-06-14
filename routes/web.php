@@ -4,9 +4,15 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\InventoryPageController;
+use App\Http\Controllers\Admin\OrderCrudController;
 use App\Http\Controllers\Admin\WarehouseSaleCrudController;
 use App\Http\Controllers\Admin\ManualPaymentCrudController;
-use App\Http\Controllers\Admin\OrderCrudController;
+use App\Http\Controllers\Website\LoginController;
+use App\Http\Controllers\Website\CustomerRegisterController;
+
+use App\Mail\OrderPlacedMail;
+use Illuminate\Support\Facades\Mail;
+use App\Models\Order;
 
 
 // routes/web.php
@@ -36,6 +42,7 @@ Route::get('/contact', [App\Http\Controllers\WebsiteController::class, 'contact'
 Route::get('/order', [App\Http\Controllers\WebsiteController::class, 'showOrderForm'])->name('order');
 
 Route::post('/order', [App\Http\Controllers\WebsiteController::class, 'storeOrder'])->name('submitOrder');
+
 
 
 Route::get('/location', [App\Http\Controllers\WebsiteController::class, 'location'])->name('location');
@@ -86,6 +93,32 @@ Route::group([
     Route::get('admin/ajax/customers', [App\Http\Controllers\Admin\OrderCrudController::class, 'ajaxCustomers'])->name('ajax.customers');
 
 
+
+
+
+
+
 });
+// Login
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login.form');
+Route::post('/login', [LoginController::class, 'login'])->name('login.custom');
+
+// Logout
+Route::POST('/logout', [LoginController::class, 'logout'])->name('logout.custom');
+
+
+
+Route::get('/test-email', function () {
+    $order = Order::latest()->first(); // or mock an Order
+    Mail::to('hamza40javed@gmail.com')->send(new OrderPlacedMail($order));
+    return 'Email sent.';
+});
+
+
+
+Route::get('/register-customer', [CustomerRegisterController::class, 'showForm'])->name('customer.register.form');
+Route::post('/register-customer', [CustomerRegisterController::class, 'register'])->name('customer.register');
+
+
 
 // require __DIR__ . '/auth.php';

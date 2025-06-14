@@ -4,14 +4,30 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\OrderCrudController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\IceOrdersCrudController;
+use App\Http\Controllers\Admin\ProductCrudController;
+use App\Http\Controllers\Admin\VariablesCrudController;
+use App\Http\Controllers\Admin\CustomersCrudController;
+use App\Http\Controllers\Admin\ManualPaymentCrudController;
+use App\Http\Controllers\Customer\CustomerDashboardController;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
+
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+use App\Http\Middleware\CustomerMiddleware;
+
+Route::group([
+    'middleware' => ['web', CustomerMiddleware::class],
+    'prefix' => 'customer',
+], function () {
+    Route::get('/dashboard', [CustomerDashboardController::class, 'index'])->name('customer.dashboard');
+});
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -46,6 +62,30 @@ Route::group([
     Route::crud('log-files', 'LogFilesCrudController');
 
 
+    //custom edit, delete and update routes for ice orders
+    Route::get('ice-orders/{id}/view', [IceOrdersCrudController::class, 'view'])->name('ice-orders.view');
+    Route::post('ice-orders/{id}/update', [IceOrdersCrudController::class, 'updateFromView'])->name('ice-orders.update');
+    Route::delete('ice-orders/{id}/delete', [IceOrdersCrudController::class, 'deleteFromView'])->name('ice-orders.custom_delete');
+
+    //custom edit, delete and update routes for Products
+    Route::get('product/{id}/view', [ProductCrudController::class, 'view'])->name('products.view');
+    Route::post('product/{id}/update', [ProductCrudController::class, 'updateFromView'])->name('products.update');
+    Route::delete('product/{id}/delete', [ProductCrudController::class, 'deleteFromView'])->name('product.custom_delete');
+
+    //custom edit, delete and update routes for Variables
+    Route::get('variables/{id}/view', [VariablesCrudController::class, 'view'])->name('variable.view');
+    Route::post('variables/{id}/update', [VariablesCrudController::class, 'updateFromView'])->name('variable.update');
+    Route::delete('variables/{id}/delete', [VariablesCrudController::class, 'deleteFromView'])->name('variable.custom_delete');
+
+    //custom edit, delete and update routes for Customers
+    Route::get('customers/{id}/view', [CustomersCrudController::class, 'view'])->name('customer.view');
+    Route::post('customers/{id}/update', [CustomersCrudController::class, 'updateFromView'])->name('customer.update');
+    Route::delete('customers/{id}/delete', [CustomersCrudController::class, 'deleteFromView'])->name('customer.custom_delete');
+
+    //custom edit, delete and update routes for Customers
+    Route::get('manual-payments/{id}/view', [ManualPaymentCrudController::class, 'view'])->name('payments.view');
+    Route::post('manual-payments/{id}/update', [ManualPaymentCrudController::class, 'updateFromView'])->name('payments.update');
+    Route::delete('manual-payments/{id}/delete', [ManualPaymentCrudController::class, 'deleteFromView'])->name('payments.custom_delete');
 
     // Reports
     Route::crud('inventory', 'InventoryCrudController');
@@ -71,6 +111,9 @@ Route::group([
     Route::crud('product', 'ProductCrudController');
 });
 
+Route::post('/order/ajax-create-from-review', [OrderCrudController::class, 'ajaxCreateFromReview'])->name('orders.ajax-create-from-review');
+
+
 
 Route::group([
     'prefix' => config('backpack.base.route_prefix', 'admin'),
@@ -81,9 +124,18 @@ Route::group([
     'namespace' => 'App\Http\Controllers\Admin',
 ], function () {
 
-    // AJAX update/delete for orders
+    Route::post('orders/ajax-create', [OrderCrudController::class, 'ajaxCreate']);
+
     Route::put('orders/{id}/ajax-update', [OrderCrudController::class, 'updateOrderAjax'])
         ->name('admin.orders.ajax-update');
     Route::delete('orders/{id}/ajax-delete', [OrderCrudController::class, 'deleteOrderAjax'])
         ->name('admin.orders.ajax-delete');
+
+    Route::get('/customers/search', [CustomersCrudController::class, 'searchCustomers'])
+        ->name('admin.customers.search');
+
+    Route::get('/customers/get-by-email', [OrderCrudController::class, 'getCustomerByEmail'])
+        ->name('admin.customers.get-by-email');
+
 });
+

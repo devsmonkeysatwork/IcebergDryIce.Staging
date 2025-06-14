@@ -29,6 +29,7 @@ class ProductCrudController extends CrudController
         CRUD::setModel(\App\Models\Product::class);
         CRUD::setRoute(config('backpack.base.route_prefix') . '/product');
         CRUD::setEntityNameStrings('product', 'products');
+        CRUD::setCreateView('vendor.backpack.crud.product-create');
     }
 
     /**
@@ -40,11 +41,25 @@ class ProductCrudController extends CrudController
     protected function setupListOperation()
     {
         CRUD::setFromDb(); // set columns from db columns.
+        $this->crud->removeAllButtonsFromStack('line');
+        $this->crud->addButtonFromView('line', 'view_button', 'view-button', 'beginning');
+
 
         /**
          * Columns can be defined using the fluent syntax:
          * - CRUD::column('price')->type('number');
          */
+    }
+    public function view($id)
+    {
+        $this->crud->hasAccessOrFail('update'); // or 'view'
+
+        $entry = \App\Models\Product::findOrFail($id);
+
+        return view('vendor.backpack.crud.product-edit', [
+            'entry' => $entry,
+            'crud' => $this->crud,
+        ]);
     }
 
     /**
@@ -61,6 +76,29 @@ class ProductCrudController extends CrudController
          * Fields can be defined using the fluent syntax:
          * - CRUD::field('price')->type('number');
          */
+    }
+
+    public function updateFromView($id)
+    {
+        $this->crud->hasAccessOrFail('update');
+        $data = request()->all();
+
+        $entry = \App\Models\Product::findOrFail($id);
+        $entry->update($data);
+
+        \Alert::success('Product updated successfully.')->flash();
+        return redirect()->route('products.view', $id);
+    }
+
+    public function deleteFromView($id)
+    {
+        $this->crud->hasAccessOrFail('delete');
+
+        \App\Models\Product::findOrFail($id)->delete();
+
+        \Alert::success('Product Deleted.')->flash();
+
+        return redirect($this->crud->route);
     }
 
     /**

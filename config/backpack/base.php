@@ -24,11 +24,12 @@ return [
 
     // The prefix used in all base routes (the 'admin' in admin/dashboard)
     // You can make sure all your URLs use this prefix by using the backpack_url() helper instead of url()
-    'route_prefix' => 'admin',
+//    'route_prefix' => 'admin',
 
     // The web middleware (group) used in all base & CRUD routes
     // If you've modified your "web" middleware group (ex: removed sessions), you can use a different
     // route group, that has all the the middleware listed below in the comments.
+
     'web_middleware' => 'web',
     // Or you can comment the above, and uncomment the complete list below.
     // 'web_middleware' => [
@@ -42,7 +43,7 @@ return [
     // Set this to false if you would like to use your own AuthController and PasswordController
     // (you then need to setup your auth routes manually in your routes.php file)
     // Warning: if you disable this, the password recovery routes (below) will be disabled too!
-    'setup_auth_routes' => true,
+    'setup_auth_routes' => false,
 
     // Set this to false if you would like to skip adding the dashboard routes
     // (you then need to overwrite the login route on your AuthController)
@@ -133,7 +134,8 @@ return [
 
     // The guard that protects the Backpack admin panel.
     // If null, the config.auth.defaults.guard value will be used.
-    'guard' => 'backpack',
+//    'guard' => 'backpack',
+    'guard' => 'web',
 
     // The password reset configuration for Backpack.
     // If null, the config.auth.defaults.passwords value will be used.

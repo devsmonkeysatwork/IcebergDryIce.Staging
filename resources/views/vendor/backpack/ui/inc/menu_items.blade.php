@@ -14,7 +14,7 @@
   <x-backpack::menu-dropdown-item title="Products" icon="la la-product-hunt" :link="backpack_url('product')" />
   <x-backpack::menu-dropdown-item title="Variables" icon="la la-cogs" :link="backpack_url('variables')" />
   <x-backpack::menu-dropdown-item title="Customers" icon="la la-users" :link="backpack_url('customers')" />
-  <x-backpack::menu-dropdown-item title="Log Files" icon="la la-file-alt" :link="backpack_url('log-files')" />
+{{--  <x-backpack::menu-dropdown-item title="Log Files" icon="la la-file-alt" :link="backpack_url('log-files')" />--}}
 </x-backpack::menu-dropdown>
 
 <x-backpack::menu-dropdown title="Reports" icon="la la-chart-bar">
