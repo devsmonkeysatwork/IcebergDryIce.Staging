@@ -343,7 +343,7 @@ class OrderCrudController extends CrudController
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Review form order creation failed: ' . $e->getMessage());
+            \Log::error('Online order creation failed: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,

@@ -480,7 +480,8 @@
     <script>
 
         function redirectToLoginOrSignup() {
-            const currentUrl = window.location.pathname; // e.g., "/order"
+            saveFormData(); // Add this line
+            const currentUrl = window.location.pathname;
             window.location.href = `/login?redirect=${encodeURIComponent(currentUrl)}`;
         }
 
@@ -900,9 +901,14 @@
                         Swal.fire({
                             icon: 'success',
                             title: 'Order Submitted!',
-                            text: `Order ID: ${data.order_id}`
+                            text: 'A confirmation email has been sent to you.',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            showConfirmButton: true,
+                            confirmButtonText: 'OK'
                         }).then(() => {
-                            //Redirect if needed
+                            localStorage.removeItem('orderFormData');
+                            // Redirect if needed
                             window.location.href = `/`;
                         });
                     } else {
@@ -910,6 +916,10 @@
                             icon: 'error',
                             title: 'Submission Failed',
                             text: data.message || 'Unknown error occurred.'
+                        }).then(() => {
+                            // Re-enable button only after error popup is dismissed
+                            submitBtn.textContent = originalText;
+                            submitBtn.disabled = false;
                         });
                     }
                 })
@@ -919,17 +929,84 @@
                         icon: 'error',
                         title: 'Network Error',
                         text: 'A network error occurred. Please try again.'
+                    }).then(() => {
+                        // Re-enable button only after error popup is dismissed
+                        submitBtn.textContent = originalText;
+                        submitBtn.disabled = false;
                     });
-                })
-                .finally(() => {
-                    submitBtn.textContent = originalText;
-                    submitBtn.disabled = false;
                 });
+
+            // Note: Button remains disabled until popup is shown and dismissed
+            // For success case, user gets redirected so button state doesn't matter
+            // For error cases, button is re-enabled only after user dismisses the error popup
         });
 
         // Populate the review when page loads
         document.addEventListener('DOMContentLoaded', function() {
             populateReview();
+        });
+
+        function saveFormData() {
+            const formData = {
+                weight: document.getElementById('weight').value,
+                box: document.getElementById('box').value,
+                weight_cost: document.getElementById('weight_cost').value,
+                box_cost: document.getElementById('box_cost').value,
+                timestamp: Date.now()
+            };
+
+            localStorage.setItem('orderFormData', JSON.stringify(formData));
+        }
+
+        function restoreFormData() {
+            const savedData = localStorage.getItem('orderFormData');
+
+            if (savedData) {
+                const formData = JSON.parse(savedData);
+
+                // Check if data is not too old (optional - removes data older than 1 hour)
+                const oneHour = 60 * 60 * 1000;
+                if (Date.now() - formData.timestamp > oneHour) {
+                    localStorage.removeItem('orderFormData');
+                    return;
+                }
+
+                // Restore form values
+                document.getElementById('weight').value = formData.weight || '0';
+                document.getElementById('box').value = formData.box || '0';
+                document.getElementById('weight_cost').value = formData.weight_cost || '0.00';
+                document.getElementById('box_cost').value = formData.box_cost || '0.00';
+
+                // Recalculate costs to ensure consistency
+                calc_weight();
+                calc_boxes();
+
+                // Clear saved data after restoration
+                localStorage.removeItem('orderFormData');
+            }
+        }
+
+        // 3. CALL restoreFormData() when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            restoreFormData();
+        });
+
+        // 4. ALSO ADD auto-save on form changes (optional but recommended)
+        function setupAutoSave() {
+            const inputs = ['weight', 'box'];
+            inputs.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', saveFormData);
+                    element.addEventListener('blur', saveFormData);
+                }
+            });
+        }
+
+        // Call setupAutoSave after DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            restoreFormData();
+            setupAutoSave();
         });
 
 
