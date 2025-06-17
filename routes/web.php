@@ -120,5 +120,11 @@ Route::get('/register-customer', [CustomerRegisterController::class, 'showForm']
 Route::post('/register-customer', [CustomerRegisterController::class, 'register'])->name('customer.register');
 
 
+use App\Http\Controllers\SupplierController;
+
+Route::get('/test-closest-supplier', [SupplierController::class, 'checkClosestSupplier']);
+
+
+Route::post('/get-novex-quote', [SupplierController::class, 'getNovexQuote']);
 
 // require __DIR__ . '/auth.php';

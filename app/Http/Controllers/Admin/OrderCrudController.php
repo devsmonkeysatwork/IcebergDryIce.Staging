@@ -12,6 +12,8 @@ use App\Models\Customer;
 use Carbon\Carbon;
 use App\Mail\OrderPlacedMail;
 use Illuminate\Support\Facades\Mail;
+use App\Services\ClosestSupplierService;
+
 
 class OrderCrudController extends CrudController
 {
