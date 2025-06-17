@@ -50,6 +50,7 @@ class SupplierController extends Controller
                 'supplier_id' => 'required|integer',
                 'delivery.name' => 'required|string',
                 'delivery.street' => 'required|string',
+                'delivery.unit' => 'nullable|string', // Added this line
                 'delivery.city' => 'required|string',
                 'delivery.province' => 'required|string',
                 'delivery.postal_code' => 'required|string',
@@ -108,6 +109,12 @@ class SupplierController extends Controller
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            // Log validation errors for debugging
+            Log::error('Validation error in getDeliveryQuote', [
+                'errors' => $e->errors(),
+                'request' => $request->all()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'error' => 'Validation failed',
@@ -144,7 +151,7 @@ class SupplierController extends Controller
             'delivery' => [
                 'name' => $deliveryDetails['name'],
                 'street' => $deliveryDetails['street'],
-                'unit' => $deliveryDetails['unit'] ?? '',
+                'unit' => $deliveryDetails['unit'] ?? '', // Safe access with fallback
                 'city' => $deliveryDetails['city'],
                 'province' => $deliveryDetails['province'],
                 'postalCode' => $destinationPostal,
@@ -167,12 +174,24 @@ class SupplierController extends Controller
                 ]
             ]
         ];
+//        dd($orderDetails);
 
         try {
+            // Log the request being sent to Novex for debugging
+            Log::info('Sending request to Novex API', [
+                'url' => config('services.novex.api_url', 'https://api.novex.ca/sandox/quote'),
+                'order_details' => $orderDetails
+            ]);
+
             $response = Http::withHeaders([
-                'Authorization' => 'Basic ' . config('services.novex.auth_key'), // Store in config
+                'Authorization' => 'Basic ' . config('services.novex.auth_key'),
                 'Content-Type' => 'application/json'
-            ])->post(config('services.novex.api_url', 'https://api.novex.ca/sandbox/quote'), $orderDetails);
+            ])->post('https://api.novex.ca/sandbox/quote', $orderDetails);
+
+            Log::info('Novex API response', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -192,7 +211,8 @@ class SupplierController extends Controller
             }
         } catch (\Exception $e) {
             Log::error('Novex API exception: ' . $e->getMessage(), [
-                'request' => $orderDetails
+                'request' => $orderDetails,
+                'trace' => $e->getTraceAsString()
             ]);
             return -1;
         }

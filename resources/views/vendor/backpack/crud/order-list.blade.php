@@ -1206,25 +1206,13 @@
                     console.log('Supplier data received:', data);
                     console.log('Data structure:', JSON.stringify(data, null, 2));
 
-                    // Fix: Handle the correct response structure
-                    let supplier;
-
-                    // Check if data has closest_supplier property
-                    if (data.closest_supplier && data.closest_supplier.id) {
-                        supplier = data.closest_supplier;
-                    }
-                    // Check if data itself contains the supplier info
-                    else if (data.id) {
-                        supplier = data;
-                    }
-                    // Check if it's an array and get the first element
-                    else if (Array.isArray(data) && data.length > 0 && data[0].id) {
-                        supplier = data[0];
-                    }
-                    else {
+                    // Extract supplier from response
+                    if (!data.closest_supplier || !data.closest_supplier.id) {
                         console.error('No supplier found in response:', data);
                         throw new Error('No supplier found in response');
                     }
+
+                    const supplier = data.closest_supplier;
 
                     console.log('Found supplier:', supplier);
                     console.log('Supplier ID:', supplier.id);
@@ -1235,7 +1223,7 @@
                         delivery: {
                             name: formData.locationName.trim(),
                             street: formData.address.trim(),
-                            unit: formData.unit.trim(),
+                            unit: formData.unit.trim() || '', // Ensure it's always a string
                             city: formData.city.trim(),
                             province: formData.province.trim(),
                             postal_code: formData.postal.trim(),
