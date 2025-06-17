@@ -125,6 +125,8 @@ use App\Http\Controllers\SupplierController;
 Route::get('/test-closest-supplier', [SupplierController::class, 'checkClosestSupplier']);
 
 
+Route::post('/get-delivery-quote', [SupplierController::class, 'getDeliveryQuote']);
+
 Route::post('/get-novex-quote', [SupplierController::class, 'getNovexQuote']);
 
 // require __DIR__ . '/auth.php';

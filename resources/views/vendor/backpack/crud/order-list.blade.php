@@ -1165,298 +1165,146 @@
             document.querySelector('.cost-summary-total strong').textContent = `$${total.toFixed(2)}`;
         }
 
-        // Updated tryGetDeliveryQuote function with better error handling and debugging
         function tryGetDeliveryQuote() {
-            const address = getInput('modal-address');
-            const city = getInput('modal-city');
-            const province = getInput('modal-province');
-            const email = getInput('modal-customer-email');
-            const name = getInput('modal-customer-name');
-            const phone = getInput('modal-customer-phone');
-            const iceAmount = parseFloat(getInput('modal-ice-amount')) || 0;
-            const postal = getInput('modal-postal');
-            const locationName = getInput('modal-location-name');
+            // Get form values
+            const formData = {
+                address: getInput('modal-address'),
+                city: getInput('modal-city'),
+                province: getInput('modal-province'),
+                email: getInput('modal-customer-email'),
+                name: getInput('modal-customer-name'),
+                phone: getInput('modal-customer-phone'),
+                iceAmount: parseFloat(getInput('modal-ice-amount')) || 1,
+                postal: getInput('modal-postal'),
+                locationName: getInput('modal-location-name'),
+                unit: getInput('modal-unit') || ''
+            };
 
-            const required = [address, city, province, email, name, phone, postal, locationName];
-
+            // Check required fields
+            const required = [formData.address, formData.city, formData.province, formData.email, formData.name, formData.phone, formData.postal, formData.locationName];
             if (!required.every(val => val && val.trim())) {
-                console.log("Waiting for all required fields to be filled...");
-                console.log("Missing fields:", {
-                    address: !!address,
-                    city: !!city,
-                    province: !!province,
-                    email: !!email,
-                    name: !!name,
-                    phone: !!phone,
-                    postal: !!postal,
-                    locationName: !!locationName
-                });
+                console.log('Missing required fields');
                 return;
             }
 
-            console.log("All required fields filled, proceeding with quote...");
-
-            // Show loading indicator
+            // Show loading
             const deliveryCostElement = document.querySelector('.cost-summary-delivery strong');
-            const originalText = deliveryCostElement.textContent;
             deliveryCostElement.textContent = 'Calculating...';
 
-            // Fetch closest supplier first
-            const supplierUrl = `/test-closest-supplier?street=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}&province=${encodeURIComponent(province)}`;
+            console.log('Starting delivery quote request...');
 
-            console.log("Fetching supplier from:", supplierUrl);
-
-            fetch(supplierUrl)
+            // Get closest supplier first
+            fetch(`/test-closest-supplier?street=${encodeURIComponent(formData.address)}&city=${encodeURIComponent(formData.city)}&province=${encodeURIComponent(formData.province)}`)
                 .then(response => {
-                    console.log("Supplier response status:", response.status);
+                    console.log('Supplier response status:', response.status);
                     if (!response.ok) {
-                        throw new Error(`Supplier fetch failed with status ${response.status}`);
+                        throw new Error(`Supplier API returned ${response.status}`);
                     }
                     return response.json();
                 })
                 .then(data => {
-                    console.log("Supplier data received:", data);
+                    console.log('Supplier data received:', data);
+                    console.log('Data structure:', JSON.stringify(data, null, 2));
 
-                    const closest_supplier = data.closest_supplier;
+                    // Fix: Handle the correct response structure
+                    let supplier;
 
-                    if (!closest_supplier) {
-                        throw new Error('No closest supplier found');
+                    // Check if data has closest_supplier property
+                    if (data.closest_supplier && data.closest_supplier.id) {
+                        supplier = data.closest_supplier;
+                    }
+                    // Check if data itself contains the supplier info
+                    else if (data.id) {
+                        supplier = data;
+                    }
+                    // Check if it's an array and get the first element
+                    else if (Array.isArray(data) && data.length > 0 && data[0].id) {
+                        supplier = data[0];
+                    }
+                    else {
+                        console.error('No supplier found in response:', data);
+                        throw new Error('No supplier found in response');
                     }
 
-                    // Store closest supplier globally for later use
-                    closestSupplier = closest_supplier;
+                    console.log('Found supplier:', supplier);
+                    console.log('Supplier ID:', supplier.id);
 
-                    // Validate supplier has required fields
-                    if (!closest_supplier.address && !closest_supplier.street) {
-                        throw new Error('Supplier missing address information');
-                    }
-
-                    // Build delivery object with proper validation
-                    const delivery = {
-                        name: locationName.trim(),
-                        street: address.trim(),
-                        unit: getInput('modal-unit') || '',
-                        city: city.trim(),
-                        province: province.trim(),
-                        postalCode: postal.trim().replace(/\s+/g, ' '), // normalize spaces
-                        country: 'CAN',
-                        instructions: '',
-                        close: '17:30',
-                        contact: name.trim(),
-                        phone: phone.trim(),
-                        fax: '',
-                        notificationEmail: email.trim(),
-                        notifyOn: ['Dispatch']
+                    // Get delivery quote
+                    const quotePayload = {
+                        supplier_id: supplier.id,
+                        delivery: {
+                            name: formData.locationName.trim(),
+                            street: formData.address.trim(),
+                            unit: formData.unit.trim(),
+                            city: formData.city.trim(),
+                            province: formData.province.trim(),
+                            postal_code: formData.postal.trim(),
+                            contact: formData.name.trim(),
+                            phone: formData.phone.trim(),
+                            email: formData.email.trim()
+                        },
+                        weight: formData.iceAmount
                     };
 
-                    // Validate delivery object
-                    const requiredDeliveryFields = ['name', 'street', 'city', 'province', 'postalCode', 'contact', 'phone'];
-                    const missingFields = requiredDeliveryFields.filter(field => !delivery[field] || !delivery[field].toString().trim());
+                    console.log('Quote payload:', quotePayload);
 
-                    if (missingFields.length > 0) {
-                        throw new Error(`Missing required delivery fields: ${missingFields.join(', ')}`);
-                    }
-
-                    // Get delivery date and time
-                    const dateField = document.getElementById('modal-delivery-date');
-                    const timeField = document.getElementById('modal-delivery-time');
-                    let readyBy = new Date();
-                    readyBy.setHours(readyBy.getHours() + 1); // Default to 1 hour from now
-
-                    if (dateField && dateField.value) {
-                        const selectedDate = dateField.value;
-                        const selectedTime = timeField && timeField.value ? timeField.value : '08:00';
-                        readyBy = new Date(selectedDate + 'T' + selectedTime + ':00');
-                    }
-
-                    // Ensure weight is reasonable
-                    const weight = Math.max(iceAmount, 1.0); // Minimum 1 lb
-
-                    // Build the payload
-                    const payload = {
-                        supplier: closest_supplier,
-                        delivery: delivery,
-                        readyBy: readyBy.toISOString(),
-                        serviceTypeId: 1,
-                        vehicleTypeId: 1,
-                        packages: [{
-                            typeId: 1,
-                            count: 1,
-                            weight: weight,
-                            length: 12,
-                            width: 12,
-                            height: 12,
-                        }]
-                    };
-
-
-                    // Replace your existing .then() chain for the quote API call with this:
-                    return fetch('/get-novex-quote', {
+                    return fetch('/get-delivery-quote', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                             'Accept': 'application/json'
                         },
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify(quotePayload)
                     });
                 })
                 .then(response => {
                     console.log('Quote response status:', response.status);
-                    console.log('Quote response headers:', response.headers);
 
+                    // Add response text logging for debugging
                     return response.text().then(text => {
-                        console.log('Quote response body (full):', text);
+                        console.log('Quote response text:', text);
 
                         if (!response.ok) {
-                            // Parse the JSON to get detailed error information
-                            try {
-                                const errorData = JSON.parse(text);
-                                console.log('Parsed error data:', errorData);
-
-                                // Check if there are detailed problems from Novex API
-                                if (errorData.problems && Array.isArray(errorData.problems)) {
-                                    console.log('Novex API Problems:', errorData.problems);
-                                    errorData.problems.forEach((problem, index) => {
-                                        console.log(`Problem ${index + 1}:`, problem);
-                                    });
-                                }
-
-                                // Create a detailed error message
-                                let detailedError = `Quote API failed with status ${response.status}`;
-                                if (errorData.error) {
-                                    detailedError += `: ${errorData.error}`;
-                                }
-                                if (errorData.problems) {
-                                    detailedError += `\nProblems: ${JSON.stringify(errorData.problems, null, 2)}`;
-                                }
-
-                                throw new Error(detailedError);
-                            } catch (parseError) {
-                                if (parseError instanceof SyntaxError) {
-                                    throw new Error(`Quote API failed with status ${response.status}: ${text}`);
-                                } else {
-                                    throw parseError;
-                                }
-                            }
+                            throw new Error(`Quote API returned ${response.status}: ${text}`);
                         }
 
                         try {
                             return JSON.parse(text);
                         } catch (e) {
-                            throw new Error(`Invalid JSON response: ${text}`);
+                            console.error('Failed to parse JSON:', e);
+                            throw new Error('Invalid JSON response from quote API');
                         }
                     });
                 })
                 .then(data => {
-                    console.log('Quote response data:', data);
+                    console.log('Quote data received:', data);
 
-                    if (data.success && data.quote) {
-                        // Try different possible fields for the total
-                        const total = data.total ||
-                            data.quote.total ||
-                            data.quote.price ||
-                            data.quote.amount ||
-                            data.quote.cost ||
-                            20.00; // fallback
-
-                        console.log('Quote total found:', total);
-                        updateDeliveryCostSummary(parseFloat(total));
-
-                        // Show success message briefly
-                        const deliveryCostElement = document.querySelector('.cost-summary-delivery strong');
-                        deliveryCostElement.style.color = 'green';
-                        setTimeout(() => {
-                            deliveryCostElement.style.color = '';
-                        }, 2000);
-
+                    if (data.success && data.total) {
+                        console.log('Quote successful, total:', data.total);
+                        updateDeliveryCostSummary(data.total);
+                        showSuccess(deliveryCostElement);
                     } else {
-                        console.error('Quote response unsuccessful:', data);
-
-                        // Log all the detailed error information
-                        if (data.novex_error_data) {
-                            console.log('=== NOVEX API ERROR DETAILS ===');
-                            console.log('Novex Error Data:', data.novex_error_data);
-
-                            if (data.novex_error_data.error && data.novex_error_data.error.problems) {
-                                console.log('Novex Problems Array:', data.novex_error_data.error.problems);
-                                data.novex_error_data.error.problems.forEach((problem, index) => {
-                                    console.log(`Problem ${index + 1}:`, problem);
-                                });
-                            }
-                        }
-
-                        if (data.raw_response) {
-                            console.log('Raw Novex Response:', data.raw_response);
-                        }
-
-                        if (data.debug_info) {
-                            console.log('Debug Info - Pickup Payload:', data.debug_info.pickup_payload);
-                            console.log('Debug Info - Delivery Payload:', data.debug_info.delivery_payload);
-                        }
-
-                        console.log('=== END NOVEX ERROR DETAILS ===');
-
-                        throw new Error(data.error || 'Quote calculation failed');
+                        console.error('Quote unsuccessful:', data);
+                        throw new Error(data.error || 'Quote failed');
                     }
                 })
                 .catch(error => {
-                    console.error('=== FULL ERROR DETAILS ===');
+                    console.error('Full error details:', error);
                     console.error('Error message:', error.message);
-                    console.error('Error stack:', error.stack);
-                    console.error('=== END ERROR DETAILS ===');
-
-                    // Reset to default delivery fee
-                    updateDeliveryCostSummary(20.00);
-
-                    // Show error indicator
-                    const deliveryCostElement = document.querySelector('.cost-summary-delivery strong');
-                    deliveryCostElement.style.color = 'orange';
-                    setTimeout(() => {
-                        deliveryCostElement.style.color = '';
-                    }, 3000);
-
-                    // Show detailed error in console for debugging
-                    console.error('Detailed error information:', {
-                        message: error.message,
-                        stack: error.stack,
-                        closestSupplier: closestSupplier
-                    });
-
-                    // Optional: Show user-friendly error with more details
-                    // Uncomment the next line if you want to see the full error in an alert
-                    // alert(`Delivery quote calculation failed:\n\n${error.message}`);
+                    updateDeliveryCostSummary(20.00); // Default fallback
+                    showError(deliveryCostElement);
                 });
         }
 
-// Helper function to validate postal codes
-        function isValidPostalCode(postalCode) {
-            const canadianPostalRegex = /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/;
-            return canadianPostalRegex.test(postalCode.trim());
+        function showSuccess(element) {
+            element.style.color = 'green';
+            setTimeout(() => element.style.color = '', 2000);
         }
 
-// Helper function to validate phone numbers
-        function isValidPhone(phone) {
-            const phoneRegex = /^[\+]?[1]?[\-\.\s]?\(?[0-9]{3}\)?[\-\.\s]?[0-9]{3}[\-\.\s]?[0-9]{4}$/;
-            return phoneRegex.test(phone.trim());
-        }
-
-// Enhanced validation before making quote request
-        function validateQuoteInputs() {
-            const postal = getInput('modal-postal');
-            const phone = getInput('modal-customer-phone');
-
-            if (postal && !isValidPostalCode(postal)) {
-                console.warn('Invalid postal code format:', postal);
-                return false;
-            }
-
-            if (phone && !isValidPhone(phone)) {
-                console.warn('Invalid phone number format:', phone);
-                return false;
-            }
-
-            return true;
+        function showError(element) {
+            element.style.color = 'orange';
+            setTimeout(() => element.style.color = '', 3000);
         }
 
         deliveryOption.addEventListener('change', function () {
