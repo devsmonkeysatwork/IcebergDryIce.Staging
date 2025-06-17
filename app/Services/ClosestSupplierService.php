@@ -7,7 +7,14 @@ use Illuminate\Support\Facades\Http;
 
 class ClosestSupplierService
 {
-    protected $googleApiKey = 'AIzaSyAA_QslIaQUU4A-DArAop1M9W6nQ0pjFpw';
+    protected $googleApiKey;
+
+    public function __construct()
+    {
+        // Load from config (which uses env internally)
+        $this->googleApiKey = config('services.google.api_key');
+    }
+
 
     public function findClosest($street, $city, $province, $useGoogle = true)
     {
