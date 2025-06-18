@@ -13,8 +13,11 @@ use Illuminate\Validation\Rule;
 
 class CustomerRegisterController extends Controller
 {
-    public function showForm()
+    public function showForm(Request $request)
     {
+        if ($request->has('redirect')) {
+            session(['redirect_after_register' => $request->get('redirect')]);
+        }
         return view('website.auth.register');
     }
 
@@ -72,6 +75,8 @@ class CustomerRegisterController extends Controller
             Mail::to($newCustomer->email)->send(new CustomerRegisteredMail($request));
         }
 
-        return redirect('/customer/dashboard');
+        $redirectUrl = session()->pull('redirect_after_register', '/customer/dashboard');
+
+        return redirect()->to($redirectUrl);
     }
 }

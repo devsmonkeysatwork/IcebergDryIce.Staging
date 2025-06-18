@@ -46,7 +46,9 @@
                     </tr>
                     <tr>
                         <td colspan="1" align="left">
-                            <a href="{{route('customer.register.form')}}" style='width: 100px; text-align: center; color: #090; border: outset 2px #090;' class='is_button'>
+                            <a href="{{ route('customer.register.form') }}?redirect={{ urlencode(request('redirect')) }}"
+                               style="width: 100px; text-align: center; color: #090; border: outset 2px #090;"
+                               class="is_button">
                                 Sign Up
                             </a>
                         </td>

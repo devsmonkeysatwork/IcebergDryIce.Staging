@@ -112,6 +112,10 @@ class ProductCrudController extends CrudController
         $this->setupCreateOperation();
     }
 
+    public function getAllProducts()
+    {
+        return response()->json(Product::select('id', 'product_name', 'price', 'unit')->get());
+    }
 
 
 }

@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\InventoryPageController;
 use App\Http\Controllers\Admin\OrderCrudController;
+use App\Http\Controllers\Admin\ProductCrudController;
 use App\Http\Controllers\Admin\WarehouseSaleCrudController;
 use App\Http\Controllers\Admin\ManualPaymentCrudController;
 use App\Http\Controllers\Website\LoginController;
@@ -119,8 +120,10 @@ Route::get('/test-email', function () {
 Route::get('/register-customer', [CustomerRegisterController::class, 'showForm'])->name('customer.register.form');
 Route::post('/register-customer', [CustomerRegisterController::class, 'register'])->name('customer.register');
 
+Route::get('/api/products', [ProductCrudController::class, 'getAllProducts']);
 
 use App\Http\Controllers\SupplierController;
+
 
 Route::get('/test-closest-supplier', [SupplierController::class, 'checkClosestSupplier']);
 
@@ -130,6 +133,7 @@ Route::post('/get-delivery-quote', [SupplierController::class, 'getDeliveryQuote
 Route::post('/get-novex-quote', [SupplierController::class, 'getNovexQuote']);
 
 Route::post('/orders/{id}/push-novex', [SupplierController::class, 'pushToNovex']);
+
 
 
 // require __DIR__ . '/auth.php';

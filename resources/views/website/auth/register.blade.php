@@ -18,6 +18,10 @@
                 </div>
             @endif
 
+            @if (request()->has('redirect'))
+                @php session(['redirect_after_register' => request('redirect')]); @endphp
+            @endif
+
             <form method="POST" action="{{ route('customer.register') }}">
                 @csrf
                 <table border="0">

@@ -167,33 +167,7 @@
         <div id="order-content" class="tab-content active">
             <form id='order_form'>
                 <table>
-                    <tr>
-                        <th colspan='4'>ORDER</th>
-                    </tr>
-                    <tr>
-                        <td>Dry Ice (lbs.)</td>
-                        <td>
-                            <input class='textbox_data' style='text-align: center;' size='10' type='text' name='weight' id='weight' value='0' onblur="calc_weight();">
-                        </td>
-                        <td width='130px' align='right'>
-                            $ <input class='textbox_data' style='text-align: right;' readonly size='7' type='text' name='weight_cost' id='weight_cost' value='0.00'>
-                        </td>
-                        <td align='right' width='300px'>
-                            <div id='weight_notes'><i>$1.95 / lbs., minimum 10 lbs.</i></div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Styrofoam Box</td>
-                        <td>
-                            <input style='text-align: center;' class='textbox_data' size='10' type='text' name='box' id='box' value='0' onblur="calc_boxes();">
-                        </td>
-                        <td align='right'>
-                            $ <input class='textbox_data' style='text-align: right;' readonly size='7' type='text' name='box_cost' id='box_cost' value='0.00'>
-                        </td>
-                        <td align='right'>
-                            <div id='box_notes'><i>$30 / empty box, holds up to 50 lbs.</i></div>
-                        </td>
-                    </tr>
+                    <tbody id="product-inputs"></tbody>
                 </table>
                 <br>
                 <input style='width: 100px; text-align: center; color: #090; border: outset 2px #090;' class='is_button' type='button' value='NEXT' onclick='nextFromOrder();'>
@@ -496,11 +470,70 @@
 
     <script>
 
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('here')
+            fetch('/api/products')
+                .then(res => res.json())
+                .then(products => {
+                    const container = document.getElementById('product-inputs');
+                    container.innerHTML = ''; // Clear existing
+
+                    console.log(products);
+
+                    products.forEach(product => {
+                        const row = document.createElement('tr');
+                        const inputId = `product_${product.id}`;
+                        const costId = `product_cost_${product.id}`;
+
+                        row.innerHTML = `
+                    <td>${product.product_name}</td>
+                    <td>
+                        <input
+                            style="text-align: center;"
+                            class="textbox_data"
+                            size="10"
+                            type="number"
+                            min="0"
+                            name="product[${product.id}][quantity]"
+                            id="${inputId}"
+                            value="0"
+                            onblur="calculateProductCost(${product.id}, ${product.price})"
+                        >
+                    </td>
+                    <td align="right">
+                        $ <input
+                            class="textbox_data"
+                            style="text-align: right;"
+                            readonly
+                            size="7"
+                            type="text"
+                            name="product[${product.id}][cost]"
+                            id="${costId}"
+                            value="0.00"
+                        >
+                    </td>
+                    <td align="right">
+                        <i>$${product.price.toFixed(2)} / unit</i>
+                    </td>
+                `;
+                        container.appendChild(row);
+                    });
+                });
+        });
+
         function redirectToLoginOrSignup() {
             saveFormData(); // Add this line
             const currentUrl = window.location.pathname;
             window.location.href = `/login?redirect=${encodeURIComponent(currentUrl)}`;
         }
+
+
+            function calculateProductCost(productId, unitPrice) {
+            const quantity = parseFloat(document.getElementById(`product_${productId}`).value) || 0;
+            const cost = quantity * unitPrice;
+            document.getElementById(`product_cost_${productId}`).value = cost.toFixed(2);
+        }
+
 
         // Global variables
         var cost_per_pound = 1.95;
