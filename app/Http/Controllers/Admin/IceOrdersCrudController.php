@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Requests\IceOrderRequest;
+use App\Models\Product;
+use App\Models\StockMovement;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 use App\Events\IceOrderPlaced;
@@ -67,7 +69,26 @@ class IceOrdersCrudController extends CrudController
 
         $item = $this->crud->create($data);
 
-        \Alert::success('Ice order added successfully.')->flash();
+        // 2. Update stock only if order created successfully
+        if ($item && isset($data['weight'])) {
+            $iceProduct = Product::where('product_name', 'Ice')->first();
+
+            if ($iceProduct) {
+                // Update current stock
+                $iceProduct->increment('current_stock', $data['weight']);
+
+                // Log in stock_movements
+                StockMovement::create([
+                    'product_id' => $iceProduct->id,
+                    'ice_order_id' => $item->id,
+                    'change_type' => 'in',
+                    'quantity' => $data['weight'],
+                    'description' => 'Ice order received (Order ID: ' . $item->id . ')',
+                ]);
+            }
+        }
+
+        \Alert::success('Ice order added and stock updated successfully.')->flash();
 
         return redirect()->to($this->crud->route);
     }

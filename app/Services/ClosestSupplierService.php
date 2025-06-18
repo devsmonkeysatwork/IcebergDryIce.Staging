@@ -35,7 +35,9 @@ class ClosestSupplierService
             return $this->formatAddress($supplier->address, $supplier->city, $supplier->province);
         })->implode('|');
 
-        $response = Http::get("https://maps.googleapis.com/maps/api/distancematrix/json", [
+        $response = Http::withOptions([
+            'verify' => config('services.http_verify'),
+        ])->get('https://maps.googleapis.com/maps/api/distancematrix/json', [
             'key' => $this->googleApiKey,
             'units' => 'imperial',
             'origins' => $origins,

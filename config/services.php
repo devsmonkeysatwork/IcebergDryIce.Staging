@@ -39,5 +39,7 @@ return [
         'api_key' => env('GOOGLE_API_KEY'),
     ],
 
+    'http_verify' => env('APP_ENV') !== 'local',
+
 
 ];
