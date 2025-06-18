@@ -16,4 +16,13 @@ class Product extends Model
         'price',
         'unit',
     ];
+
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
 }
+
+
+

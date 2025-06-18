@@ -262,9 +262,115 @@ class OrderCrudController extends CrudController
     /**
      * Handle AJAX submission from review form
      */
+//    public function ajaxCreateFromReview(Request $request)
+//    {
+//        // Validation - matching review form field names
+//        $validated = $request->validate([
+//            'customer_name' => 'required|string|max:255',
+//            'email' => 'required|email|max:255',
+//            'phone' => 'required|string|max:20',
+//            'amount_of_ice' => 'nullable|numeric|min:10',
+//            'amount_of_boxes' => 'nullable|numeric|min:0',
+//            'recurring' => 'string|in:recurring,non-recurring',
+//            'location_name' => 'nullable|string|max:255',
+//            'address' => 'nullable|string|max:255',
+//            'unit' => 'nullable|string|max:50',
+//            'city' => 'nullable|string|max:100',
+//            'postal_code' => 'required|string|max:20',
+//            'province' => 'required|string|max:50',
+//            'country' => 'string|max:100',
+//            'delivery_date' => 'nullable|date',
+//            'notes' => 'nullable|string',
+//            'status' => 'string|in:valid,cancelled,skip',
+//            'pickup_delivery' => 'string|in:pickup,delivery',
+//            // Review-specific fields
+//            'weight_cost' => 'nullable|numeric|min:0',
+//            'box_cost' => 'nullable|numeric|min:0',
+//            'subtotal' => 'nullable|numeric|min:0',
+//            'delivery_cost' => 'nullable|numeric|min:0',
+//            'tax' => 'nullable|numeric|min:0',
+//            'total_cost' => 'nullable|numeric|min:0',
+//            'accept' => 'required|accepted'
+//        ]);
+//
+//        try {
+//            // Handle customer lookup or creation
+//            $customer = $this->handleCustomerData($request);
+//
+//            // Use calculated costs from review form or recalculate
+//            if (isset($validated['total_cost']) && $validated['total_cost'] > 0) {
+//                $totalCost = $validated['total_cost'];
+//            } else {
+//                // Fallback calculation if not provided
+//                $iceCost = ($validated['amount_of_ice'] ?? 0) * 5;
+//                $boxCost = ($validated['amount_of_boxes'] ?? 0) * 2.5;
+//                $totalCost = $iceCost + $boxCost + ($validated['delivery_cost'] ?? 5.00) + ($validated['tax'] ?? 0);
+//            }
+//
+//            // Prepare order data
+//            $orderData = [
+//                'customer_id' => $customer->id,
+//                'customer_name' => $validated['customer_name'],
+//                'email' => $validated['email'],
+//                'phone' => $validated['phone'],
+//                'amount_of_ice' => $validated['amount_of_ice'],
+//                'amount_of_boxes' => $validated['amount_of_boxes'] ?? 0,
+//                'recurring' => $validated['recurring'] ?? 'non-recurring',
+//                'location_name' => $validated['location_name'],
+//                'address' => $validated['address'],
+//                'unit' => $validated['unit'],
+//                'city' => $validated['city'],
+//                'postal_code' => $validated['postal_code'],
+//                'province' => $validated['province'],
+//                'country' => $validated['country'] ?? 'Canada',
+//                'delivery_date' => $validated['delivery_date'],
+//                'notes' => $validated['notes'],
+//                'status' => $validated['status'] ?? 'valid',
+//                'pickup_delivery' => $validated['pickup_delivery'] ?? 'delivery',
+//                'total_cost' => $totalCost,
+//                'origin' => 'online'
+//            ];
+//
+//            // Create the order
+//            $order = Order::create($orderData);
+//
+//            Mail::to($order->email)->send(new OrderPlacedMail($order));
+//
+//
+//            return response()->json([
+//                'success' => true,
+//                'message' => 'Online Order submitted successfully',
+//                'order' => $order,
+//                'order_id' => $order->id
+//            ]);
+//
+//        } catch (\Exception $e) {
+//            \Log::error('Online order creation failed: ' . $e->getMessage());
+//
+//            return response()->json([
+//                'success' => false,
+//                'message' => 'Failed to create order: ' . $e->getMessage()
+//            ], 422);
+//        }
+//    }
+
+
     public function ajaxCreateFromReview(Request $request)
     {
-        // Validation - matching review form field names
+        // Filter out items with null or zero amounts before validation
+        $items = $request->input('items', []);
+        $filteredItems = array_filter($items, function($item) {
+            $amount = $item['amount_of_items'] ?? null;
+            return !is_null($amount) && $amount !== '' && $amount > 0;
+        });
+
+        // Re-index the array to avoid gaps
+        $filteredItems = array_values($filteredItems);
+
+        // Update the request with filtered items
+        $request->merge(['items' => $filteredItems]);
+
+        // Step 1: Validate the order data
         $validated = $request->validate([
             'customer_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
@@ -283,37 +389,29 @@ class OrderCrudController extends CrudController
             'notes' => 'nullable|string',
             'status' => 'string|in:valid,cancelled,skip',
             'pickup_delivery' => 'string|in:pickup,delivery',
-            // Review-specific fields
-            'weight_cost' => 'nullable|numeric|min:0',
-            'box_cost' => 'nullable|numeric|min:0',
             'subtotal' => 'nullable|numeric|min:0',
             'delivery_cost' => 'nullable|numeric|min:0',
             'tax' => 'nullable|numeric|min:0',
             'total_cost' => 'nullable|numeric|min:0',
-            'accept' => 'required|accepted'
+            'accept' => 'required|accepted',
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.amount_of_items' => 'required|numeric|min:1', // Changed from min:0 to min:1
+            'items.*.unit_price' => 'nullable|numeric|min:0',
+            'items.*.total_price' => 'nullable|numeric|min:0',
         ]);
 
         try {
-            // Handle customer lookup or creation
+            // Step 2: Handle customer
             $customer = $this->handleCustomerData($request);
 
-            // Use calculated costs from review form or recalculate
-            if (isset($validated['total_cost']) && $validated['total_cost'] > 0) {
-                $totalCost = $validated['total_cost'];
-            } else {
-                // Fallback calculation if not provided
-                $iceCost = ($validated['amount_of_ice'] ?? 0) * 5;
-                $boxCost = ($validated['amount_of_boxes'] ?? 0) * 2.5;
-                $totalCost = $iceCost + $boxCost + ($validated['delivery_cost'] ?? 5.00) + ($validated['tax'] ?? 0);
-            }
-
-            // Prepare order data
-            $orderData = [
+            // Step 3: Create the order
+            $order = Order::create([
                 'customer_id' => $customer->id,
                 'customer_name' => $validated['customer_name'],
                 'email' => $validated['email'],
                 'phone' => $validated['phone'],
-                'amount_of_ice' => $validated['amount_of_ice'],
+                'amount_of_ice' => $validated['amount_of_ice'] ?? 0,
                 'amount_of_boxes' => $validated['amount_of_boxes'] ?? 0,
                 'recurring' => $validated['recurring'] ?? 'non-recurring',
                 'location_name' => $validated['location_name'],
@@ -327,25 +425,55 @@ class OrderCrudController extends CrudController
                 'notes' => $validated['notes'],
                 'status' => $validated['status'] ?? 'valid',
                 'pickup_delivery' => $validated['pickup_delivery'] ?? 'delivery',
-                'total_cost' => $totalCost,
-                'origin' => 'online'
-            ];
+                'sub_total' => $validated['subtotal'] ?? 0,
+                'tax' => $validated['tax'] ?? 0,
+                'delivery_cost' => $validated['delivery_cost'] ?? 5.00,
+                'total_cost' => $validated['total_cost'] ?? 0,
+                'origin' => 'online',
+            ]);
 
-            // Create the order
-            $order = Order::create($orderData);
+            // Step 4: Create OrderItems - Ensure all required fields are present
+            foreach ($validated['items'] as $item) {
+                $amount = $item['amount_of_items'];
+                $unitPrice = $item['unit_price'] ?? 0;
+                $totalPrice = $item['total_price'] ?? ($amount * $unitPrice);
 
+
+                // Explicitly create with all required fields
+                $orderItem = $order->items()->create([
+                    'order_id' => $order->id,
+                    'product_id' => $item['product_id'],
+                    'amount_of_items' => $amount, // Ensure this is explicitly set
+                    'unit_price' => $unitPrice,
+                    'total_price' => $totalPrice,
+                ]);
+
+                // Log for debugging
+                \Log::info('Order item created: ', [
+                    'order_id' => $order->id,
+                    'product_id' => $item['product_id'],
+                    'amount_of_items' => $amount,
+                    'unit_price' => $unitPrice,
+                    'total_price' => $totalPrice,
+                    'created_item' => $orderItem->toArray()
+                ]);
+            }
+
+            // Step 5: Send confirmation email
             Mail::to($order->email)->send(new OrderPlacedMail($order));
-
 
             return response()->json([
                 'success' => true,
                 'message' => 'Online Order submitted successfully',
-                'order' => $order,
+                'order' => $order->load('items'),
                 'order_id' => $order->id
             ]);
 
         } catch (\Exception $e) {
             \Log::error('Online order creation failed: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            \Log::error('Request data: ', $request->all());
+            \Log::error('Validated data: ', $validated ?? 'Validation failed');
 
             return response()->json([
                 'success' => false,
@@ -353,10 +481,7 @@ class OrderCrudController extends CrudController
             ], 422);
         }
     }
-
-    /**
-     * Handle customer data for review form
-     */
+    /* Handle customer data for review form */
 
     protected function setupUpdateOperation()
     {

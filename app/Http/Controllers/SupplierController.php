@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+use App\Models\Order;
 use App\Services\ClosestSupplierService;
 use App\Models\SupplyLocation;
 
@@ -217,6 +218,103 @@ class SupplierController extends Controller
             return -1;
         }
     }
+
+
+    public function pushToNovex($id, ClosestSupplierService $service)
+    {
+        try {
+            $order = Order::findOrFail($id);
+
+            if ($order->push == 1) {
+                return response()->json(['success' => false, 'error' => 'Order already pushed']);
+            }
+
+            // Use ClosestSupplierService
+            $supplier = $service->findClosest(
+                $order->address,
+                $order->city,
+                $order->province,
+                false // set to false if you want to skip Google API on backend
+            );
+
+            if (!$supplier || !$supplier->id) {
+                return response()->json(['success' => false, 'error' => 'Closest supplier not found']);
+            }
+
+            // Build delivery payload
+            $weight = $order->amount ?: 1;
+            $dimensions = max(12, ceil($weight / 2));
+
+            $payload = [
+                'callerName' => 'Tyler',
+                'reference' => 'ORDER_' . $order->id,
+                'pickup' => [
+                    'name' => $supplier->name,
+                    'street' => $supplier->address,
+                    'unit' => $supplier->unit ?? '',
+                    'city' => $supplier->city,
+                    'province' => $supplier->province,
+                    'postalCode' => $supplier->postal,
+                    'country' => 'CAN',
+                    'instructions' => '',
+                ],
+                'delivery' => [
+                    'name' => $order->location_name ?? 'Customer',
+                    'street' => $order->address,
+                    'unit' => $order->unit ?? '',
+                    'city' => $order->city,
+                    'province' => $order->province,
+                    'postalCode' => $order->postal,
+                    'country' => 'CAN',
+                    'instructions' => $order->notes ?? '',
+                    'contact' => $order->contact_name ?? 'Unknown',
+                    'phone' => $order->phone,
+                    'notificationEmail' => $order->email,
+                ],
+                'serviceTypeId' => 4,
+                'vehicleTypeId' => 1,
+                'packages' => [[
+                    'typeId' => 122,
+                    'length' => $dimensions,
+                    'width' => 1,
+                    'height' => 1,
+                    'weight' => $weight,
+                    'count' => 1
+                ]]
+            ];
+
+            Log::info('Pushing order to Novex', ['order_id' => $order->id, 'payload' => $payload]);
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Basic ' . config('services.novex.auth_key'),
+                'Content-Type' => 'application/json'
+            ])->post(config('services.novex.push_url', 'https://api.novex.ca/sandbox/orders'), $payload);
+
+            if ($response->successful()) {
+                $order->push = 1;
+                $order->save();
+
+                return response()->json(['success' => true]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Failed to push order',
+                    'response' => $response->body()
+                ], $response->status());
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Novex Push Exception: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'error' => 'An error occurred while pushing the order'
+            ], 500);
+        }
+    }
+
+
 
 
 }

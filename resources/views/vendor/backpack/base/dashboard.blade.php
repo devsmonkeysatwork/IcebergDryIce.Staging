@@ -372,6 +372,10 @@
                     <button id="save-order-btn" class="btn btn-primary">
                         <i class="la la-save"></i> <span id="save-btn-text">Create Order</span>
                     </button>
+                    <button id="push-btn-{{ $order->id }}" onclick="tryPushOrderToNovex({{ $order->id }})" class="btn btn-primary button-push" style="background: gray">
+                        Push Order
+                    </button>
+                    <span id="push-status-{{ $order->id }}" class="ml-2 text-sm text-muted status-push"></span>
                     <button class="btn btn-secondary mx-2" data-bs-dismiss="modal">Cancel</button>
                 </div>
                 <button id="delete-order-btn" class="btn btn-danger" style="display: none;">
@@ -743,9 +747,6 @@
         let isEditMode = false;
         let customerData = {}; // Store customer data for quick lookup
 
-
-
-
         // Initialize Select2 for email field
         function initializeEmailSelect2() {
             $('#modal-customer-email').select2({
@@ -784,13 +785,13 @@
 
                     if (customer.customer) {
                         return $(`
-                        <div class="select2-customer-result">
-                            <div class="customer-email">${customer.customer.email}</div>
-                            <div class="customer-details text-muted small">
-                                ${customer.customer.name} • ${customer.customer.city || 'N/A'}, ${customer.customer.province || 'N/A'}
-                            </div>
+                    <div class="select2-customer-result">
+                        <div class="customer-email">${customer.customer.email}</div>
+                        <div class="customer-details text-muted small">
+                            ${customer.customer.name} • ${customer.customer.city || 'N/A'}, ${customer.customer.province || 'N/A'}
                         </div>
-                    `);
+                    </div>
+                `);
                     }
 
                     return $(`<div class="select2-new-email">New: ${customer.text}</div>`);
@@ -819,8 +820,6 @@
                 clearCustomerFields('');
             });
         }
-
-
 
         // Populate customer fields with existing data
         function populateCustomerFields(customer) {
@@ -905,6 +904,10 @@
             document.getElementById('order-id-section').style.display = 'none';
             document.getElementById('delete-order-btn').style.display = 'none';
 
+            // Hide push button and status in create mode
+            document.querySelectorAll('.button-push').forEach(btn => btn.style.display = 'none');
+            document.querySelectorAll('.status-push').forEach(status => status.style.display = 'none');
+
             // Clear all form fields
             clearModalForm();
 
@@ -919,8 +922,7 @@
 
         function prepareModalForEdit(btn) {
             isEditMode = true;
-
-
+            const orderId = btn.dataset.id; // Get the order ID from the button
 
             // Update modal title and button text
             document.getElementById('modal-title-text').textContent = 'Edit Order';
@@ -930,8 +932,17 @@
             document.getElementById('order-id-section').style.display = 'block';
             document.getElementById('delete-order-btn').style.display = 'block';
 
+            // Show push button and status in edit mode
+            document.querySelectorAll('.button-push').forEach(btn => {
+                btn.style.display = 'inline-block';
+                btn.dataset.orderId = orderId;
+            });
+            document.querySelectorAll('.status-push').forEach(status => {
+                status.style.display = 'inline';
+            });
+
             // Populate form with existing data
-            document.getElementById('modal-order-id').value = btn.dataset.id;
+            document.getElementById('modal-order-id').value = orderId;
 
             // For email field in edit mode, we need to handle Select2 differently
             const customerEmail = btn.dataset.email || '';
@@ -961,8 +972,8 @@
             document.getElementById('modal-pickup-or-delivery').value = btn.dataset.pickup_delivery || '';
 
             // Store order ID for operations
-            document.getElementById('save-order-btn').dataset.orderId = btn.dataset.id;
-            document.getElementById('delete-order-btn').dataset.orderId = btn.dataset.id;
+            document.getElementById('save-order-btn').dataset.orderId = orderId;
+            document.getElementById('delete-order-btn').dataset.orderId = orderId;
 
             // Calculate and display costs
             updateCostSummary();
@@ -977,7 +988,6 @@
             }
 
             $('#modal-customer-email').prop('disabled', false);
-
 
             // Clear all other input fields
             document.querySelectorAll('#orderSummaryModal input').forEach(input => {
@@ -1027,27 +1037,27 @@
             // Update the cost summary section
             document.querySelector('.cost-summary-ice').innerHTML =
                 `<p class="m-0">Dry Ice (${iceAmount} lbs @ $${pricePerLb.toFixed(2)}/lb):</p>
-         <strong>$${iceCost.toFixed(2)}</strong>`;
+     <strong>$${iceCost.toFixed(2)}</strong>`;
 
             document.querySelector('.cost-summary-box').innerHTML =
                 `<p class="m-0">Styrofoam Box (${boxAmount} @ $${pricePerBox.toFixed(2)}/box):</p>
-         <strong>$${boxCost.toFixed(2)}</strong>`;
+     <strong>$${boxCost.toFixed(2)}</strong>`;
 
             document.querySelector('.cost-summary-delivery').innerHTML =
                 `<p class="m-0">Pickup/Delivery:</p>
-         <strong>$${deliveryFee.toFixed(2)}</strong>`;
+     <strong>$${deliveryFee.toFixed(2)}</strong>`;
 
             document.querySelector('.cost-summary-subtotal').innerHTML =
                 `<p class="m-0">Sub-Total:</p>
-         <strong>$${subTotal.toFixed(2)}</strong>`;
+     <strong>$${subTotal.toFixed(2)}</strong>`;
 
             document.querySelector('.cost-summary-tax').innerHTML =
                 `<p class="m-0">Tax (${(taxRate * 100).toFixed(0)}%):</p>
-         <strong>$${tax.toFixed(2)}</strong>`;
+     <strong>$${tax.toFixed(2)}</strong>`;
 
             document.querySelector('.cost-summary-total').innerHTML =
                 `<p class="m-0">TOTAL:</p>
-         <strong>$${total.toFixed(2)}</strong>`;
+     <strong>$${total.toFixed(2)}</strong>`;
         }
 
         // Add event listeners for cost calculation
@@ -1136,7 +1146,6 @@
 
             return isValid;
         }
-
 
         function isValidEmail(email) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -1269,7 +1278,7 @@
             }
         });
 
-        // Handle Delete Button Click (same as before)
+        // Handle Delete Button Click
         document.getElementById('delete-order-btn').addEventListener('click', function() {
             const orderId = this.dataset.orderId;
 
@@ -1334,6 +1343,229 @@
             });
         });
     });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        let closestSupplier = null;
+
+        const deliveryOption = document.getElementById('modal-pickup-or-delivery');
+
+        function getInput(id) {
+            return document.getElementById(id)?.value?.trim();
+        }
+
+        function updateDeliveryCostSummary(amount) {
+            document.querySelector('.cost-summary-delivery strong').textContent = `$${amount.toFixed(2)}`;
+
+            // Update TOTAL
+            const dryIceText = document.querySelector('.cost-summary-ice strong').textContent.replace('$', '') || 0;
+            const boxText = document.querySelector('.cost-summary-box strong').textContent.replace('$', '') || 0;
+            const delivery = amount;
+
+            const subtotal = parseFloat(dryIceText) + parseFloat(boxText) + delivery;
+            const tax = subtotal * 0.15;
+            const total = subtotal + tax;
+
+            document.querySelector('.cost-summary-subtotal strong').textContent = `$${subtotal.toFixed(2)}`;
+            document.querySelector('.cost-summary-tax strong').textContent = `$${tax.toFixed(2)}`;
+            document.querySelector('.cost-summary-total strong').textContent = `$${total.toFixed(2)}`;
+        }
+
+        function tryGetDeliveryQuote() {
+            // Get form values
+            const formData = {
+                address: getInput('modal-address'),
+                city: getInput('modal-city'),
+                province: getInput('modal-province'),
+                email: getInput('modal-customer-email'),
+                name: getInput('modal-customer-name'),
+                phone: getInput('modal-customer-phone'),
+                iceAmount: parseFloat(getInput('modal-ice-amount')) || 1,
+                postal: getInput('modal-postal'),
+                locationName: getInput('modal-location-name'),
+                unit: getInput('modal-unit') || ''
+            };
+
+            // Check required fields
+            const required = [formData.address, formData.city, formData.province, formData.email, formData.name, formData.phone, formData.postal, formData.locationName];
+            if (!required.every(val => val && val.trim())) {
+                console.log('Missing required fields');
+                return;
+            }
+
+            // Show loading
+            const deliveryCostElement = document.querySelector('.cost-summary-delivery strong');
+            deliveryCostElement.textContent = 'Calculating...';
+
+            console.log('Starting delivery quote request...');
+
+            // Get closest supplier first
+            fetch(`/test-closest-supplier?street=${encodeURIComponent(formData.address)}&city=${encodeURIComponent(formData.city)}&province=${encodeURIComponent(formData.province)}`)
+                .then(response => {
+                    console.log('Supplier response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`Supplier API returned ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Supplier data received:', data);
+                    console.log('Data structure:', JSON.stringify(data, null, 2));
+
+                    // Extract supplier from response
+                    if (!data.closest_supplier || !data.closest_supplier.id) {
+                        console.error('No supplier found in response:', data);
+                        throw new Error('No supplier found in response');
+                    }
+
+                    const supplier = data.closest_supplier;
+
+                    console.log('Found supplier:', supplier);
+                    console.log('Supplier ID:', supplier.id);
+
+                    // Get delivery quote
+                    const quotePayload = {
+                        supplier_id: supplier.id,
+                        delivery: {
+                            name: formData.locationName.trim(),
+                            street: formData.address.trim(),
+                            unit: formData.unit.trim() || '', // Ensure it's always a string
+                            city: formData.city.trim(),
+                            province: formData.province.trim(),
+                            postal_code: formData.postal.trim(),
+                            contact: formData.name.trim(),
+                            phone: formData.phone.trim(),
+                            email: formData.email.trim()
+                        },
+                        weight: formData.iceAmount
+                    };
+
+                    console.log('Quote payload:', quotePayload);
+
+                    return fetch('/get-delivery-quote', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(quotePayload)
+                    });
+                })
+                .then(response => {
+                    console.log('Quote response status:', response.status);
+
+                    // Add response text logging for debugging
+                    return response.text().then(text => {
+                        console.log('Quote response text:', text);
+
+                        if (!response.ok) {
+                            throw new Error(`Quote API returned ${response.status}: ${text}`);
+                        }
+
+                        try {
+                            return JSON.parse(text);
+                        } catch (e) {
+                            console.error('Failed to parse JSON:', e);
+                            throw new Error('Invalid JSON response from quote API');
+                        }
+                    });
+                })
+                .then(data => {
+                    console.log('Quote data received:', data);
+
+                    if (data.success && data.total) {
+                        console.log('Quote successful, total:', data.total);
+                        updateDeliveryCostSummary(data.total);
+                        showSuccess(deliveryCostElement);
+                    } else {
+                        console.error('Quote unsuccessful:', data);
+                        throw new Error(data.error || 'Quote failed');
+                    }
+                })
+                .catch(error => {
+                    console.error('Full error details:', error);
+                    console.error('Error message:', error.message);
+                    updateDeliveryCostSummary(20.00); // Default fallback
+                    showError(deliveryCostElement);
+                });
+        }
+
+        function showSuccess(element) {
+            element.style.color = 'green';
+            setTimeout(() => element.style.color = '', 2000);
+        }
+
+        function showError(element) {
+            element.style.color = 'orange';
+            setTimeout(() => element.style.color = '', 3000);
+        }
+
+        deliveryOption.addEventListener('change', function () {
+            if (this.value === 'delivery') {
+                // Setup auto listener to check fields and trigger quote
+                const inputs = ['modal-address', 'modal-city', 'modal-province', 'modal-customer-email', 'modal-customer-name', 'modal-customer-phone', 'modal-ice-amount', 'modal-postal', 'modal-location-name'];
+
+                inputs.forEach(id => {
+                    document.getElementById(id)?.addEventListener('input', () => {
+                        clearTimeout(window.__quoteTimer);
+                        window.__quoteTimer = setTimeout(tryGetDeliveryQuote, 500); // debounce
+                    });
+                });
+
+                // Initial trigger in case fields are already filled
+                tryGetDeliveryQuote();
+            }
+        });
+    });
+
+    function tryPushOrderToNovex(orderId) {
+        const pushButton = document.querySelector(`#push-btn-${orderId}`);
+        const statusLabel = document.querySelector(`#push-status-${orderId}`);
+
+        if (pushButton) {
+            pushButton.disabled = true;
+            pushButton.textContent = 'Pushing...';
+        }
+
+        fetch(`/orders/${orderId}/push-novex`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Push response:', data);
+
+                if (data.success) {
+                    if (statusLabel) {
+                        statusLabel.textContent = '✔ Pushed';
+                        statusLabel.style.color = 'green';
+                    }
+                    if (pushButton) {
+                        pushButton.style.display = 'none';
+                    }
+                } else {
+                    throw new Error(data.error || 'Push failed');
+                }
+            })
+            .catch(error => {
+                console.error('Push error:', error);
+                if (statusLabel) {
+                    statusLabel.textContent = '⚠ Push Failed';
+                    statusLabel.style.color = 'orange';
+                }
+                if (pushButton) {
+                    pushButton.disabled = false;
+                    pushButton.textContent = 'Push Order';
+                }
+            });
+    }
+
+
+
+
 
     document.addEventListener('DOMContentLoaded', function () {
         const dateInput = document.getElementById('modal-delivery-date');
