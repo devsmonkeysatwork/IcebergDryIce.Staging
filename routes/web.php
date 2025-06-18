@@ -129,4 +129,7 @@ Route::post('/get-delivery-quote', [SupplierController::class, 'getDeliveryQuote
 
 Route::post('/get-novex-quote', [SupplierController::class, 'getNovexQuote']);
 
+Route::post('/orders/{id}/push-novex', [SupplierController::class, 'pushToNovex']);
+
+
 // require __DIR__ . '/auth.php';

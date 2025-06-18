@@ -3,8 +3,11 @@
 <script>
     window.isLoggedIn = @json(Auth::guard('customer')->check());
     window.customerData = @json(Auth::guard('customer')->user());
-
 </script>
+@php
+    $iceProduct = \App\Models\Product::where('product_name', 'dry ice')->first();
+    $boxProduct = \App\Models\Product::where('product_name', 'styrofoam box')->first();
+@endphp
 
 @section('content')
     <style>
@@ -356,8 +359,22 @@
                 <input type="hidden" id="hidden_customer_name" name="customer_name" value="">
                 <input type="hidden" id="hidden_email" name="email" value="">
                 <input type="hidden" id="hidden_phone" name="phone" value="">
+
                 <input type="hidden" id="hidden_amount_of_ice" name="amount_of_ice" value="">
                 <input type="hidden" id="hidden_amount_of_boxes" name="amount_of_boxes" value="">
+
+                <input type="hidden" name="items[0][product_id]" value="{{ $iceProduct->id }}">
+                <input type="hidden" id="ice_amount" name="items[0][amount_of_items]" value="">
+                <input type="hidden" id="ice_unit_price" name="items[0][unit_price]" value="{{ $iceProduct->price }}">
+                <input type="hidden" id="ice_total_price" name="items[0][total_price]" value="">
+
+                <!-- Box product items -->
+                <input type="hidden" name="items[1][product_id]" value="{{ $boxProduct->id }}">
+                <input type="hidden" id="box_amount" name="items[1][amount_of_items]" value="">
+                <input type="hidden" id="box_unit_price" name="items[1][unit_price]" value="{{ $boxProduct->price }}">
+                <input type="hidden" id="box_total_price" name="items[1][total_price]" value="">`
+
+
                 <input type="hidden" id="hidden_recurring" name="recurring" value="non-recurring">
                 <input type="hidden" id="hidden_location_name" name="location_name" value="">
                 <input type="hidden" id="hidden_address" name="address" value="">
@@ -760,7 +777,7 @@
             const getValue = (id) => document.getElementById(id)?.value.trim() || '';
 
             const weight = getValue('weight');
-            const boxes = getValue('box');
+            const boxes = getValue('box'); // Note: using 'box' not 'boxes'
             const weightCost = parseFloat(getValue('weight_cost')) || 0;
             const boxCost = parseFloat(getValue('box_cost')) || 0;
             const subtotal = weightCost + boxCost;
@@ -838,10 +855,12 @@
             const notes = getValue('notes');
             document.getElementById('order-notes').innerHTML = notes || 'No special notes';
 
-            // Hidden fields
+            // Populate customer information
             document.getElementById('hidden_customer_name').value = name;
             document.getElementById('hidden_email').value = email;
             document.getElementById('hidden_phone').value = phone;
+
+            // Populate order details
             document.getElementById('hidden_amount_of_ice').value = weight;
             document.getElementById('hidden_amount_of_boxes').value = boxes;
             document.getElementById('hidden_location_name').value = company;
@@ -852,21 +871,41 @@
             document.getElementById('hidden_province').value = province;
             document.getElementById('hidden_notes').value = notes;
 
+            // Populate cost breakdown
             document.getElementById('hidden_weight_cost').value = weightCost.toFixed(2);
             document.getElementById('hidden_box_cost').value = boxCost.toFixed(2);
             document.getElementById('hidden_subtotal').value = subtotal.toFixed(2);
             document.getElementById('hidden_tax').value = tax.toFixed(2);
             document.getElementById('hidden_total_cost').value = total.toFixed(2);
+            document.getElementById('hidden_delivery_cost').value = delivery.toFixed(2);
+
+            // FIXED: Populate items array using the variables we already have
+            // For ice (items[0]) - use the weight variable
+            document.getElementById('ice_amount').value = weight;
+
+            document.getElementById('ice_total_price').value = weight * {{$iceProduct->price}};
+
+
+            // For boxes (items[1]) - use the boxes variable
+            document.getElementById('box_amount').value = boxes;
+
+            // Also populate the total prices for the items
+            document.getElementById('ice_total_price').value = weightCost.toFixed(2);
+            document.getElementById('box_total_price').value = boxCost.toFixed(2);
 
             // Delivery date hidden value
             const deliveryDate = (month && day && year)
-                ? `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+                ? `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
                 : '';
             document.getElementById('hidden_delivery_date').value = deliveryDate;
+
+            // Debug: Log the values being set
+            console.log('Setting ice_amount to:', weight);
+            console.log('Setting box_amount to:', boxes);
         }
 
-
         // Handle form submission with AJAX
+
         document.getElementById('orderForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
@@ -883,6 +922,12 @@
             // Prepare form data
             const formData = new FormData(this);
 
+            // Debug: Log form data before sending
+            console.log('Form data being sent:');
+            for (let [key, value] of formData.entries()) {
+                console.log(key + ': ' + value);
+            }
+
             const submitBtn = document.querySelector('.submit-btn');
             const originalText = submitBtn.textContent;
             submitBtn.textContent = 'Submitting...';
@@ -897,6 +942,8 @@
             })
                 .then(response => response.json())
                 .then(data => {
+                    console.log('Response data:', data); // Debug log
+
                     if (data.success) {
                         Swal.fire({
                             icon: 'success',
@@ -908,7 +955,6 @@
                             confirmButtonText: 'OK'
                         }).then(() => {
                             localStorage.removeItem('orderFormData');
-                            // Redirect if needed
                             window.location.href = `/`;
                         });
                     } else {
@@ -917,7 +963,6 @@
                             title: 'Submission Failed',
                             text: data.message || 'Unknown error occurred.'
                         }).then(() => {
-                            // Re-enable button only after error popup is dismissed
                             submitBtn.textContent = originalText;
                             submitBtn.disabled = false;
                         });
@@ -930,15 +975,10 @@
                         title: 'Network Error',
                         text: 'A network error occurred. Please try again.'
                     }).then(() => {
-                        // Re-enable button only after error popup is dismissed
                         submitBtn.textContent = originalText;
                         submitBtn.disabled = false;
                     });
                 });
-
-            // Note: Button remains disabled until popup is shown and dismissed
-            // For success case, user gets redirected so button state doesn't matter
-            // For error cases, button is re-enabled only after user dismisses the error popup
         });
 
         // Populate the review when page loads

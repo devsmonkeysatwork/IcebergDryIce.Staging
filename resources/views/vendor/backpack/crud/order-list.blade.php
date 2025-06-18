@@ -337,6 +337,10 @@
                     <button id="save-order-btn" class="btn btn-primary">
                         <i class="la la-save"></i> <span id="save-btn-text">Create Order</span>
                     </button>
+                    <button id="push-btn-{{ $order->id }}" onclick="tryPushOrderToNovex({{ $order->id }})" class="btn btn-primary" style="background: gray">
+                        Push Order
+                    </button>
+                    <span id="push-status-{{ $order->id }}" class="ml-2 text-sm text-muted"></span>
                     <button class="btn btn-secondary mx-2" data-bs-dismiss="modal">Cancel</button>
                 </div>
                 <button id="delete-order-btn" class="btn btn-danger" style="display: none;">
@@ -1312,6 +1316,52 @@
             }
         });
     });
+
+    function tryPushOrderToNovex(orderId) {
+        const pushButton = document.querySelector(`#push-btn-${orderId}`);
+        const statusLabel = document.querySelector(`#push-status-${orderId}`);
+
+        if (pushButton) {
+            pushButton.disabled = true;
+            pushButton.textContent = 'Pushing...';
+        }
+
+        fetch(`/orders/${orderId}/push-novex`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Push response:', data);
+
+                if (data.success) {
+                    if (statusLabel) {
+                        statusLabel.textContent = '✔ Pushed';
+                        statusLabel.style.color = 'green';
+                    }
+                    if (pushButton) {
+                        pushButton.style.display = 'none';
+                    }
+                } else {
+                    throw new Error(data.error || 'Push failed');
+                }
+            })
+            .catch(error => {
+                console.error('Push error:', error);
+                if (statusLabel) {
+                    statusLabel.textContent = '⚠ Push Failed';
+                    statusLabel.style.color = 'orange';
+                }
+                if (pushButton) {
+                    pushButton.disabled = false;
+                    pushButton.textContent = 'Push Order';
+                }
+            });
+    }
+
 
 
 

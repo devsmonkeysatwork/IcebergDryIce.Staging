@@ -32,6 +32,9 @@ class Order extends Model
         'status',
         'delivery_date',
         'notes',
+        'subtotal',
+        'delivery_cost',
+        'tax',
         'total_cost',
     ];
 
@@ -59,4 +62,10 @@ class Order extends Model
     {
         return $this->belongsTo(Customer::class, 'email', 'email');
     }
+
+    public function items()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
 }
