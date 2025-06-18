@@ -15,5 +15,12 @@ class Product extends Model
         'product_name',
         'price',
         'unit',
+        'current_stock',
     ];
+
+
+    public function stockMovements()
+    {
+        return $this->hasMany(StockMovement::class);
+    }
 }

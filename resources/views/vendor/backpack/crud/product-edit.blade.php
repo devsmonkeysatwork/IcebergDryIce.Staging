@@ -71,6 +71,12 @@
                                     <input type="text" class="form-control" id="unit" name="unit"
                                            value="{{ old('unit', $entry->unit ?? '') }}" placeholder="Unit" required>
                                 </div>
+
+                                <div class="form-group col-md-4">
+                                    <label for="stock">Current Stock</label>
+                                    <input type="text" class="form-control" id="stock"
+                                           value="{{ $entry->current_stock }}" placeholder="0" disabled>
+                                </div>
                             </div>
                         </div>
                     </div>

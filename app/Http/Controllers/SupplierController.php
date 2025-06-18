@@ -183,10 +183,12 @@ class SupplierController extends Controller
                 'order_details' => $orderDetails
             ]);
 
-            $response = Http::withHeaders([
+            $response = Http::withOptions([
+                'verify' => config('services.http_verify'),
+            ])->withHeaders([
                 'Authorization' => 'Basic ' . config('services.novex.auth_key'),
-                'Content-Type' => 'application/json'
-            ])->post('https://api.novex.ca/sandbox/quote', $orderDetails);
+                'Content-Type' => 'application/json',
+            ])->post(config('services.novex.api_url', 'https://api.novex.ca/sandox/quote'), $orderDetails);
 
             Log::info('Novex API response', [
                 'status' => $response->status(),
