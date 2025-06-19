@@ -4,10 +4,7 @@
     window.isLoggedIn = @json(Auth::guard('customer')->check());
     window.customerData = @json(Auth::guard('customer')->user());
 </script>
-@php
-    $iceProduct = \App\Models\Product::where('product_name', 'dry ice')->first();
-    $boxProduct = \App\Models\Product::where('product_name', 'styrofoam box')->first();
-@endphp
+
 
 @section('content')
     <style>
@@ -167,8 +164,61 @@
         <div id="order-content" class="tab-content active">
             <form id='order_form'>
                 <table>
-                    <tbody id="product-inputs"></tbody>
+                    <tr>
+                        <th colspan='4'>ORDER</th>
+                    </tr>
+
+                    @foreach ($products as $product)
+                        @php
+                            $safeId = 'product_' . $product->id;
+                            $costId = 'product_cost_' . $product->id;
+                            $notesId = 'notes_' . $product->id;
+                            $priceFormatted = number_format($product->price, 2);
+                        @endphp
+                        <tr>
+                            <td>{{ $product->product_name }} ({{ $product->unit }})</td>
+
+                            <td>
+                                <input
+                                    class="textbox_data"
+                                    style="text-align: center;"
+                                    size="10"
+                                    type="text"
+                                    name="product[{{ $product->id }}][quantity]"
+                                    id="{{ $safeId }}"
+                                    value="0"
+                                    data-unit-price="{{ $product->price }}"
+                                    onblur="calculateProductCost({{ $product->id }}, {{ $product->price }})"
+                                >
+                            </td>
+
+                            <td width="130px" align="right">
+                                $ <input
+                                    class="textbox_data"
+                                    style="text-align: right;"
+                                    readonly
+                                    size="7"
+                                    type="text"
+                                    name="product[{{ $product->id }}][cost]"
+                                    id="{{ $costId }}"
+                                    value="0.00"
+                                >
+                            </td>
+
+                            <td align="right" width="300px">
+                                <div id="{{ $notesId }}">
+                                    <i>
+                                        ${{ $priceFormatted }} / {{ $product->unit }}
+                                        @if (str_contains(strtolower($product->product_name), 'dry ice'))
+                                            , <span style="color:red">minimum 10 lbs.</span>
+                                        @endif
+                                    </i>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforeach
                 </table>
+
                 <br>
                 <input style='width: 100px; text-align: center; color: #090; border: outset 2px #090;' class='is_button' type='button' value='NEXT' onclick='nextFromOrder();'>
             </form>
@@ -337,17 +387,8 @@
                 <input type="hidden" id="hidden_amount_of_ice" name="amount_of_ice" value="">
                 <input type="hidden" id="hidden_amount_of_boxes" name="amount_of_boxes" value="">
 
-                <input type="hidden" name="items[0][product_id]" value="{{ $iceProduct->id }}">
-                <input type="hidden" id="ice_amount" name="items[0][amount_of_items]" value="">
-                <input type="hidden" id="ice_unit_price" name="items[0][unit_price]" value="{{ $iceProduct->price }}">
-                <input type="hidden" id="ice_total_price" name="items[0][total_price]" value="">
-
-                <!-- Box product items -->
-                <input type="hidden" name="items[1][product_id]" value="{{ $boxProduct->id }}">
-                <input type="hidden" id="box_amount" name="items[1][amount_of_items]" value="">
-                <input type="hidden" id="box_unit_price" name="items[1][unit_price]" value="{{ $boxProduct->price }}">
-                <input type="hidden" id="box_total_price" name="items[1][total_price]" value="">`
-
+                <!-- Dynamic product items will be injected here -->
+                <div id="product-hidden-fields"></div>
 
                 <input type="hidden" id="hidden_recurring" name="recurring" value="non-recurring">
                 <input type="hidden" id="hidden_location_name" name="location_name" value="">
@@ -470,57 +511,6 @@
 
     <script>
 
-        document.addEventListener('DOMContentLoaded', function () {
-            console.log('here')
-            fetch('/api/products')
-                .then(res => res.json())
-                .then(products => {
-                    const container = document.getElementById('product-inputs');
-                    container.innerHTML = ''; // Clear existing
-
-                    console.log(products);
-
-                    products.forEach(product => {
-                        const row = document.createElement('tr');
-                        const inputId = `product_${product.id}`;
-                        const costId = `product_cost_${product.id}`;
-
-                        row.innerHTML = `
-                    <td>${product.product_name}</td>
-                    <td>
-                        <input
-                            style="text-align: center;"
-                            class="textbox_data"
-                            size="10"
-                            type="number"
-                            min="0"
-                            name="product[${product.id}][quantity]"
-                            id="${inputId}"
-                            value="0"
-                            onblur="calculateProductCost(${product.id}, ${product.price})"
-                        >
-                    </td>
-                    <td align="right">
-                        $ <input
-                            class="textbox_data"
-                            style="text-align: right;"
-                            readonly
-                            size="7"
-                            type="text"
-                            name="product[${product.id}][cost]"
-                            id="${costId}"
-                            value="0.00"
-                        >
-                    </td>
-                    <td align="right">
-                        <i>$${product.price.toFixed(2)} / unit</i>
-                    </td>
-                `;
-                        container.appendChild(row);
-                    });
-                });
-        });
-
         function redirectToLoginOrSignup() {
             saveFormData(); // Add this line
             const currentUrl = window.location.pathname;
@@ -528,24 +518,17 @@
         }
 
 
-            function calculateProductCost(productId, unitPrice) {
+        function calculateProductCost(productId, unitPrice) {
             const quantity = parseFloat(document.getElementById(`product_${productId}`).value) || 0;
             const cost = quantity * unitPrice;
             document.getElementById(`product_cost_${productId}`).value = cost.toFixed(2);
         }
 
 
-        // Global variables
-        var cost_per_pound = 1.95;
-        var cost_per_box = 30;
-        var minimum_pounds = 10;
+
         var currentTab = 'order';
 
-        // Initialize the page
-        document.addEventListener('DOMContentLoaded', function() {
-            populateDays();
-            document.getElementById('weight').focus();
-        });
+
 
         function populateCustomerData() {
             if (window.isLoggedIn && window.customerData) {
@@ -563,7 +546,8 @@
         }
         // Tab switching function
         function showTab(tabName) {
-            console.log('Switching to tab:', tabName);
+            // Save current form data before switching
+            saveFormData();
 
             // Hide all tab contents
             var contents = document.querySelectorAll('.tab-content');
@@ -599,22 +583,14 @@
                 console.error('Tab elements not found:', tabName);
             }
         }
-        // Navigation functions
+
         function nextFromOrder() {
-            if (calc_weight() && calc_boxes()) {
-                if (document.getElementById('weight').value == 0 && document.getElementById('box').value == 0) {
-                    set_msg('weight_notes', 'Please add something to your order', true);
+                // 🔒 Handle auth
+                if (window.isLoggedIn) {
+                    showTab('location');
                 } else {
-                    // Check if user is logged in
-                    if (window.isLoggedIn) {
-                        // Skip modal and go directly to location
-                        showTab('location');
-                    } else {
-                        // Show the signup/guest modal
-                        document.getElementById('signupModal').style.display = 'block';
-                    }
+                    document.getElementById('signupModal').style.display = 'block';
                 }
-            }
         }
 
         function proceedWithSignup() {
@@ -651,28 +627,28 @@
             }
         }
 
-        // Order calculation functions
-        function calc_weight() {
-            set_msg('weight_notes', '<center><b>VALID</b></center>', false);
-            var weight = document.getElementById('weight').value;
-            if (isNaN(weight) || weight < minimum_pounds) {
-                set_msg('weight_notes', 'Minimum order weight is 10 pounds.', true);
-                return false;
-            }
-            document.getElementById('weight_cost').value = (weight * cost_per_pound).toFixed(2);
-            return true;
-        }
-
-        function calc_boxes() {
-            set_msg('box_notes', '<center><b>VALID</b></center>', false);
-            var boxes = document.getElementById('box').value;
-            if (isNaN(boxes)) {
-                set_msg('box_notes', 'Boxes must be a number.', true);
-                return false;
-            }
-            document.getElementById('box_cost').value = (boxes * cost_per_box).toFixed(2);
-            return true;
-        }
+        // // Order calculation functions
+        // function calc_weight() {
+        //     set_msg('weight_notes', '<center><b>VALID</b></center>', false);
+        //     var weight = document.getElementById('weight').value;
+        //     if (isNaN(weight) || weight < minimum_pounds) {
+        //         set_msg('weight_notes', 'Minimum order weight is 10 pounds.', true);
+        //         return false;
+        //     }
+        //     document.getElementById('weight_cost').value = (weight * cost_per_pound).toFixed(2);
+        //     return true;
+        // }
+        //
+        // function calc_boxes() {
+        //     set_msg('box_notes', '<center><b>VALID</b></center>', false);
+        //     var boxes = document.getElementById('box').value;
+        //     if (isNaN(boxes)) {
+        //         set_msg('box_notes', 'Boxes must be a number.', true);
+        //         return false;
+        //     }
+        //     document.getElementById('box_cost').value = (boxes * cost_per_box).toFixed(2);
+        //     return true;
+        // }
 
         // Location validation functions
         function check_date() {
@@ -806,48 +782,103 @@
         }
 
 
+        function setHiddenValue(name, value) {
+            let field = document.querySelector(`input[name="${name}"]`);
+            if (!field) {
+                field = document.createElement('input');
+                field.type = 'hidden';
+                field.name = name;
+                document.getElementById('orderForm').appendChild(field);
+            }
+            field.value = value;
+        }
+
+        // 1. Fix the populateReview function to properly handle dynamic products
         function populateReview() {
             const getValue = (id) => document.getElementById(id)?.value.trim() || '';
 
-            const weight = getValue('weight');
-            const boxes = getValue('box'); // Note: using 'box' not 'boxes'
-            const weightCost = parseFloat(getValue('weight_cost')) || 0;
-            const boxCost = parseFloat(getValue('box_cost')) || 0;
-            const subtotal = weightCost + boxCost;
-            const delivery = 5.00;
-            const tax = (subtotal + delivery) * 0.12;
-            const total = subtotal + delivery + tax;
+            // Get all product quantity inputs using the correct selector
+            const productInputs = document.querySelectorAll('[name^="product["][name$="[quantity]"]');
 
-            // Order Summary
+            let subtotal = 0;
             let orderSummary = '';
             let orderCosts = '';
 
-            if (weight > 0) {
-                orderSummary += `<font color="#00f"><b>${weight}</b></font> lbs. of DRY ICE<br>`;
-                orderCosts += `$${weightCost.toFixed(2)}<br>`;
+            // Clear existing product hidden fields
+            const productHiddenContainer = document.getElementById('product-hidden-fields');
+            if (productHiddenContainer) {
+                productHiddenContainer.innerHTML = '';
             }
 
-            if (boxes > 0) {
-                orderSummary += `<font color="#00f"><b>${boxes}</b></font> styrofoam boxes<br>`;
-                orderCosts += `$${boxCost.toFixed(2)}<br>`;
-            }
+            let itemIndex = 0;
 
+            productInputs.forEach(input => {
+                // Extract product ID from name attribute: product[123][quantity]
+                const match = input.name.match(/product\[(\d+)\]\[quantity\]/);
+                if (!match) return;
+
+                const productId = match[1];
+                const quantity = parseFloat(input.value) || 0;
+
+                if (quantity > 0) {
+                    // Get product cost and name from the DOM
+                    const costInput = document.querySelector(`[name="product[${productId}][cost]"]`);
+                    const totalPrice = parseFloat(costInput?.value) || 0;
+
+                    // Get product name from the table row
+                    const productRow = input.closest('tr');
+                    const productNameCell = productRow?.querySelector('td:first-child');
+                    const productName = productNameCell?.textContent.trim() || `Product ${productId}`;
+
+                    // Build summary
+                    orderSummary += `<font color="#00f"><b>${quantity}</b></font> ${productName}<br>`;
+                    orderCosts += `$${totalPrice.toFixed(2)}<br>`;
+                    subtotal += totalPrice;
+
+                    const unitPrice = parseFloat(input.getAttribute('data-unit-price')) || 0;
+                    // Create hidden fields for this product
+
+                    if (productHiddenContainer) {
+                        const hiddenFields = `
+                        <input type="hidden" name="items[${itemIndex}][product_id]" value="${productId}">
+                        <input type="hidden" name="items[${itemIndex}][amount_of_items]" value="${quantity}">
+                        <input type="hidden" name="items[${itemIndex}][unit_price]" value="${unitPrice.toFixed(2)}">
+                        <input type="hidden" name="items[${itemIndex}][total_price]" value="${totalPrice.toFixed(2)}">
+                        `;
+                        productHiddenContainer.innerHTML += hiddenFields;
+                    }
+
+                    itemIndex++;
+                }
+            });
+
+            // Summary & cost display
             orderSummary += '<b>Sub Total</b>';
             orderCosts += `$${subtotal.toFixed(2)}`;
 
             document.getElementById('order-summary').innerHTML = orderSummary;
             document.getElementById('order-costs').innerHTML = orderCosts;
 
+            // Delivery, Tax & Total
+            const delivery = 5.00;
+            const tax = (subtotal + delivery) * 0.12;
+            const total = subtotal + delivery + tax;
+
             document.getElementById('tax-total').innerHTML =
                 `$${tax.toFixed(2)}<br><hr><b>$${total.toFixed(2)}</b>`;
 
+            // Set cost hidden fields
+            document.getElementById('hidden_subtotal').value = subtotal.toFixed(2);
+            document.getElementById('hidden_tax').value = tax.toFixed(2);
+            document.getElementById('hidden_total_cost').value = total.toFixed(2);
+            document.getElementById('hidden_delivery_cost').value = delivery.toFixed(2);
+
             // Location
+            const company = getValue('company');
             const address = getValue('address');
             const city = getValue('city');
             const province = getValue('province');
             const postal = getValue('postal');
-            const company = getValue('company');
-
             let locationHtml = '';
             if (company && company !== 'Residence') locationHtml += `<b>${company}</b><br>`;
             if (address) locationHtml += `${address}<br>`;
@@ -856,86 +887,54 @@
                 if (province) locationHtml += `, ${province}`;
                 if (postal) locationHtml += ` ${postal}`;
             }
-
             document.getElementById('delivery-location').innerHTML = locationHtml || 'No address provided';
 
             // Delivery Date
             const month = getValue('month');
             const day = getValue('day');
             const year = getValue('year');
-            const monthNames = ["January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December"];
+            const monthNames = [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            ];
             const dateHtml = (month && day && year)
                 ? `${monthNames[month - 1]} ${day}, ${year}`
                 : 'No date selected';
 
             document.getElementById('delivery-date').innerHTML = dateHtml;
+            document.getElementById('hidden_delivery_date').value = (month && day && year)
+                ? `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+                : '';
 
-            // Contact
+            // Contact Info
             const name = getValue('name');
             const phone = getValue('phone');
             const email = getValue('email');
-
             let contactHtml = '';
             if (name) contactHtml += `<b>${name}</b><br>`;
             if (phone) contactHtml += `Phone: ${phone}<br>`;
             if (email) contactHtml += `Email: ${email}`;
-            if (!contactHtml) contactHtml = 'No contact information provided';
-
-            document.getElementById('contact-info').innerHTML = contactHtml;
+            document.getElementById('contact-info').innerHTML = contactHtml || 'No contact info';
 
             // Notes
             const notes = getValue('notes');
             document.getElementById('order-notes').innerHTML = notes || 'No special notes';
 
-            // Populate customer information
+            // Hidden fields for order data
             document.getElementById('hidden_customer_name').value = name;
             document.getElementById('hidden_email').value = email;
             document.getElementById('hidden_phone').value = phone;
-
-            // Populate order details
-            document.getElementById('hidden_amount_of_ice').value = weight;
-            document.getElementById('hidden_amount_of_boxes').value = boxes;
             document.getElementById('hidden_location_name').value = company;
             document.getElementById('hidden_address').value = address;
-            document.getElementById('hidden_unit').value = getValue('unit');
             document.getElementById('hidden_city').value = city;
             document.getElementById('hidden_postal_code').value = postal;
             document.getElementById('hidden_province').value = province;
             document.getElementById('hidden_notes').value = notes;
-
-            // Populate cost breakdown
-            document.getElementById('hidden_weight_cost').value = weightCost.toFixed(2);
-            document.getElementById('hidden_box_cost').value = boxCost.toFixed(2);
-            document.getElementById('hidden_subtotal').value = subtotal.toFixed(2);
-            document.getElementById('hidden_tax').value = tax.toFixed(2);
-            document.getElementById('hidden_total_cost').value = total.toFixed(2);
-            document.getElementById('hidden_delivery_cost').value = delivery.toFixed(2);
-
-            // FIXED: Populate items array using the variables we already have
-            // For ice (items[0]) - use the weight variable
-            document.getElementById('ice_amount').value = weight;
-
-            document.getElementById('ice_total_price').value = weight * {{$iceProduct->price}};
-
-
-            // For boxes (items[1]) - use the boxes variable
-            document.getElementById('box_amount').value = boxes;
-
-            // Also populate the total prices for the items
-            document.getElementById('ice_total_price').value = weightCost.toFixed(2);
-            document.getElementById('box_total_price').value = boxCost.toFixed(2);
-
-            // Delivery date hidden value
-            const deliveryDate = (month && day && year)
-                ? `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
-                : '';
-            document.getElementById('hidden_delivery_date').value = deliveryDate;
-
-            // Debug: Log the values being set
-            console.log('Setting ice_amount to:', weight);
-            console.log('Setting box_amount to:', boxes);
         }
+
+
+
+
 
         // Handle form submission with AJAX
 
@@ -975,9 +974,10 @@
             })
                 .then(response => response.json())
                 .then(data => {
-                    console.log('Response data:', data); // Debug log
+                    console.log('Response data:', data);
 
                     if (data.success) {
+                        clearSavedData(); // Clear saved data on success
                         Swal.fire({
                             icon: 'success',
                             title: 'Order Submitted!',
@@ -987,7 +987,6 @@
                             showConfirmButton: true,
                             confirmButtonText: 'OK'
                         }).then(() => {
-                            localStorage.removeItem('orderFormData');
                             window.location.href = `/`;
                         });
                     } else {
@@ -1014,50 +1013,97 @@
                 });
         });
 
-        // Populate the review when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            populateReview();
+            restoreFormData();
+            setupAutoSave();
+
+            // Populate review if we're on the review tab
+            if (currentTab === 'review') {
+                populateReview();
+            }
         });
+
 
         function saveFormData() {
             const formData = {
-                weight: document.getElementById('weight').value,
-                box: document.getElementById('box').value,
-                weight_cost: document.getElementById('weight_cost').value,
-                box_cost: document.getElementById('box_cost').value,
+                // Product data
+                products: [],
+                // Location data
+                location: {
+                    province: document.getElementById('province')?.value || '',
+                    city: document.getElementById('city')?.value || '',
+                    address: document.getElementById('address')?.value || '',
+                    postal: document.getElementById('postal')?.value || '',
+                    month: document.getElementById('month')?.value || '',
+                    day: document.getElementById('day')?.value || '',
+                    year: document.getElementById('year')?.value || '',
+                    name: document.getElementById('name')?.value || '',
+                    location_type: document.getElementById('location_type')?.value || '',
+                    company: document.getElementById('company')?.value || '',
+                    phone: document.getElementById('phone')?.value || '',
+                    email: document.getElementById('email')?.value || '',
+                    notes: document.getElementById('notes')?.value || '',
+                },
                 timestamp: Date.now()
             };
 
-            localStorage.setItem('orderFormData', JSON.stringify(formData));
+            // Save product quantities and costs
+            const productInputs = document.querySelectorAll('[name^="product["][name$="[quantity]"]');
+            productInputs.forEach(input => {
+                const match = input.name.match(/product\[(\d+)\]\[quantity\]/);
+                if (match) {
+                    const productId = match[1];
+                    const quantity = input.value;
+                    const costInput = document.querySelector(`[name="product[${productId}][cost]"]`);
+                    const cost = costInput ? costInput.value : '0.00';
+
+                    formData.products.push({
+                        product_id: productId,
+                        quantity: quantity,
+                        cost: cost
+                    });
+                }
+            });
+
+            sessionStorage.setItem('orderFormData', JSON.stringify(formData));
         }
 
         function restoreFormData() {
-            const savedData = localStorage.getItem('orderFormData');
+            const savedData = sessionStorage.getItem('orderFormData');
 
             if (savedData) {
-                const formData = JSON.parse(savedData);
+                try {
+                    const formData = JSON.parse(savedData);
 
-                // Check if data is not too old (optional - removes data older than 1 hour)
-                const oneHour = 60 * 60 * 1000;
-                if (Date.now() - formData.timestamp > oneHour) {
-                    localStorage.removeItem('orderFormData');
-                    return;
+                    // Restore product data
+                    if (formData.products && Array.isArray(formData.products)) {
+                        formData.products.forEach(item => {
+                            const quantityInput = document.querySelector(`[name="product[${item.product_id}][quantity]"]`);
+                            const costInput = document.querySelector(`[name="product[${item.product_id}][cost]"]`);
+
+                            if (quantityInput) quantityInput.value = item.quantity;
+                            if (costInput) costInput.value = item.cost;
+                        });
+                    }
+
+                    // Restore location data
+                    if (formData.location) {
+                        const loc = formData.location;
+                        Object.keys(loc).forEach(key => {
+                            const element = document.getElementById(key);
+                            if (element && loc[key]) {
+                                element.value = loc[key];
+                            }
+                        });
+                    }
+
+                } catch (error) {
+                    console.error('Error restoring form data:', error);
+                    sessionStorage.removeItem('orderFormData');
                 }
-
-                // Restore form values
-                document.getElementById('weight').value = formData.weight || '0';
-                document.getElementById('box').value = formData.box || '0';
-                document.getElementById('weight_cost').value = formData.weight_cost || '0.00';
-                document.getElementById('box_cost').value = formData.box_cost || '0.00';
-
-                // Recalculate costs to ensure consistency
-                calc_weight();
-                calc_boxes();
-
-                // Clear saved data after restoration
-                localStorage.removeItem('orderFormData');
             }
         }
+
 
         // 3. CALL restoreFormData() when the page loads
         document.addEventListener('DOMContentLoaded', function() {
@@ -1066,8 +1112,17 @@
 
         // 4. ALSO ADD auto-save on form changes (optional but recommended)
         function setupAutoSave() {
-            const inputs = ['weight', 'box'];
-            inputs.forEach(id => {
+            // Auto-save on product quantity changes
+            const productInputs = document.querySelectorAll('[name^="product["][name$="[quantity]"]');
+            productInputs.forEach(input => {
+                input.addEventListener('input', saveFormData);
+                input.addEventListener('blur', saveFormData);
+            });
+
+            // Auto-save on location form changes
+            const locationInputs = ['province', 'city', 'address', 'postal', 'month', 'day', 'year',
+                'name', 'location_type', 'company', 'phone', 'email', 'notes'];
+            locationInputs.forEach(id => {
                 const element = document.getElementById(id);
                 if (element) {
                     element.addEventListener('input', saveFormData);
@@ -1076,11 +1131,9 @@
             });
         }
 
-        // Call setupAutoSave after DOM is loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            restoreFormData();
-            setupAutoSave();
-        });
+        function clearSavedData() {
+            sessionStorage.removeItem('orderFormData');
+        }
 
 
     </script>

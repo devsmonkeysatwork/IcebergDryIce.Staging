@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Product;
 
 class WebsiteController extends Controller
 {
@@ -17,7 +18,9 @@ class WebsiteController extends Controller
     }
     public function showOrderForm()
     {
-        return view('website.order.order');
+        $products = Product::all();
+        return view('website.order.order', compact('products'));
+
     }
     public function storeOrder()
     {
