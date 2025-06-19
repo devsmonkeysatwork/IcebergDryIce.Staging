@@ -518,6 +518,7 @@
                 .then(html => {
                     document.getElementById('modal-content-container').innerHTML = '';
                     document.getElementById('modal-content-container').innerHTML = html;
+                    isEditMode = true;
 
                     // Show the modal
                     const modal = new bootstrap.Modal(summaryModal);
