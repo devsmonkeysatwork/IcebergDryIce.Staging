@@ -372,10 +372,12 @@
                     <button id="save-order-btn" class="btn btn-primary">
                         <i class="la la-save"></i> <span id="save-btn-text">Create Order</span>
                     </button>
-                    <button id="push-btn-{{ $order->id }}" onclick="tryPushOrderToNovex({{ $order->id }})" class="btn btn-primary button-push" style="background: gray">
-                        Push Order
-                    </button>
-                    <span id="push-status-{{ $order->id }}" class="ml-2 text-sm text-muted status-push"></span>
+                    @if(isset($order) && $order)
+                        <button id="push-btn-{{ $order->id }}" onclick="tryPushOrderToNovex({{ $order->id }})" class="btn btn-primary button-push" style="background: gray">
+                            Push Order
+                        </button>
+                        <span id="push-status-{{ $order->id }}" class="ml-2 text-sm text-muted status-push"></span>
+                    @endif
                     <button class="btn btn-secondary mx-2" data-bs-dismiss="modal">Cancel</button>
                 </div>
                 <button id="delete-order-btn" class="btn btn-danger" style="display: none;">
@@ -1408,19 +1410,14 @@
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Supplier data received:', data);
-                    console.log('Data structure:', JSON.stringify(data, null, 2));
 
                     // Extract supplier from response
                     if (!data.closest_supplier || !data.closest_supplier.id) {
-                        console.error('No supplier found in response:', data);
                         throw new Error('No supplier found in response');
                     }
 
                     const supplier = data.closest_supplier;
 
-                    console.log('Found supplier:', supplier);
-                    console.log('Supplier ID:', supplier.id);
 
                     // Get delivery quote
                     const quotePayload = {
@@ -1518,10 +1515,30 @@
         });
     });
 
+
+
     function tryPushOrderToNovex(orderId) {
+        // Check if orderId is valid
+        if (!orderId || orderId === '' || orderId === 'undefined') {
+            console.error('Invalid order ID provided');
+            return;
+        }
+
+        // Get orderId from modal if not provided as parameter
+        if (!orderId) {
+            const modalOrderId = document.getElementById('modal-order-id');
+            if (modalOrderId && modalOrderId.value) {
+                orderId = modalOrderId.value;
+            } else {
+                console.error('No order ID found');
+                return;
+            }
+        }
+
         const pushButton = document.querySelector(`#push-btn-${orderId}`);
         const statusLabel = document.querySelector(`#push-status-${orderId}`);
 
+        // Check if elements exist before manipulating them
         if (pushButton) {
             pushButton.disabled = true;
             pushButton.textContent = 'Pushing...';
@@ -1534,7 +1551,12 @@
                 'Accept': 'application/json'
             }
         })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 console.log('Push response:', data);
 
@@ -1562,7 +1584,6 @@
                 }
             });
     }
-
 
 
 

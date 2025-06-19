@@ -337,10 +337,12 @@
                     <button id="save-order-btn" class="btn btn-primary">
                         <i class="la la-save"></i> <span id="save-btn-text">Create Order</span>
                     </button>
-                    <button id="push-btn-{{ $order->id }}" onclick="tryPushOrderToNovex({{ $order->id }})" class="btn btn-primary" style="background: gray">
-                        Push Order
-                    </button>
-                    <span id="push-status-{{ $order->id }}" class="ml-2 text-sm text-muted"></span>
+                    @if(isset($order) && $order)
+                        <button id="push-btn-{{ $order->id }}" onclick="tryPushOrderToNovex({{ $order->id }})" class="btn btn-primary button-push" style="background: gray">
+                            Push Order
+                        </button>
+                        <span id="push-status-{{ $order->id }}" class="ml-2 text-sm text-muted status-push"></span>
+                    @endif
                     <button class="btn btn-secondary mx-2" data-bs-dismiss="modal">Cancel</button>
                 </div>
                 <button id="delete-order-btn" class="btn btn-danger" style="display: none;">
@@ -551,9 +553,6 @@
         let isEditMode = false;
         let customerData = {}; // Store customer data for quick lookup
 
-
-
-
         // Initialize Select2 for email field
         function initializeEmailSelect2() {
             $('#modal-customer-email').select2({
@@ -592,13 +591,13 @@
 
                     if (customer.customer) {
                         return $(`
-                        <div class="select2-customer-result">
-                            <div class="customer-email">${customer.customer.email}</div>
-                            <div class="customer-details text-muted small">
-                                ${customer.customer.name} • ${customer.customer.city || 'N/A'}, ${customer.customer.province || 'N/A'}
-                            </div>
+                    <div class="select2-customer-result">
+                        <div class="customer-email">${customer.customer.email}</div>
+                        <div class="customer-details text-muted small">
+                            ${customer.customer.name} • ${customer.customer.city || 'N/A'}, ${customer.customer.province || 'N/A'}
                         </div>
-                    `);
+                    </div>
+                `);
                     }
 
                     return $(`<div class="select2-new-email">New: ${customer.text}</div>`);
@@ -627,8 +626,6 @@
                 clearCustomerFields('');
             });
         }
-
-
 
         // Populate customer fields with existing data
         function populateCustomerFields(customer) {
@@ -713,6 +710,10 @@
             document.getElementById('order-id-section').style.display = 'none';
             document.getElementById('delete-order-btn').style.display = 'none';
 
+            // Hide push button and status in create mode
+            document.querySelectorAll('.button-push').forEach(btn => btn.style.display = 'none');
+            document.querySelectorAll('.status-push').forEach(status => status.style.display = 'none');
+
             // Clear all form fields
             clearModalForm();
 
@@ -727,8 +728,7 @@
 
         function prepareModalForEdit(btn) {
             isEditMode = true;
-
-
+            const orderId = btn.dataset.id; // Get the order ID from the button
 
             // Update modal title and button text
             document.getElementById('modal-title-text').textContent = 'Edit Order';
@@ -738,8 +738,17 @@
             document.getElementById('order-id-section').style.display = 'block';
             document.getElementById('delete-order-btn').style.display = 'block';
 
+            // Show push button and status in edit mode
+            document.querySelectorAll('.button-push').forEach(btn => {
+                btn.style.display = 'inline-block';
+                btn.dataset.orderId = orderId;
+            });
+            document.querySelectorAll('.status-push').forEach(status => {
+                status.style.display = 'inline';
+            });
+
             // Populate form with existing data
-            document.getElementById('modal-order-id').value = btn.dataset.id;
+            document.getElementById('modal-order-id').value = orderId;
 
             // For email field in edit mode, we need to handle Select2 differently
             const customerEmail = btn.dataset.email || '';
@@ -769,8 +778,8 @@
             document.getElementById('modal-pickup-or-delivery').value = btn.dataset.pickup_delivery || '';
 
             // Store order ID for operations
-            document.getElementById('save-order-btn').dataset.orderId = btn.dataset.id;
-            document.getElementById('delete-order-btn').dataset.orderId = btn.dataset.id;
+            document.getElementById('save-order-btn').dataset.orderId = orderId;
+            document.getElementById('delete-order-btn').dataset.orderId = orderId;
 
             // Calculate and display costs
             updateCostSummary();
@@ -785,7 +794,6 @@
             }
 
             $('#modal-customer-email').prop('disabled', false);
-
 
             // Clear all other input fields
             document.querySelectorAll('#orderSummaryModal input').forEach(input => {
@@ -835,27 +843,27 @@
             // Update the cost summary section
             document.querySelector('.cost-summary-ice').innerHTML =
                 `<p class="m-0">Dry Ice (${iceAmount} lbs @ $${pricePerLb.toFixed(2)}/lb):</p>
-         <strong>$${iceCost.toFixed(2)}</strong>`;
+     <strong>$${iceCost.toFixed(2)}</strong>`;
 
             document.querySelector('.cost-summary-box').innerHTML =
                 `<p class="m-0">Styrofoam Box (${boxAmount} @ $${pricePerBox.toFixed(2)}/box):</p>
-         <strong>$${boxCost.toFixed(2)}</strong>`;
+     <strong>$${boxCost.toFixed(2)}</strong>`;
 
             document.querySelector('.cost-summary-delivery').innerHTML =
                 `<p class="m-0">Pickup/Delivery:</p>
-         <strong>$${deliveryFee.toFixed(2)}</strong>`;
+     <strong>$${deliveryFee.toFixed(2)}</strong>`;
 
             document.querySelector('.cost-summary-subtotal').innerHTML =
                 `<p class="m-0">Sub-Total:</p>
-         <strong>$${subTotal.toFixed(2)}</strong>`;
+     <strong>$${subTotal.toFixed(2)}</strong>`;
 
             document.querySelector('.cost-summary-tax').innerHTML =
                 `<p class="m-0">Tax (${(taxRate * 100).toFixed(0)}%):</p>
-         <strong>$${tax.toFixed(2)}</strong>`;
+     <strong>$${tax.toFixed(2)}</strong>`;
 
             document.querySelector('.cost-summary-total').innerHTML =
                 `<p class="m-0">TOTAL:</p>
-         <strong>$${total.toFixed(2)}</strong>`;
+     <strong>$${total.toFixed(2)}</strong>`;
         }
 
         // Add event listeners for cost calculation
@@ -944,7 +952,6 @@
 
             return isValid;
         }
-
 
         function isValidEmail(email) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -1077,7 +1084,7 @@
             }
         });
 
-        // Handle Delete Button Click (same as before)
+        // Handle Delete Button Click
         document.getElementById('delete-order-btn').addEventListener('click', function() {
             const orderId = this.dataset.orderId;
 
@@ -1139,9 +1146,9 @@
                             });
                         });
                 }
-            })
+            });
         });
-    })
+    });
 
     document.addEventListener('DOMContentLoaded', function () {
         let closestSupplier = null;
@@ -1207,19 +1214,14 @@
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Supplier data received:', data);
-                    console.log('Data structure:', JSON.stringify(data, null, 2));
 
                     // Extract supplier from response
                     if (!data.closest_supplier || !data.closest_supplier.id) {
-                        console.error('No supplier found in response:', data);
                         throw new Error('No supplier found in response');
                     }
 
                     const supplier = data.closest_supplier;
 
-                    console.log('Found supplier:', supplier);
-                    console.log('Supplier ID:', supplier.id);
 
                     // Get delivery quote
                     const quotePayload = {
@@ -1317,10 +1319,30 @@
         });
     });
 
+
+
     function tryPushOrderToNovex(orderId) {
+        // Check if orderId is valid
+        if (!orderId || orderId === '' || orderId === 'undefined') {
+            console.error('Invalid order ID provided');
+            return;
+        }
+
+        // Get orderId from modal if not provided as parameter
+        if (!orderId) {
+            const modalOrderId = document.getElementById('modal-order-id');
+            if (modalOrderId && modalOrderId.value) {
+                orderId = modalOrderId.value;
+            } else {
+                console.error('No order ID found');
+                return;
+            }
+        }
+
         const pushButton = document.querySelector(`#push-btn-${orderId}`);
         const statusLabel = document.querySelector(`#push-status-${orderId}`);
 
+        // Check if elements exist before manipulating them
         if (pushButton) {
             pushButton.disabled = true;
             pushButton.textContent = 'Pushing...';
@@ -1333,7 +1355,12 @@
                 'Accept': 'application/json'
             }
         })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 console.log('Push response:', data);
 

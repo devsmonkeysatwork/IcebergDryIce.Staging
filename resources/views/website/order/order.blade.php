@@ -517,12 +517,119 @@
             window.location.href = `/login?redirect=${encodeURIComponent(currentUrl)}`;
         }
 
+        function nextFromOrder() {
+            // Validate Dry Ice minimum requirement
+            if (!validateDryIceMinimum()) {
+                return; // Stop if validation fails
+            }
+
+            // 🔒 Handle auth
+            if (window.isLoggedIn) {
+                showTab('location');
+            } else {
+                document.getElementById('signupModal').style.display = 'block';
+            }
+        }
+
+
+        function validateDryIceMinimum() {
+            let hasDryIceError = false;
+
+            // Get all product quantity inputs
+            const productInputs = document.querySelectorAll('[name^="product["][name$="[quantity]"]');
+
+            productInputs.forEach(input => {
+                const match = input.name.match(/product\[(\d+)\]\[quantity\]/);
+                if (!match) return;
+
+                const productId = match[1];
+                const quantity = parseFloat(input.value) || 0;
+
+                // Get product name from the table row
+                const productRow = input.closest('tr');
+                const productNameCell = productRow?.querySelector('td:first-child');
+                const productName = productNameCell?.textContent.trim() || '';
+
+                // Check if this is a Dry Ice product and quantity is less than 10
+                if (productName.toLowerCase().includes('dry ice') && quantity > 0 && quantity < 10) {
+                    // Show error message in the notes field
+                    const notesId = 'notes_' + productId;
+                    const notesElement = document.getElementById(notesId);
+                    if (notesElement) {
+                        // Get the original price info
+                        const originalContent = notesElement.innerHTML;
+                        const priceInfo = originalContent.split(',')[0]; // Get the price part
+
+                        notesElement.innerHTML = '<span style="color:red; font-weight:bold;">Invalid: Please add at least 10 lbs</span>';
+                        notesElement.className = 'error';
+                    }
+                    hasDryIceError = true;
+                } else {
+                    // Clear any previous error messages for this product
+                    const notesId = 'notes_' + productId;
+                    const notesElement = document.getElementById(notesId);
+                    if (notesElement && notesElement.innerHTML.includes('Invalid: Please add at least 10 lbs')) {
+                        // Restore original content
+                        const productRow = input.closest('tr');
+                        const priceCell = productRow?.querySelector('td:last-child div');
+                        if (priceCell) {
+                            // Rebuild the original notes content
+                            const unitPrice = input.getAttribute('data-unit-price') || '0.00';
+                            const unit = productName.match(/\(([^)]+)\)/)?.[1] || 'unit';
+                            let originalContent = `<i>$${parseFloat(unitPrice).toFixed(2)} / ${unit}`;
+                            if (productName.toLowerCase().includes('dry ice')) {
+                                originalContent += ', <span style="color:red">minimum 10 lbs.</span>';
+                            }
+                            originalContent += '</i>';
+                            notesElement.innerHTML = originalContent;
+                            notesElement.className = '';
+                        }
+                    }
+                }
+            });
+
+            return !hasDryIceError;
+        }
 
         function calculateProductCost(productId, unitPrice) {
             const quantity = parseFloat(document.getElementById(`product_${productId}`).value) || 0;
             const cost = quantity * unitPrice;
             document.getElementById(`product_cost_${productId}`).value = cost.toFixed(2);
+
+            validateDryIceForProduct(productId, quantity);
         }
+
+        function validateDryIceForProduct(productId, quantity) {
+            const productRow = document.getElementById(`product_${productId}`).closest('tr');
+            const productNameCell = productRow?.querySelector('td:first-child');
+            const productName = productNameCell?.textContent.trim() || '';
+
+            const notesId = 'notes_' + productId;
+            const notesElement = document.getElementById(notesId);
+
+            if (!notesElement) return;
+
+            if (productName.toLowerCase().includes('dry ice') && quantity > 0 && quantity < 10) {
+                // Show error
+                const originalContent = notesElement.innerHTML;
+                const priceInfo = originalContent.split(',')[0];
+                notesElement.innerHTML = '<span style="color:red; font-weight:bold;">Invalid: Please add at least 10 lbs</span>';
+                notesElement.className = 'error';
+            } else if (notesElement.innerHTML.includes('Invalid: Please add at least 10 lbs')) {
+                // Clear error and restore original
+                const input = document.getElementById(`product_${productId}`);
+                const unitPrice = input.getAttribute('data-unit-price') || '0.00';
+                const unit = productName.match(/\(([^)]+)\)/)?.[1] || 'unit';
+                let originalContent = `<i>$${parseFloat(unitPrice).toFixed(2)} / ${unit}`;
+                if (productName.toLowerCase().includes('dry ice')) {
+                    originalContent += ', <span style="color:red">minimum 10 lbs.</span>';
+                }
+                originalContent += '</i>';
+                notesElement.innerHTML = originalContent;
+                notesElement.className = '';
+            }
+        }
+
 
 
 
@@ -584,14 +691,7 @@
             }
         }
 
-        function nextFromOrder() {
-                // 🔒 Handle auth
-                if (window.isLoggedIn) {
-                    showTab('location');
-                } else {
-                    document.getElementById('signupModal').style.display = 'block';
-                }
-        }
+
 
         function proceedWithSignup() {
             // Hide modal
