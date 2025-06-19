@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Mail\CustomerRegisteredMail;
+use App\Models\StockMovement;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 use Illuminate\Http\Request;
@@ -12,6 +13,8 @@ use App\Models\Product;
 use App\Models\Customer;
 use Carbon\Carbon;
 use App\Mail\OrderPlacedMail;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Services\ClosestSupplierService;
 
@@ -263,9 +266,6 @@ class OrderCrudController extends CrudController
     /**
      * Handle AJAX submission from review form
      */
-
-
-
     public function ajaxCreateFromReview(Request $request)
     {
         // Filter out items with null or zero amounts before validation
@@ -281,7 +281,7 @@ class OrderCrudController extends CrudController
         // Update the request with filtered items
         $request->merge(['items' => $filteredItems]);
 
-        // Step 1: Validate the order data
+        // Validate the request
         $validated = $request->validate([
             'customer_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
@@ -307,16 +307,18 @@ class OrderCrudController extends CrudController
             'accept' => 'required|accepted',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
-            'items.*.amount_of_items' => 'required|numeric|min:1', // Changed from min:0 to min:1
+            'items.*.amount_of_items' => 'required|numeric|min:1',
             'items.*.unit_price' => 'nullable|numeric|min:0',
             'items.*.total_price' => 'nullable|numeric|min:0',
         ]);
 
+        DB::beginTransaction();
+
         try {
-            // Step 2: Handle customer
+            // Step 1: Handle customer
             $customer = $this->handleCustomerData($request);
 
-            // Step 3: Create the order
+            // Step 2: Create the order
             $order = Order::create([
                 'customer_id' => $customer->id,
                 'customer_name' => $validated['customer_name'],
@@ -343,7 +345,7 @@ class OrderCrudController extends CrudController
                 'origin' => 'online',
             ]);
 
-            // Step 4: Create OrderItems - Ensure all required fields are present
+            // Step 3: Process items
             foreach ($validated['items'] as $item) {
                 $amount = $item['amount_of_items'];
                 $unitPrice = $item['unit_price'] ?? 0;
@@ -352,36 +354,41 @@ class OrderCrudController extends CrudController
                 $product = Product::find($item['product_id']);
 
                 if ($product && stripos($product->product_name, 'dry ice') !== false) {
-                    if ($item['amount_of_items'] < 10) {
+                    if ($amount < 10) {
+                        DB::rollBack(); // rollback before returning
                         return response()->json([
                             'success' => false,
-                            'message' => 'Dry Ice require a minimum order of 10 lbs.'
+                            'message' => 'Dry Ice requires a minimum order of 10 lbs.'
                         ]);
                     }
                 }
 
-                // Explicitly create with all required fields
+                // Create order item
                 $orderItem = $order->items()->create([
-                    'order_id' => $order->id,
-                    'product_id' => $item['product_id'],
-                    'amount_of_items' => $amount, // Ensure this is explicitly set
-                    'unit_price' => $unitPrice,
-                    'total_price' => $totalPrice,
-                ]);
-
-                // Log for debugging
-                \Log::info('Order item created: ', [
                     'order_id' => $order->id,
                     'product_id' => $item['product_id'],
                     'amount_of_items' => $amount,
                     'unit_price' => $unitPrice,
                     'total_price' => $totalPrice,
-                    'created_item' => $orderItem->toArray()
                 ]);
+
+                if ($product) {
+                    $product->decrement('current_stock', $amount);
+
+                    StockMovement::create([
+                        'product_id' => $product->id,
+                        'order_id' => $order->id,
+                        'change_type' => 'out',
+                        'quantity' => $amount,
+                        'description' => 'Order sale (Order ID: ' . $order->id . ')',
+                    ]);
+                }
             }
 
-            // Step 5: Send confirmation email
+            // Step 4: Send confirmation email
             Mail::to($order->email)->send(new OrderPlacedMail($order));
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
@@ -391,6 +398,8 @@ class OrderCrudController extends CrudController
             ]);
 
         } catch (\Exception $e) {
+            DB::rollBack();
+
             \Log::error('Online order creation failed: ' . $e->getMessage());
             \Log::error('Stack trace: ' . $e->getTraceAsString());
             \Log::error('Request data: ', $request->all());
@@ -672,5 +681,48 @@ class OrderCrudController extends CrudController
         return response()->json($formatted);
     }
 
+
+    public function editModal($id)
+    {
+        $order = Order::findOrFail($id);
+
+        $data = [
+            'mode' => 'edit',
+            'order' => $order,
+            'modalTitle' => 'Edit Order',
+            'saveButtonText' => 'Update Order',
+            'showOrderId' => true,
+            'showDeleteButton' => true,
+            'showPushButton' => true,
+            'defaultValues' => [
+                'order_id' => $order->id,
+                'customer_email' => $order->email,
+                'customer_name' => $order->customer_name,
+                'customer_phone' => $order->phone,
+                'ice_amount' => $order->amount_of_ice,
+                'box_amount' => $order->amount_of_boxes ?? 0,
+                'recurring' => $order->recurring,
+                'location_name' => $order->location_name,
+                'address' => $order->address,
+                'unit' => $order->unit,
+                'city' => $order->city,
+                'postal_code' => $order->postal_code,
+                'province' => $order->province,
+                'country' => $order->country ?? 'Canada',
+                'delivery_date' => $order->delivery_date ? \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') : '',
+                'delivery_time' => $order->delivery_date ? \Carbon\Carbon::parse($order->delivery_date)->format('H:i') : '',
+                'notes' => $order->notes,
+                'status' => $order->status ?? 'valid',
+                'pickup_delivery' => $order->pickup_delivery,
+                'sub_total' => $order->sub_total ?? 0,
+                'delivery_cost' => $order->delivery_cost ?? 0,
+                'tax' => $order->tax ?? 0,
+                'total_cost' => $order->total_cost ?? 0,
+                'novex_pushed' => $order->push ?? 0,
+            ]
+        ];
+
+        return view('vendor.backpack.crud.inc.order_modal', $data);
+    }
 
 }

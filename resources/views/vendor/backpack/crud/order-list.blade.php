@@ -98,29 +98,7 @@
                               @php
                                   $dateTime = \Carbon\Carbon::parse($order->delivery_date);
                               @endphp
-                              <button class="btn btn-primary btn-view"
-                                      data-bs-toggle="modal"
-                                      data-bs-target="#orderSummaryModal"
-                                      data-id="{{ $order->id }}"
-                                      data-customer="{{ $order->customer_name }}"
-                                      data-email="{{ $order->email }}"
-                                      data-phone="{{ $order->phone }}"
-                                      data-ice="{{ $order->amount_of_ice }}"
-                                      data-boxes="{{ $order->amount_of_boxes }}"
-                                      data-recurring="{{ $order->recurring }}"
-                                      data-location="{{ $order->location_name }}"
-                                      data-address="{{ $order->address }}"
-                                      data-unit="{{ $order->unit }}"
-                                      data-city="{{ $order->city }}"
-                                      data-postal_code="{{ $order->postal_code }}"
-                                      data-province="{{ $order->province }}"
-                                      data-country="{{ $order->country }}"
-                                      data-delivery-date="{{ $dateTime->format('Y-m-d') }}"
-                                      data-delivery-time="{{ $dateTime->format('H:i') }}"
-                                      data-notes="{{ $order->notes }}"
-                                      data-status="{{ $order->status }}"
-                                      data-pickup_delivery="{{ $order->pickup_delivery }}"
-                              >
+                              <button class="btn btn-primary btn-view" data-order-id="{{ $order->id }}">
                                   View
                               </button>
 
@@ -169,186 +147,8 @@
 
 <div class="modal fade" id="orderSummaryModal" tabindex="-1" aria-labelledby="orderSummaryLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header border-0">
-                <h4 class="modal-title fw-bold" id="modal-title">
-                    <i class="la la-file-invoice mx-2"></i>
-                    <span id="modal-title-text">Create New Order</span>
-                </h4>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
+        <div class="modal-content" id="modal-content-container">
 
-            <div class="modal-body">
-                <div class="row">
-                    <!-- Order Details -->
-                    <div class="col-md-3">
-                        <h5><i class="la la-shopping-cart"></i> Order</h5>
-
-                        <!-- Order ID field - only shown in edit mode -->
-                        <div class="mb-2" id="order-id-section" style="display: none;">
-                            <label class="form-label">Order #</label>
-                            <input id="modal-order-id" class="form-control" readonly>
-                        </div>
-
-                        <div class="mb-2">
-                            <label class="form-label">Email <span class="text-danger">*</span></label>
-                            <select id="modal-customer-email" class="form-control" style="width: 100%;" required>
-                                <!-- Options will be populated by Select2 -->
-                            </select>
-                        </div>
-
-                        <div class="mb-2">
-                            <label class="form-label">Name <span class="text-danger">*</span></label>
-                            <input id="modal-customer-name" class="form-control" required>
-                        </div>
-
-                        <div class="mb-2">
-                            <label class="form-label">Phone<span class="text-danger">*</span></label>
-                            <input id="modal-customer-phone" class="form-control" type="tel" required>
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">Amount of Ice (lbs) <span class="text-danger">*</span></label>
-                            <input id="modal-ice-amount" class="form-control" type="number" min="0" step="0.1" required>
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">Amount of Boxes</label>
-                            <input id="modal-box-amount" class="form-control" type="number" min="0" step="1" value="0">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">Recurring <span class="text-danger">*</span></label>
-                            <select id="modal-recurring" class="form-select">
-                                <option value="">Select...</option>
-                                <option value="recurring">Yes</option>
-                                <option value="non-recurring">No</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Delivery Details -->
-                    <div class="col-md-5 px-3">
-                        <h5><i class="la la-truck"></i> Delivery</h5>
-                        <div class="mb-2">
-                            <label class="form-label">Location Name<span class="text-danger">*</span></label>
-                            <input id="modal-location-name" type="text" class="form-control" required>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-8">
-                                <label class="form-label">Address <span class="text-danger">*</span></label>
-                                <input id="modal-address" class="form-control" required>
-                            </div>
-                            <div class="col-4">
-                                <label class="form-label">Unit</label>
-                                <input id="modal-unit" class="form-control">
-                            </div>
-                        </div>
-
-                        <div class="row mb-2">
-                            <div class="col-md-3">
-                                <label class="form-label">City <span class="text-danger">*</span></label>
-                                <input id="modal-city" type="text" class="form-control" required>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Postal <span class="text-danger">*</span></label>
-                                <input id="modal-postal" type="text" class="form-control" required>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Province <span class="text-danger">*</span></label>
-                                <select id="modal-province" class="form-select" required>
-                                    <option value="">Select...</option>
-                                    <option value="BC">BC</option>
-                                    <option value="AB">AB</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Country</label>
-                                <input id="modal-country" class="form-control" value="Canada" readonly>
-                            </div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-5">
-                                <label class="form-label">Pickup or Delivery <span class="text-danger">*</span></label>
-                                <select id="modal-pickup-or-delivery" class="form-select" required>
-                                    <option value="">Select...</option>
-                                    <option value="pickup">Pick Up</option>
-                                    <option value="delivery">Delivery</option>
-                                </select>
-                            </div>
-                            <div class="col-4" id="status-section">
-                                <label class="form-label">Status</label>
-                                <select class="form-select" id="modal-status">
-                                    <option value="valid">Valid</option>
-                                    <option value="cancelled">Cancelled</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-md-5">
-                                <label class="form-label">Delivery Date<span class="text-danger">*</span></label>
-                                <input id="modal-delivery-date" type="date" class="form-control" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Delivery Time</label>
-                                <input id="modal-delivery-time" type="time" class="form-control">
-                            </div>
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">Notes</label>
-                            <textarea id="modal-notes" class="form-control" rows="3"></textarea>
-                        </div>
-                    </div>
-
-                    <!-- Cost Summary -->
-                    <div class="col-md-4">
-                        <h5><i class="la la-dollar-sign"></i> Cost Summary</h5>
-                        <div class="p-3 rounded" style="background: rgba(245, 246, 250, 1);">
-                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-ice">
-                                <p class="m-0">Dry Ice (0 lbs @ $1.95/lb):</p>
-                                <strong>$0.00</strong>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-box">
-                                <p class="m-0">Styrofoam Box (0 @ $30.00/box): </p>
-                                <strong>$0.00</strong>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-delivery">
-                                <p class="m-0">Pickup/Delivery: </p>
-                                <strong>$0.00</strong>
-                            </div>
-                            <hr>
-                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-subtotal">
-                                <p class="m-0">Sub-Total: </p>
-                                <strong>$0.00</strong>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-tax">
-                                <p class="m-0">Tax (15%):  </p>
-                                <strong>$0.00</strong>
-                            </div>
-                            <hr>
-                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-total">
-                                <p class="m-0">TOTAL: </p>
-                                <strong>$0.00</strong>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="modal-footer border-0 d-flex justify-content-between">
-                <div>
-                    <button id="save-order-btn" class="btn btn-primary">
-                        <i class="la la-save"></i> <span id="save-btn-text">Create Order</span>
-                    </button>
-                    @if(isset($order) && $order)
-                        <button id="push-btn-{{ $order->id }}" onclick="tryPushOrderToNovex({{ $order->id }})" class="btn btn-primary button-push" style="background: gray">
-                            Push Order
-                        </button>
-                        <span id="push-status-{{ $order->id }}" class="ml-2 text-sm text-muted status-push"></span>
-                    @endif
-                    <button class="btn btn-secondary mx-2" data-bs-dismiss="modal">Cancel</button>
-                </div>
-                <button id="delete-order-btn" class="btn btn-danger" style="display: none;">
-                    <i class="la la-trash"></i> Delete
-                </button>
-            </div>
         </div>
     </div>
 </div>
@@ -693,37 +493,222 @@
         });
 
         // Edit Order buttons (existing functionality)
-        document.querySelectorAll('.btn-view').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                prepareModalForEdit(this);
-            });
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('btn-view')) {
+                const orderId = e.target.dataset.orderId;
+                loadModalContent('edit', orderId);
+            }
         });
+        function loadModalContent(action, orderId = null) {
+            const url = '{{ route("admin.orders.modal.edit", ":id") }}'.replace(':id', orderId);
+
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html'
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    document.getElementById('modal-content-container').innerHTML = '';
+                    document.getElementById('modal-content-container').innerHTML = html;
+
+                    // Show the modal
+                    const modal = new bootstrap.Modal(summaryModal);
+                    modal.show();
+                })
+                .catch(error => {
+                    console.error('Error loading modal content:', error);
+                    alert('Error loading modal content. Please try again.');
+                });
+        }
 
         function prepareModalForCreate() {
-            isEditMode = false;
+            let html = `<div class="modal-header border-0">
+                <h4 class="modal-title fw-bold" id="modal-title">
+                    <i class="la la-file-invoice mx-2"></i>
+                    <span id="modal-title-text">Create New Order</span>
+                </h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
 
-            // Update modal title and button text
-            document.getElementById('modal-title-text').textContent = 'Create New Order';
-            document.getElementById('save-btn-text').textContent = 'Create Order';
+            <div class="modal-body">
+                <div class="row">
+                    <!-- Order Details -->
+                    <div class="col-md-3">
+                        <h5><i class="la la-shopping-cart"></i> Order</h5>
 
-            // Hide order ID section and delete button
-            document.getElementById('order-id-section').style.display = 'none';
-            document.getElementById('delete-order-btn').style.display = 'none';
+                        <!-- Order ID field - only shown in edit mode -->
+                        <div class="mb-2" id="order-id-section" style="display: none;">
+                            <label class="form-label">Order #</label>
+                            <input id="modal-order-id" class="form-control" readonly />
+                        </div>
 
-            // Hide push button and status in create mode
-            document.querySelectorAll('.button-push').forEach(btn => btn.style.display = 'none');
-            document.querySelectorAll('.status-push').forEach(status => status.style.display = 'none');
+                        <div class="mb-2">
+                            <label class="form-label">Email <span class="text-danger">*</span></label>
+                            <select id="modal-customer-email" class="form-control" style="width: 100%;" required>
+                                <!-- Options will be populated by Select2 -->
+                            </select>
+                        </div>
 
-            // Clear all form fields
-            clearModalForm();
+                        <div class="mb-2">
+                            <label class="form-label">Name <span class="text-danger">*</span></label>
+                            <input id="modal-customer-name" class="form-control" required>
+                        </div>
 
-            // Set default values
-            document.getElementById('modal-country').value = 'Canada';
-            document.getElementById('modal-box-amount').value = '0';
-            document.getElementById('modal-status').value = 'valid';
+                        <div class="mb-2">
+                            <label class="form-label">Phone<span class="text-danger">*</span></label>
+                            <input id="modal-customer-phone" class="form-control" type="tel" required>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Amount of Ice (lbs) <span class="text-danger">*</span></label>
+                            <input id="modal-ice-amount" class="form-control" type="number" min="0" step="0.1" required>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Amount of Boxes</label>
+                            <input id="modal-box-amount" class="form-control" type="number" min="0" step="1" value="0">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Recurring <span class="text-danger">*</span></label>
+                            <select id="modal-recurring" class="form-select">
+                                <option value="">Select...</option>
+                                <option value="recurring">Yes</option>
+                                <option value="non-recurring">No</option>
+                            </select>
+                        </div>
+                    </div>
 
-            // Calculate initial cost
-            updateCostSummary();
+                    <!-- Delivery Details -->
+                    <div class="col-md-5 px-3">
+                        <h5><i class="la la-truck"></i> Delivery</h5>
+                        <div class="mb-2">
+                            <label class="form-label">Location Name<span class="text-danger">*</span></label>
+                            <input id="modal-location-name" type="text" class="form-control" required />
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-8">
+                                <label class="form-label">Address <span class="text-danger">*</span></label>
+                                <input id="modal-address" class="form-control" required>
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label">Unit</label>
+                                <input id="modal-unit" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-md-3">
+                                <label class="form-label">City <span class="text-danger">*</span></label>
+                                <input id="modal-city" type="text" class="form-control" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Postal <span class="text-danger">*</span></label>
+                                <input id="modal-postal" type="text" class="form-control" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Province <span class="text-danger">*</span></label>
+                                <select id="modal-province" class="form-select" required>
+                                    <option value="">Select...</option>
+                                    <option value="BC">BC</option>
+                                    <option value="AB">AB</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Country</label>
+                                <input id="modal-country" class="form-control" value="Canada" readonly>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-5">
+                                <label class="form-label">Pickup or Delivery <span class="text-danger">*</span></label>
+                                <select id="modal-pickup-or-delivery" class="form-select" required>
+                                    <option value="">Select...</option>
+                                    <option value="pickup">Pick Up</option>
+                                    <option value="delivery">Delivery</option>
+                                </select>
+                            </div>
+                            <div class="col-4" id="status-section">
+                                <label class="form-label">Status</label>
+                                <select class="form-select" id="modal-status">
+                                    <option value="valid">Valid</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-md-5">
+                                <label class="form-label">Delivery Date<span class="text-danger">*</span></label>
+                                <input id="modal-delivery-date" type="date" class="form-control" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Delivery Time</label>
+                                <input id="modal-delivery-time" type="time" class="form-control">
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Notes</label>
+                            <textarea id="modal-notes" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Cost Summary -->
+                    <div class="col-md-4">
+                        <h5><i class="la la-dollar-sign"></i> Cost Summary</h5>
+                        <div class="p-3 rounded" style="background: rgba(245, 246, 250, 1);">
+                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-ice">
+                                <p class="m-0">Dry Ice (0 lbs @ $1.95/lb):</p>
+                                <strong>$0.00</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-box">
+                                <p class="m-0">Styrofoam Box (0 @ $30.00/box): </p>
+                                <strong>$0.00</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-delivery">
+                                <p class="m-0">Pickup/Delivery: </p>
+                                <strong>$0.00</strong>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-subtotal">
+                                <p class="m-0">Sub-Total: </p>
+                                <strong>$0.00</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-tax">
+                                <p class="m-0">Tax (15%):  </p>
+                                <strong>$0.00</strong>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-total">
+                                <p class="m-0">TOTAL: </p>
+                                <strong>$0.00</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer border-0 d-flex justify-content-between">
+                <div>
+                    <button id="save-order-btn" class="btn btn-primary">
+                        <i class="la la-save"></i> <span id="save-btn-text">Create Order</span>
+                    </button>
+                    <button id="push-btn-{{ $order->id }}" onclick="tryPushOrderToNovex({{ $order->id }})" class="btn btn-primary button-push" style="background: gray">
+                            Push Order
+                        </button>
+                        <span id="push-status-{{ $order->id }}" class="ml-2 text-sm text-muted status-push"></span>
+            <button class="btn btn-secondary mx-2" data-bs-dismiss="modal">Cancel</button>
+        </div>
+        <button id="delete-order-btn" class="btn btn-danger" style="display: none;">
+            <i class="la la-trash"></i> Delete
+        </button>
+    </div>`;
+            document.getElementById('modal-content-container').innerHTML = '';
+            document.getElementById('modal-content-container').innerHTML = html;
         }
 
         function prepareModalForEdit(btn) {
@@ -867,9 +852,9 @@
         }
 
         // Add event listeners for cost calculation
-        document.getElementById('modal-ice-amount').addEventListener('input', updateCostSummary);
-        document.getElementById('modal-box-amount').addEventListener('input', updateCostSummary);
-        document.getElementById('modal-pickup-or-delivery').addEventListener('change', updateCostSummary);
+        // document.getElementById('modal-ice-amount').addEventListener('input', updateCostSummary);
+        // document.getElementById('modal-box-amount').addEventListener('input', updateCostSummary);
+        // document.getElementById('modal-pickup-or-delivery').addEventListener('change', updateCostSummary);
 
         // Form validation
         function validateForm() {
@@ -959,7 +944,7 @@
         }
 
         // Handle Save/Update Button Click
-        document.getElementById('save-order-btn').addEventListener('click', function() {
+        $(document).on('click','#save-order-btn',function () {
             if (!validateForm()) return;
 
             const saveBtn = this;
@@ -1000,6 +985,9 @@
             formData.append('notes', document.getElementById('modal-notes').value);
             formData.append('status', document.getElementById('modal-status').value);
             formData.append('pickup_delivery', document.getElementById('modal-pickup-or-delivery').value);
+            formData.append('sub_total', document.getElementById('modal-sub-total').value);
+            formData.append('total_cost', document.getElementById('modal-total-cost').value);
+            formData.append('tax', document.getElementById('modal-tax').value);
 
             // Handle delivery date/time
             const date = document.getElementById('modal-delivery-date').value;
@@ -1153,7 +1141,7 @@
     document.addEventListener('DOMContentLoaded', function () {
         let closestSupplier = null;
 
-        const deliveryOption = document.getElementById('modal-pickup-or-delivery');
+        // const deliveryOption = document.getElementById('modal-pickup-or-delivery');
 
         function getInput(id) {
             return document.getElementById(id)?.value?.trim();
@@ -1301,7 +1289,33 @@
             setTimeout(() => element.style.color = '', 3000);
         }
 
-        deliveryOption.addEventListener('change', function () {
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('btn-view')) {
+                const orderId = e.target.dataset.orderId;
+                loadModalContent('edit', orderId);
+            }
+        });
+
+
+        // deliveryOption.addEventListener('change', function () {
+        //     if (this.value === 'delivery') {
+        //         // Setup auto listener to check fields and trigger quote
+        //         const inputs = ['modal-address', 'modal-city', 'modal-province', 'modal-customer-email', 'modal-customer-name', 'modal-customer-phone', 'modal-ice-amount', 'modal-postal', 'modal-location-name'];
+        //
+        //         inputs.forEach(id => {
+        //             document.getElementById(id)?.addEventListener('input', () => {
+        //                 clearTimeout(window.__quoteTimer);
+        //                 window.__quoteTimer = setTimeout(tryGetDeliveryQuote, 500); // debounce
+        //             });
+        //         });
+        //
+        //         // Initial trigger in case fields are already filled
+        //         tryGetDeliveryQuote();
+        //     }
+        // });
+
+
+        $(document).on('change','#modal-pickup-or-delivery',function () {
             if (this.value === 'delivery') {
                 // Setup auto listener to check fields and trigger quote
                 const inputs = ['modal-address', 'modal-city', 'modal-province', 'modal-customer-email', 'modal-customer-name', 'modal-customer-phone', 'modal-ice-amount', 'modal-postal', 'modal-location-name'];
@@ -1316,7 +1330,8 @@
                 // Initial trigger in case fields are already filled
                 tryGetDeliveryQuote();
             }
-        });
+        })
+
     });
 
 

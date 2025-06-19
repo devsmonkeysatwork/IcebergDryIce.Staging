@@ -185,26 +185,34 @@
                             <tr>
                                 <td height="10" colspan="4"></td>
                             </tr>
-                            <tr>
-                                <td style="font-size: 12px; font-family: Inter; color: #ff0000;  line-height: 18px;  vertical-align: top; padding:10px 0;" class="article">
-                                    Dry Ice
-                                </td>
-                                <td style="font-size: 12px; font-family: Inter; color: #646a6e;  line-height: 18px;  vertical-align: top; padding:10px 0;" align="center">{{ $order->amount_of_ice }} lbs</td>
-                                <td style="font-size: 12px; font-family: Inter; color: #1e2b33;  line-height: 18px;  vertical-align: top; padding:10px 0;" align="right">${{ number_format($order->amount_of_ice * 1.95, 2) }}</td>
-                            </tr>
-                            <tr>
-                                <td height="1" colspan="4" style="border-bottom:1px solid #e4e4e4"></td>
-                            </tr>
-                            @if($order->amount_of_boxes > 0)
+                            @foreach($order->items ?? [] as $item)
                                 <tr>
-                                    <td style="font-size: 12px; font-family: Inter; color: #ff0000;  line-height: 18px;  vertical-align: top; padding:10px 0;" class="article">Styrofoam Box</td>
-                                    <td style="font-size: 12px; font-family: Inter; color: #646a6e;  line-height: 18px;  vertical-align: top; padding:10px 0;" align="center">{{ $order->amount_of_boxes }}</td>
-                                    <td style="font-size: 12px; font-family: Inter; color: #1e2b33;  line-height: 18px;  vertical-align: top; padding:10px 0;" align="right">${{ number_format($order->amount_of_boxes * 30, 2) }}</td>
+                                    <td style="font-size: 12px; font-family: Inter; color: #ff0000;  line-height: 18px;  vertical-align: top; padding:10px 0;" class="article">{{$item->product->product_name}}</td>
+                                    <td style="font-size: 12px; font-family: Inter; color: #646a6e;  line-height: 18px;  vertical-align: top; padding:10px 0;" align="center">{{ $item->amount_of_items }} {{$item->product->unit}}</td>
+                                    <td style="font-size: 12px; font-family: Inter; color: #1e2b33;  line-height: 18px;  vertical-align: top; padding:10px 0;" align="right">${{ number_format($item->unit_price,2) }}</td>
                                 </tr>
                                 <tr>
                                     <td height="1" colspan="4" style="border-bottom:1px solid #e4e4e4"></td>
                                 </tr>
-                            @endif
+                            @endforeach
+{{--                            <tr>--}}
+{{--                                <td style="font-size: 12px; font-family: Inter; color: #ff0000;  line-height: 18px;  vertical-align: top; padding:10px 0;" class="article">Dry Ice</td>--}}
+{{--                                <td style="font-size: 12px; font-family: Inter; color: #646a6e;  line-height: 18px;  vertical-align: top; padding:10px 0;" align="center">{{ $order->amount_of_ice }} lbs</td>--}}
+{{--                                <td style="font-size: 12px; font-family: Inter; color: #1e2b33;  line-height: 18px;  vertical-align: top; padding:10px 0;" align="right">${{ number_format($order->amount_of_ice * 1.95, 2) }}</td>--}}
+{{--                            </tr>--}}
+{{--                            <tr>--}}
+{{--                                <td height="1" colspan="4" style="border-bottom:1px solid #e4e4e4"></td>--}}
+{{--                            </tr>--}}
+{{--                            @if($order->amount_of_boxes > 0)--}}
+{{--                                <tr>--}}
+{{--                                    <td style="font-size: 12px; font-family: Inter; color: #ff0000;  line-height: 18px;  vertical-align: top; padding:10px 0;" class="article">Styrofoam Box</td>--}}
+{{--                                    <td style="font-size: 12px; font-family: Inter; color: #646a6e;  line-height: 18px;  vertical-align: top; padding:10px 0;" align="center">{{ $order->amount_of_boxes }}</td>--}}
+{{--                                    <td style="font-size: 12px; font-family: Inter; color: #1e2b33;  line-height: 18px;  vertical-align: top; padding:10px 0;" align="right">${{ number_format($order->amount_of_boxes * 30, 2) }}</td>--}}
+{{--                                </tr>--}}
+{{--                                <tr>--}}
+{{--                                    <td height="1" colspan="4" style="border-bottom:1px solid #e4e4e4"></td>--}}
+{{--                                </tr>--}}
+{{--                            @endif--}}
                             </tbody>
                         </table>
                     </td>
@@ -235,7 +243,7 @@
                                                 Subtotal
                                             </td>
                                             <td style="font-size: 12px; font-family: Inter; color: #646a6e; line-height: 22px; vertical-align: top; text-align:right; white-space:nowrap;" width="80">
-                                                ${{ number_format($order->total_cost * 0.9, 2) }}
+                                                ${{ number_format($order->sub_total,2) }}
                                             </td>
                                         </tr>
                                         <tr>
@@ -243,7 +251,7 @@
                                                 Tax (10%)
                                             </td>
                                             <td style="font-size: 12px; font-family: Inter; color: #646a6e; line-height: 22px; vertical-align: top; text-align:right; ">
-                                                ${{ number_format($order->total_cost * 0.1, 2) }}
+                                                ${{ number_format($order->tax,2) }}
                                             </td>
                                         </tr>
                                         <tr>

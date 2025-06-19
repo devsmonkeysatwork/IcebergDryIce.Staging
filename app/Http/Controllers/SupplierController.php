@@ -138,7 +138,8 @@ class SupplierController extends Controller
     {
         $orderDetails = [
             'callerName' => 'Tyler',
-            'reference' => uniqid('ICE_'), // Generate unique reference
+//            'reference' => uniqid('ICE_'),
+            'reference' => 'ICEBERG_TESTING_ORDER',
             'pickup' => [
                 'name' => $supplierLocation->name,
                 'street' => $supplierLocation->address,
@@ -164,6 +165,8 @@ class SupplierController extends Controller
             ],
             'serviceTypeId' => 4,
             'vehicleTypeId' => 1,
+            'readyBy'=> "2050-10-10T15:00-07:00",
+            'instructions'=> "It is a test order.",
             'packages' => [
                 [
                     'typeId' => 122,
@@ -175,21 +178,14 @@ class SupplierController extends Controller
                 ]
             ]
         ];
-//        dd($orderDetails);
 
         try {
-            // Log the request being sent to Novex for debugging
-            Log::info('Sending request to Novex API', [
-                'url' => config('services.novex.api_url', 'https://api.novex.ca/sandox/quote'),
-                'order_details' => $orderDetails
-            ]);
-
             $response = Http::withOptions([
                 'verify' => config('services.http_verify'),
             ])->withHeaders([
                 'Authorization' => 'Basic ' . config('services.novex.auth_key'),
                 'Content-Type' => 'application/json',
-            ])->post(config('services.novex.api_url', 'https://api.novex.ca/sandox/quote'), $orderDetails);
+            ])->post(config('services.novex.api_url'), $orderDetails);
 
             Log::info('Novex API response', [
                 'status' => $response->status(),
@@ -249,7 +245,8 @@ class SupplierController extends Controller
 
             $payload = [
                 'callerName' => 'Tyler',
-                'reference' => 'ORDER_' . $order->id,
+//                'reference' => 'ORDER_' . $order->id,
+                'reference' => 'ICEBERG_TESTING_ORDER',
                 'pickup' => [
                     'name' => $supplier->name,
                     'street' => $supplier->address,
@@ -266,7 +263,7 @@ class SupplierController extends Controller
                     'unit' => $order->unit ?? '',
                     'city' => $order->city,
                     'province' => $order->province,
-                    'postalCode' => $order->postal,
+                    'postalCode' => $order->postal_code,
                     'country' => 'CAN',
                     'instructions' => $order->notes ?? '',
                     'contact' => $order->contact_name ?? 'Unknown',
@@ -275,6 +272,8 @@ class SupplierController extends Controller
                 ],
                 'serviceTypeId' => 4,
                 'vehicleTypeId' => 1,
+                'readyBy'=> "2050-10-10T15:00-07:00",
+                'instructions'=> "It is a test order.",
                 'packages' => [[
                     'typeId' => 122,
                     'length' => $dimensions,
@@ -287,10 +286,12 @@ class SupplierController extends Controller
 
             Log::info('Pushing order to Novex', ['order_id' => $order->id, 'payload' => $payload]);
 
-            $response = Http::withHeaders([
+            $response = Http::withOptions([
+                'verify' => config('services.http_verify'),
+            ])->withHeaders([
                 'Authorization' => 'Basic ' . config('services.novex.auth_key'),
                 'Content-Type' => 'application/json'
-            ])->post(config('services.novex.push_url', 'https://api.novex.ca/sandbox/orders'), $payload);
+            ])->post(config('services.novex.push_url'), $payload);
 
             if ($response->successful()) {
                 $order->push = 1;

@@ -131,6 +131,9 @@ Route::group([
     Route::delete('orders/{id}/ajax-delete', [OrderCrudController::class, 'deleteOrderAjax'])
         ->name('admin.orders.ajax-delete');
 
+
+    Route::get('orders/modal/{id}/edit', [OrderCrudController::class, 'editModal'])->name('admin.orders.modal.edit');
+
     Route::get('/customers/search', [CustomersCrudController::class, 'searchCustomers'])
         ->name('admin.customers.search');
 

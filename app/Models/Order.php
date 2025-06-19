@@ -32,7 +32,7 @@ class Order extends Model
         'status',
         'delivery_date',
         'notes',
-        'subtotal',
+        'sub_total',
         'delivery_cost',
         'tax',
         'total_cost',

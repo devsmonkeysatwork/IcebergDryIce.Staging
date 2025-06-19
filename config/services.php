@@ -39,6 +39,12 @@ return [
         'api_key' => env('GOOGLE_API_KEY'),
     ],
 
+    'novex' => [
+        'api_url' => env('NOVEX_API_URL'),
+        'push_url' => env('NOVEX_API_PUSH_URL'),
+        'auth_key' => env('NOVEX_AUTH_KEY'),
+    ],
+
     'http_verify' => env('APP_ENV') !== 'local',
 
 

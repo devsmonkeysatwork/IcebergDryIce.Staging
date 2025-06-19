@@ -8,6 +8,7 @@ use App\Models\StockMovement;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 use App\Events\IceOrderPlaced;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Class IceOrdersCrudController
@@ -61,36 +62,48 @@ class IceOrdersCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('create');
 
-        // Manually validate (or rely on IceOrderRequest)
         $data = request()->all();
 
-        // Optionally manipulate data here
-        // $data['something'] = strtoupper($data['something']);
+        DB::beginTransaction();
 
-        $item = $this->crud->create($data);
+        try {
+            // 1. Create the ice order
+            $item = $this->crud->create($data);
 
-        // 2. Update stock only if order created successfully
-        if ($item && isset($data['weight'])) {
-            $iceProduct = Product::where('product_name', 'Ice')->first();
+            // 2. Update stock only if order created successfully
+            if ($item && isset($data['weight'])) {
+                $iceProduct = Product::where('product_name', 'dry ice')->first();
 
-            if ($iceProduct) {
-                // Update current stock
-                $iceProduct->increment('current_stock', $data['weight']);
+                if ($iceProduct) {
+                    // Update current stock
+                    $iceProduct->increment('current_stock', $data['weight']);
 
-                // Log in stock_movements
-                StockMovement::create([
-                    'product_id' => $iceProduct->id,
-                    'ice_order_id' => $item->id,
-                    'change_type' => 'in',
-                    'quantity' => $data['weight'],
-                    'description' => 'Ice order received (Order ID: ' . $item->id . ')',
-                ]);
+                    // Log in stock_movements
+                    StockMovement::create([
+                        'product_id' => $iceProduct->id,
+                        'order_id' => $item->id,
+                        'change_type' => 'in',
+                        'quantity' => $data['weight'],
+                        'description' => 'Ice order received (Order ID: ' . $item->id . ')',
+                    ]);
+                }
             }
+
+            DB::commit();
+
+            \Alert::success('Ice order added and stock updated successfully.')->flash();
+            return redirect()->to($this->crud->route);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            \Log::error('Failed to create ice order: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            \Log::error('Request data: ', $data);
+
+            \Alert::error('Failed to create ice order: ' . $e->getMessage())->flash();
+            return redirect()->back()->withInput();
         }
-
-        \Alert::success('Ice order added and stock updated successfully.')->flash();
-
-        return redirect()->to($this->crud->route);
     }
 
     public function view($id)
