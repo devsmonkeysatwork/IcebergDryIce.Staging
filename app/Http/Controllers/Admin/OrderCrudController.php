@@ -238,6 +238,7 @@ class OrderCrudController extends CrudController
         ]);
 
         try {
+            DB::beginTransaction();
             // Handle customer lookup or creation
             $customer = $this->handleCustomerData($request);
 
@@ -261,7 +262,14 @@ class OrderCrudController extends CrudController
             $order = Order::create($validated);
             if($iceCost){
                 $product = Product::find(1);
-                $orderItem = $order->items()->create([
+                if ($product->current_stock == 0.0) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => $product->product_name . ' is out of stock',
+                    ]);
+                }
+                $order->items()->create([
                     'order_id' => $order->id,
                     'product_id' => 1,
                     'amount_of_items' => $validated['amount_of_ice'],
@@ -279,25 +287,32 @@ class OrderCrudController extends CrudController
                 ]);
             }
             if($boxCost){
-                $product = Product::find(2);
-                $orderItem = $order->items()->create([
+                $product2 = Product::find(2);
+//                if ($product2->current_stock == 0.0) {
+//                    DB::rollBack();
+//                    return response()->json([
+//                        'success' => false,
+//                        'message' => $product2->product_name . ' is out of stock',
+//                    ]);
+//                }
+                $order->items()->create([
                     'order_id' => $order->id,
                     'product_id' => 2,
                     'amount_of_items' => $validated['amount_of_ice'],
-                    'unit_price' => $product->price,
+                    'unit_price' => $product2->price,
                     'total_price' => $boxCost,
                 ]);
-                $product->decrement('current_stock', $validated['amount_of_ice']);
+//                $product2->decrement('current_stock', $validated['amount_of_ice']);
 
-                StockMovement::create([
-                    'product_id' => $product->id,
-                    'order_id' => $order->id,
-                    'change_type' => 'out',
-                    'quantity' => $validated['amount_of_ice'],
-                    'description' => 'Order sale (Order ID: ' . $order->id . ')',
-                ]);
+//                StockMovement::create([
+//                    'product_id' => $product2->id,
+//                    'order_id' => $order->id,
+//                    'change_type' => 'out',
+//                    'quantity' => $validated['amount_of_ice'],
+//                    'description' => 'Order sale (Order ID: ' . $order->id . ')',
+//                ]);
             }
-
+            DB::commit();
             Mail::to($order->email)->send(new OrderPlacedMail($order));
 
             return response()->json([
@@ -306,6 +321,7 @@ class OrderCrudController extends CrudController
                 'order' => $order
             ]);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()]);
         }
     }
@@ -411,7 +427,7 @@ class OrderCrudController extends CrudController
                 }
 
                 // Create order item
-                $orderItem = $order->items()->create([
+                $order->items()->create([
                     'order_id' => $order->id,
                     'product_id' => $item['product_id'],
                     'amount_of_items' => $amount,
@@ -583,6 +599,8 @@ class OrderCrudController extends CrudController
                 'pickup_delivery' => 'required|string|in:pickup,delivery'
             ]);
 
+            DB::beginTransaction();
+
             // Handle customer creation/update
             if (isset($validatedData['email']) && isset($validatedData['customer_name'])) {
                 $customer = Customer::updateOrCreate(
@@ -617,13 +635,17 @@ class OrderCrudController extends CrudController
             $newQty = $validatedData['amount_of_ice'] ?? 0;
             $oldQty = $order->amount_of_ice ?? 0;
             $diff = $newQty - $oldQty;
-
             if ($diff != 0) {
                 if ($diff > 0) {
-                    // Order increased -> stock goes down
+                    if ($product->current_stock == 0.0 || $product->current_stock < $diff) {
+                        DB::rollBack();
+                        return response()->json([
+                            'success' => false,
+                            'message' => $product->product_name . ' is out of stock',
+                        ]);
+                    }
                     $product->decrement('current_stock', $diff);
                 } elseif ($diff < 0) {
-                    // Order decreased -> stock goes back up
                     $product->increment('current_stock', abs($diff));
                 }
 
@@ -654,28 +676,35 @@ class OrderCrudController extends CrudController
             $diff2 = $newQty2 - $oldQty2;
 
             if ($diff2 != 0) {
-                if ($diff2 > 0) {
-                    $product2->decrement('current_stock', $diff2);
-                } elseif ($diff2 < 0) {
-                    $product2->increment('current_stock', abs($diff2));
-                }
+//                if ($diff2 > 0) {
+//                    if ($product2->current_stock == 0.0) {
+//                        DB::rollBack();
+//                        return response()->json([
+//                            'success' => false,
+//                            'message' => $product2->product_name . ' is out of stock',
+//                        ]);
+//                    }
+//                    $product2->decrement('current_stock', $diff2);
+//                } elseif ($diff2 < 0) {
+//                    $product2->increment('current_stock', abs($diff2));
+//                }
 
                 $orderItem2 = OrderItem::where('product_id', $product2->id)->where('order_id', $order->id)->first();
-                $stockMovement2 = StockMovement::where('product_id', $product2->id)->where('order_id', $order->id)->first();
-                if ($orderItem2) {
-                    $orderItem2->amount_of_items = intval($newQty2);
-                    $orderItem2->total_price = $newQty2 * $product2->price;
+//                $stockMovement2 = StockMovement::where('product_id', $product2->id)->where('order_id', $order->id)->first();
+//                if ($orderItem2) {
+//                    $orderItem2->amount_of_items = intval($newQty2);
+//                    $orderItem2->total_price = $newQty2 * $product2->price;
                     $orderItem2->save();
-                }
-
-                if ($stockMovement2) {
-                    if ($diff2 > 0) {
-                        $stockMovement2->increment('quantity', $diff2);
-                    } elseif ($diff2 < 0) {
-                        $stockMovement2->decrement('quantity', abs($diff2));
-                    }
-                    $stockMovement2->save();
-                }
+//                }
+//
+//                if ($stockMovement2) {
+//                    if ($diff2 > 0) {
+//                        $stockMovement2->increment('quantity', $diff2);
+//                    } elseif ($diff2 < 0) {
+//                        $stockMovement2->decrement('quantity', abs($diff2));
+//                    }
+//                    $stockMovement2->save();
+//                }
             }
 
 
@@ -685,7 +714,7 @@ class OrderCrudController extends CrudController
 
             // Update the order
             $order->update($validatedData);
-
+            DB::commit();
             return response()->json([
                 'success' => true,
                 'message' => 'Order updated successfully',
@@ -693,12 +722,14 @@ class OrderCrudController extends CrudController
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Error updating order: ' . $e->getMessage()
