@@ -660,9 +660,8 @@ class OrderCrudController extends CrudController
                     $product2->increment('current_stock', abs($diff2));
                 }
 
-                $orderItem2 = OrderItem::where('product_id', $product2->id)->where('order_id', $order->id)->tosql();
+                $orderItem2 = OrderItem::where('product_id', $product2->id)->where('order_id', $order->id)->first();
                 $stockMovement2 = StockMovement::where('product_id', $product2->id)->where('order_id', $order->id)->first();
-
                 if ($orderItem2) {
                     $orderItem2->amount_of_items = intval($newQty2);
                     $orderItem2->total_price = $newQty2 * $product2->price;
