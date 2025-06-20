@@ -435,7 +435,14 @@ class OrderCrudController extends CrudController
                     'total_price' => $totalPrice,
                 ]);
 
-                if ($product) {
+                if ($product && stripos($product->product_name, 'ice') == true) {
+                    if ($product->current_stock == 0.0 || $product->current_stock < $amount) {
+                        DB::rollBack();
+                        return response()->json([
+                            'success' => false,
+                            'message' => $product->product_name . ' is out of stock',
+                        ]);
+                    }
                     $product->decrement('current_stock', $amount);
 
                     StockMovement::create([
