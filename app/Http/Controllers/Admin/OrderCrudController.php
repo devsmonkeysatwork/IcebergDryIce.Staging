@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Mail\CustomerRegisteredMail;
+use App\Models\OrderItem;
 use App\Models\StockMovement;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
@@ -258,6 +259,30 @@ class OrderCrudController extends CrudController
 
             // Create the order
             $order = Order::create($validated);
+
+            $product1 = Product::find(4);
+            $product2 = Product::find(5);
+
+            if ($order->amount_of_ice> 0) {
+                OrderItem::create([
+                    'order_id'        => $order->id,
+                    'product_id'      => $product1->id,
+                    'amount_of_items' => $order->amount_of_ice,
+                    'unit_price'      => $product1->price,
+                    'total_price'     => $order->amount_of_ice * $product1->price
+                ]);
+            }
+
+            if ($order->amount_of_boxes > 0) {
+                OrderItem::create([
+                    'order_id'        => $order->id,
+                    'product_id'      => $product2->id,
+                    'amount_of_items' => $order->amount_of_boxes,
+                    'unit_price'      => $product2->price,
+                    'total_price'     => $order->amount_of_ice * $product2->price
+                ]);
+            }
+
 
             Mail::to($order->email)->send(new OrderPlacedMail($order));
 
@@ -539,7 +564,7 @@ class OrderCrudController extends CrudController
                 'country' => 'nullable|string|max:100',
                 'delivery_date' => 'nullable|date',
                 'notes' => 'nullable|string',
-                'delivery_cost' => 'nullable|decimal|max:10',
+                'delivery_cost' => 'nullable',
                 'status' => 'required|string|in:valid,cancelled,skip',
                 'pickup_delivery' => 'required|string|in:pickup,delivery'
             ]);

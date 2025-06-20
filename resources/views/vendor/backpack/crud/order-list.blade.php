@@ -571,14 +571,14 @@
 
             const pricePerLb = 1.95;
             const pricePerBox = 30.00;
-            const deliveryFee = pickupDelivery === 'delivery' ? "Calculating" : 0.00; // Fix this line
+            const deliveryFee = pickupDelivery === 'delivery' ? '' : 0.00; // Fix this line
 
             const iceCost = iceAmount * pricePerLb;
             const boxCost = boxAmount * pricePerBox;
-            const subTotal = iceCost + boxCost + deliveryFee;
+            const subTotal = iceCost + boxCost;
             const taxRate = 0.15;
             const tax = subTotal * taxRate;
-            const total = subTotal + tax;
+            const total = subTotal + tax + deliveryFee;
 
             // Update the cost summary section
             document.querySelector('.cost-summary-ice').innerHTML =
@@ -616,21 +616,7 @@
             if (deliveryField) deliveryField.addEventListener('change', updateCostSummary);
         }
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const dateInput = document.getElementById('modal-delivery-date');
-            if (dateInput) {
-                const today = new Date().toISOString().split('T')[0];
-                dateInput.min = today;
 
-                // Optional fallback: listen for manual changes
-                dateInput.addEventListener('change', function () {
-                    if (this.value < today) {
-                        alert('You cannot select a past date.');
-                        this.value = today;
-                    }
-                });
-            }
-        });
 
         // Form validation
         function validateForm() {
@@ -902,48 +888,111 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         let closestSupplier = null;
+        let deliveryQuoteTimer = null;
+        let isCalculatingDelivery = false;
 
-        // const deliveryOption = document.getElementById('modal-pickup-or-delivery');
+        // Constants
+        const PRICE_PER_LB = 1.95;
+        const PRICE_PER_BOX = 30.00;
+        const TAX_RATE = 0.15;
+        const DEBOUNCE_DELAY = 500;
+
+        // Current delivery cost state
+        let currentDeliveryCost = 0;
 
         function getInput(id) {
-            return document.getElementById(id)?.value?.trim();
+            return document.getElementById(id)?.value?.trim() || '';
         }
 
-        function updateDeliveryCostSummary(amount) {
-            // Update the form field instead of just display
+        function getNumericInput(id, defaultValue = 0) {
+            const value = parseFloat(getInput(id));
+            return isNaN(value) ? defaultValue : value;
+        }
+
+        // Debounce function utility
+        function debounce(func, delay) {
+            return function(...args) {
+                clearTimeout(deliveryQuoteTimer);
+                deliveryQuoteTimer = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
+
+        // Real-time cost calculation - runs on every change
+        function calculateAndUpdateCosts() {
+            const iceAmount = getNumericInput('modal-ice-amount', 0);
+            const boxAmount = getNumericInput('modal-box-amount', 0);
+            const pickupDelivery = getInput('modal-pickup-or-delivery');
+
+            // Calculate base costs
+            const iceCost = iceAmount * PRICE_PER_LB;
+            const boxCost = boxAmount * PRICE_PER_BOX;
+
+            // Determine delivery cost based on selection
+            const deliveryCost = pickupDelivery === 'delivery' ? currentDeliveryCost : 0;
+
+            // Calculate totals
+            const subtotal = iceCost + boxCost + deliveryCost;
+            const tax = subtotal * TAX_RATE;
+            const total = subtotal + tax;
+
+            // Update ALL displays in real-time
+            updateDisplayElement('.cost-summary-ice strong', `$${iceCost.toFixed(2)}`);
+            updateDisplayElement('.cost-summary-box strong', `$${boxCost.toFixed(2)}`);
+
+            // Handle delivery display with calculating state
+            if (pickupDelivery === 'delivery' && isCalculatingDelivery) {
+                updateDisplayElement('.cost-summary-delivery strong', 'Calculating...', true);
+            } else {
+                updateDisplayElement('.cost-summary-delivery strong', `$${deliveryCost.toFixed(2)}`);
+            }
+
+            // Always update totals
+            updateDisplayElement('.cost-summary-subtotal strong', `$${subtotal.toFixed(2)}`);
+            updateDisplayElement('.cost-summary-tax strong', `$${tax.toFixed(2)}`);
+            updateDisplayElement('.cost-summary-total strong', `$${total.toFixed(2)}`);
+
+            // Update hidden form field
             const deliveryCostField = document.getElementById('modal-delivery-cost');
             if (deliveryCostField) {
-                deliveryCostField.value = amount !== null ? amount.toFixed(2) : 0 ;
+                deliveryCostField.value = deliveryCost.toFixed(2);
             }
 
-            // Update display
-            const displayElement = document.querySelector('.cost-summary-delivery strong');
-            if (displayElement) {
-                displayElement.textContent = amount !== null ? `$${amount.toFixed(2)}` : 'Not found';
-            }
+            console.log('Costs updated:', {
+                ice: iceCost,
+                box: boxCost,
+                delivery: deliveryCost,
+                subtotal: subtotal,
+                total: total
+            });
+        }
 
-            // Update TOTAL only if amount is not null
-            if (amount !== null) {
-                const dryIceText = document.querySelector('.cost-summary-ice strong').textContent.replace('$', '') || 0;
-                const boxText = document.querySelector('.cost-summary-box strong').textContent.replace('$', '') || 0;
-                const delivery = amount;
+        function updateDisplayElement(selector, value, isCalculating = false) {
+            const element = document.querySelector(selector);
+            if (element) {
+                element.textContent = value;
 
-                const subtotal = parseFloat(dryIceText) + parseFloat(boxText) + delivery;
-                const tax = subtotal * 0.15;
-                const total = subtotal + tax;
-
-                document.querySelector('.cost-summary-subtotal strong').textContent = `$${subtotal.toFixed(2)}`;
-                document.querySelector('.cost-summary-tax strong').textContent = `$${tax.toFixed(2)}`;
-                document.querySelector('.cost-summary-total strong').textContent = `$${total.toFixed(2)}`;
-            } else {
-                // Reset totals when delivery cost can't be calculated
-                document.querySelector('.cost-summary-subtotal strong').textContent = '$0.00';
-                document.querySelector('.cost-summary-tax strong').textContent = '$0.00';
-                document.querySelector('.cost-summary-total strong').textContent = '$0.00';
+                // Visual feedback for calculating state
+                if (isCalculating) {
+                    element.style.color = '#6c757d';
+                    element.style.fontStyle = 'italic';
+                } else {
+                    element.style.color = '';
+                    element.style.fontStyle = '';
+                }
             }
         }
 
         function tryGetDeliveryQuote() {
+            const pickupDelivery = getInput('modal-pickup-or-delivery');
+
+            // Only calculate if delivery is selected
+            if (pickupDelivery !== 'delivery') {
+                currentDeliveryCost = 0;
+                isCalculatingDelivery = false;
+                calculateAndUpdateCosts();
+                return;
+            }
+
             // Get form values
             const formData = {
                 address: getInput('modal-address'),
@@ -952,25 +1001,25 @@
                 email: getInput('modal-customer-email'),
                 name: getInput('modal-customer-name'),
                 phone: getInput('modal-customer-phone'),
-                iceAmount: parseFloat(getInput('modal-ice-amount')) || 1,
+                iceAmount: getNumericInput('modal-ice-amount', 1),
                 postal: getInput('modal-postal'),
                 locationName: getInput('modal-location-name'),
-                unit: getInput('modal-unit') || ''
+                unit: getInput('modal-unit')
             };
 
-            // Check required address fields for delivery calculation
-            const requiredAddressFields = [formData.address, formData.city, formData.province, formData.postal];
-            if (!requiredAddressFields.every(val => val && val.trim())) {
-                console.log('Missing required address fields for delivery calculation');
-                updateDeliveryCostSummary(null);
+            // Check required address fields
+            const requiredFields = [formData.address, formData.city, formData.province, formData.postal];
+            if (!requiredFields.every(val => val.trim())) {
+                console.log('Missing required address fields');
+                currentDeliveryCost = 0;
+                isCalculatingDelivery = false;
+                calculateAndUpdateCosts();
                 return;
             }
 
-            // Show loading
-            const deliveryCostElement = document.querySelector('.cost-summary-delivery strong');
-            if (deliveryCostElement) {
-                deliveryCostElement.textContent = 'Calculating...';
-            }
+            // Set calculating state and update display
+            isCalculatingDelivery = true;
+            calculateAndUpdateCosts(); // Show "Calculating..." immediately
 
             console.log('Starting delivery quote request...');
 
@@ -984,26 +1033,23 @@
                     return response.json();
                 })
                 .then(data => {
-                    // Extract supplier from response
                     if (!data.closest_supplier || !data.closest_supplier.id) {
                         throw new Error('No supplier found in response');
                     }
 
                     const supplier = data.closest_supplier;
-
-                    // Get delivery quote
                     const quotePayload = {
                         supplier_id: supplier.id,
                         delivery: {
-                            name: formData.locationName.trim() || 'N/A',
-                            street: formData.address.trim(),
-                            unit: formData.unit.trim() || '', // Ensure it's always a string
-                            city: formData.city.trim(),
-                            province: formData.province.trim(),
-                            postal_code: formData.postal.trim(),
-                            contact: formData.name.trim() || 'N/A',
-                            phone: formData.phone.trim() || 'N/A',
-                            email: formData.email.trim() || 'N/A'
+                            name: formData.locationName || 'N/A',
+                            street: formData.address,
+                            unit: formData.unit || '',
+                            city: formData.city,
+                            province: formData.province,
+                            postal_code: formData.postal,
+                            contact: formData.name || 'N/A',
+                            phone: formData.phone || 'N/A',
+                            email: formData.email || 'N/A'
                         },
                         weight: formData.iceAmount
                     };
@@ -1022,15 +1068,11 @@
                 })
                 .then(response => {
                     console.log('Quote response status:', response.status);
-
-                    // Add response text logging for debugging
                     return response.text().then(text => {
                         console.log('Quote response text:', text);
-
                         if (!response.ok) {
                             throw new Error(`Quote API returned ${response.status}: ${text}`);
                         }
-
                         try {
                             return JSON.parse(text);
                         } catch (e) {
@@ -1041,64 +1083,97 @@
                 })
                 .then(data => {
                     console.log('Quote data received:', data);
+                    isCalculatingDelivery = false;
 
-                    if (data.success && data.total) {
+                    // Handle response - set to 0 if null, undefined, or 0
+                    if (data.success && data.total && data.total > 0) {
+                        currentDeliveryCost = data.total;
                         console.log('Quote successful, total:', data.total);
-                        updateDeliveryCostSummary(data.total);
-                        showSuccess(deliveryCostElement);
+                        showFeedback('success');
                     } else {
-                        console.error('Quote unsuccessful:', data);
-                        throw new Error(data.error || 'Quote failed');
+                        currentDeliveryCost = 0; // Set to 0 if null or 0
+                        console.log('Quote response null/0, setting delivery to 0');
+                        showFeedback('success');
                     }
+
+                    calculateAndUpdateCosts(); // Update display with new cost
                 })
                 .catch(error => {
-                    console.error('Full error details:', error);
-                    console.error('Error message:', error.message);
-                    updateDeliveryCostSummary(null); // Set to null on error
-                    showError(deliveryCostElement);
+                    console.error('Delivery quote error:', error);
+                    isCalculatingDelivery = false;
+                    currentDeliveryCost = 0; // Set to 0 on error
+                    calculateAndUpdateCosts(); // Update display
+                    showFeedback('error');
                 });
         }
 
-        function showSuccess(element) {
+        function showFeedback(type) {
+            const element = document.querySelector('.cost-summary-delivery strong');
             if (element) {
-                element.style.color = 'green';
-                setTimeout(() => element.style.color = '', 2000);
+                const originalColor = element.style.color;
+                element.style.color = type === 'success' ? 'green' : 'orange';
+                setTimeout(() => {
+                    element.style.color = originalColor;
+                }, type === 'success' ? 2000 : 3000);
             }
         }
 
-        function showError(element) {
-            if (element) {
-                element.style.color = 'red';
-                setTimeout(() => element.style.color = '', 3000);
-            }
-        }
+        // Debounced delivery quote function
+        const debouncedDeliveryQuote = debounce(tryGetDeliveryQuote, DEBOUNCE_DELAY);
 
-        // Setup event listeners for address fields that should trigger recalculation
-        function setupDeliveryCalculation() {
-            const addressFields = ['modal-address', 'modal-city', 'modal-province', 'modal-postal', 'modal-ice-amount'];
+        function setupEventListeners() {
+            // Fields that affect basic costs - immediate update
+            const basicCostFields = ['modal-ice-amount', 'modal-box-amount'];
+            basicCostFields.forEach(id => {
+                const field = document.getElementById(id);
+                if (field) {
+                    field.addEventListener('input', () => {
+                        console.log(`${id} changed - updating costs`);
+                        calculateAndUpdateCosts(); // Immediate update
+                    });
+                }
+            });
 
-            // Remove existing listeners to prevent duplicates
+            // Address fields - debounced delivery quote
+            const addressFields = ['modal-address', 'modal-city', 'modal-province', 'modal-postal'];
             addressFields.forEach(id => {
                 const field = document.getElementById(id);
                 if (field) {
-                    // Remove old listener if it exists
-                    field.removeEventListener('input', field._deliveryListener);
-
-                    // Create new listener
-                    field._deliveryListener = () => {
-                        const deliveryOption = document.getElementById('modal-pickup-or-delivery');
-                        if (deliveryOption && deliveryOption.value === 'delivery') {
-                            clearTimeout(window.__quoteTimer);
-                            window.__quoteTimer = setTimeout(tryGetDeliveryQuote, 500); // debounce
-                        }
-                    };
-
-                    // Add new listener
-                    field.addEventListener('input', field._deliveryListener);
+                    field.addEventListener('input', () => {
+                        console.log(`${id} changed - triggering delivery quote`);
+                        debouncedDeliveryQuote();
+                    });
                 }
             });
+
+            // Ice amount affects both costs and delivery - do both
+            const iceField = document.getElementById('modal-ice-amount');
+            if (iceField) {
+                iceField.addEventListener('input', () => {
+                    console.log('Ice amount changed - updating costs and delivery quote');
+                    debouncedDeliveryQuote(); // Also triggers delivery recalculation
+                });
+            }
+
+            // Pickup/Delivery selection - immediate
+            const deliveryField = document.getElementById('modal-pickup-or-delivery');
+            if (deliveryField) {
+                deliveryField.addEventListener('change', function() {
+                    console.log('Delivery option changed to:', this.value);
+                    clearTimeout(deliveryQuoteTimer); // Cancel pending quotes
+
+                    if (this.value === 'delivery') {
+                        tryGetDeliveryQuote(); // Get quote immediately
+                    } else {
+                        currentDeliveryCost = 0;
+                        isCalculatingDelivery = false;
+                        calculateAndUpdateCosts(); // Update display immediately
+                    }
+                });
+            }
         }
 
+        // Handle modal view buttons
         document.addEventListener('change', function(e) {
             if (e.target.classList.contains('btn-view')) {
                 const orderId = e.target.dataset.orderId;
@@ -1106,39 +1181,42 @@
             }
         });
 
-        // Setup event listeners for address fields that should trigger recalculation
-        function initializeDeliveryCalculation() {
-            const deliveryOption = document.getElementById('modal-pickup-or-delivery');
+        function initialize() {
+            console.log('Initializing efficient delivery calculator...');
+            setupEventListeners();
 
-            // Check current state on page load
-            if (deliveryOption && deliveryOption.value === 'delivery') {
-                setupDeliveryCalculation();
-                tryGetDeliveryQuote(); // Calculate immediately if delivery is already selected
-            } else if (deliveryOption && deliveryOption.value === 'pickup') {
-                updateDeliveryCostSummary(0); // Set to 0 for pickup
-            }
+            // Initial calculation after a short delay
+            setTimeout(() => {
+                const pickupDelivery = getInput('modal-pickup-or-delivery');
+                console.log('Initial delivery option:', pickupDelivery);
+
+                if (pickupDelivery === 'delivery') {
+                    tryGetDeliveryQuote();
+                } else {
+                    currentDeliveryCost = 0;
+                    isCalculatingDelivery = false;
+                    calculateAndUpdateCosts();
+                }
+            }, 100);
         }
 
-        $(document).on('change','#modal-pickup-or-delivery',function () {
-            if (this.value === 'delivery') {
-                // Setup auto listener to check fields and trigger quote
-                setupDeliveryCalculation();
+        // jQuery compatibility for delivery option changes
+        $(document).on('change', '#modal-pickup-or-delivery', function() {
+            console.log('jQuery: Delivery option changed to:', this.value);
+            clearTimeout(deliveryQuoteTimer);
 
-                // Initial trigger in case fields are already filled
+            if (this.value === 'delivery') {
                 tryGetDeliveryQuote();
-            } else if (this.value === 'pickup') {
-                // Set delivery cost to 0 for pickup
-                updateDeliveryCostSummary(0);
             } else {
-                // Clear delivery cost for other options
-                updateDeliveryCostSummary(null);
+                currentDeliveryCost = 0;
+                isCalculatingDelivery = false;
+                calculateAndUpdateCosts();
             }
         });
 
-        // Initialize on page load
-        initializeDeliveryCalculation();
+        // Initialize everything
+        initialize();
     });
-
 
     function tryPushOrderToNovex(orderId) {
 

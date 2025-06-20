@@ -201,18 +201,9 @@ class SupplierController extends Controller
 
                 return $totalAmount;
             } else {
-                Log::error('Novex API error', [
-                    'status' => $response->status(),
-                    'response' => $response->body(),
-                    'request' => $orderDetails
-                ]);
                 return -1;
             }
         } catch (\Exception $e) {
-            Log::error('Novex API exception: ' . $e->getMessage(), [
-                'request' => $orderDetails,
-                'trace' => $e->getTraceAsString()
-            ]);
             return -1;
         }
     }
