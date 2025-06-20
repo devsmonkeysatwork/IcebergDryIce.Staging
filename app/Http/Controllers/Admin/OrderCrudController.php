@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Mail\CustomerRegisteredMail;
+use App\Models\OrderItem;
 use App\Models\StockMovement;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
@@ -258,6 +259,44 @@ class OrderCrudController extends CrudController
 
             // Create the order
             $order = Order::create($validated);
+            if($iceCost){
+                $product = Product::find(1);
+                $orderItem = $order->items()->create([
+                    'order_id' => $order->id,
+                    'product_id' => 1,
+                    'amount_of_items' => $validated['amount_of_ice'],
+                    'unit_price' => $product->price,
+                    'total_price' => $iceCost,
+                ]);
+                $product->decrement('current_stock', $validated['amount_of_ice']);
+
+                StockMovement::create([
+                    'product_id' => $product->id,
+                    'order_id' => $order->id,
+                    'change_type' => 'out',
+                    'quantity' => $validated['amount_of_ice'],
+                    'description' => 'Order sale (Order ID: ' . $order->id . ')',
+                ]);
+            }
+            if($boxCost){
+                $product = Product::find(2);
+                $orderItem = $order->items()->create([
+                    'order_id' => $order->id,
+                    'product_id' => 1,
+                    'amount_of_items' => $validated['amount_of_ice'],
+                    'unit_price' => $product->price,
+                    'total_price' => $boxCost,
+                ]);
+                $product->decrement('current_stock', $validated['amount_of_ice']);
+
+                StockMovement::create([
+                    'product_id' => $product->id,
+                    'order_id' => $order->id,
+                    'change_type' => 'out',
+                    'quantity' => $validated['amount_of_ice'],
+                    'description' => 'Order sale (Order ID: ' . $order->id . ')',
+                ]);
+            }
 
             Mail::to($order->email)->send(new OrderPlacedMail($order));
 
@@ -539,7 +578,7 @@ class OrderCrudController extends CrudController
                 'country' => 'nullable|string|max:100',
                 'delivery_date' => 'nullable|date',
                 'notes' => 'nullable|string',
-                'delivery_cost' => 'nullable|decimal|max:10',
+                'delivery_cost' => 'nullable|numeric',
                 'status' => 'required|string|in:valid,cancelled,skip',
                 'pickup_delivery' => 'required|string|in:pickup,delivery'
             ]);
@@ -571,6 +610,56 @@ class OrderCrudController extends CrudController
             $validatedData['sub_total'] = $subtotal;
             $validatedData['tax'] = $tax;
             $validatedData['total_cost'] = $subtotal + $tax;
+
+
+            // ICE
+            $product = Product::find(1);
+            $newQty = $validatedData['amount_of_ice'] ?? 0;
+            $oldQty = $order->amount_of_ice ?? 0;
+            $diff = $newQty - $oldQty;
+
+            if ($diff != 0) {
+                $product->increment('current_stock', -$diff); // handles both + and -
+
+                $orderItem = OrderItem::where('product_id', $product->id)->where('order_id', $order->id)->first();
+                $stockMovement = StockMovement::where('product_id', $product->id)->where('order_id', $order->id)->first();
+
+                if ($orderItem) {
+                    $orderItem->amount_of_items = $newQty;
+                    $orderItem->total_price = $newQty * $product->price;
+                    $orderItem->save();
+                }
+
+                if ($stockMovement) {
+                    $stockMovement->quantity = abs($diff);
+                    $stockMovement->save();
+                }
+            }
+
+            // BOXES
+            $product2 = Product::find(2);
+            $newQty = $validatedData['amount_of_boxes'] ?? 0;
+            $oldQty = $order->amount_of_boxes ?? 0;
+            $diff = $newQty - $oldQty;
+
+            if ($diff != 0) {
+                $product2->increment('current_stock', -$diff);
+
+                $orderItem = OrderItem::where('product_id', $product2->id)->where('order_id', $order->id)->first();
+                $stockMovement = StockMovement::where('product_id', $product2->id)->where('order_id', $order->id)->first();
+
+                if ($orderItem) {
+                    $orderItem->amount_of_items = $newQty;
+                    $orderItem->total_price = $newQty * $product2->price;
+                    $orderItem->save();
+                }
+
+                if ($stockMovement) {
+                    $stockMovement->quantity = abs($diff);
+                    $stockMovement->save();
+                }
+            }
+
 
 
             // Keep original origin value

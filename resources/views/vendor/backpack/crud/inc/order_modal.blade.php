@@ -147,34 +147,46 @@
         <div class="col-md-4">
             <h5><i class="la la-dollar-sign"></i> Cost Summary</h5>
             <div class="p-3 rounded" style="background: rgba(245, 246, 250, 1);">
-                <div class="d-flex justify-content-between align-items-center m-1 cost-summary-ice">
-                    <p class="m-0">Dry Ice ({{ $defaultValues['ice_amount'] }} lbs @ $1.95/lb):</p>
-                    <strong>${{ number_format($defaultValues['ice_amount'] * 1.95, 2) }}</strong>
+                <div class=" m-1">
+                    <p class="m-0 d-flex justify-content-between align-items-center cost-summary-ice">
+                        Dry Ice ({{ $defaultValues['ice_amount'] }} lbs @ $1.95/lb):
+                        <strong>${{ number_format($defaultValues['ice_amount'] * 1.95, 2) }}</strong>
+                    </p>
                 </div>
-                <div class="d-flex justify-content-between align-items-center m-1 cost-summary-box">
-                    <p class="m-0">Styrofoam Box ({{ $defaultValues['box_amount'] }} @ $30.00/box): </p>
-                    <strong>${{ number_format($defaultValues['box_amount'] * 30.00, 2) }}</strong>
+                <div class=" m-1">
+                    <p class="m-0 d-flex justify-content-between align-items-center cost-summary-box">
+                        Styrofoam Box ({{ $defaultValues['box_amount'] }} @ $30.00/box):
+                        <strong>${{ number_format($defaultValues['box_amount'] * 30.00, 2) }}</strong>
+                    </p>
                 </div>
-                <div class="d-flex justify-content-between align-items-center m-1 cost-summary-delivery">
-                    <p class="m-0">Pickup/Delivery: </p>
-                    <strong>${{ number_format($defaultValues['delivery_cost'], 2) }}</strong>
+                <div class=" m-1">
+                    <p class="m-0 d-flex justify-content-between align-items-center cost-summary-delivery">
+                        Pickup/Delivery:
+                        <strong>${{ number_format($defaultValues['delivery_cost'], 2) }}</strong>
+                    </p>
                     <input id="modal-delivery-cost" name="delivery_cost" type="hidden" value="{{ $defaultValues['delivery_cost'] }}">
                 </div>
                 <hr>
-                <div class="d-flex justify-content-between align-items-center m-1 cost-summary-subtotal">
-                    <p class="m-0">Sub-Total: </p>
-                    <strong>${{ number_format($defaultValues['sub_total'], 2) }}</strong>
+                <div class=" m-1">
+                    <p class="m-0 d-flex justify-content-between align-items-center cost-summary-subtotal">
+                        Sub-Total:
+                        <strong>${{ number_format($defaultValues['sub_total'], 2) }}</strong>
+                    </p>
                     <input id="modal-sub-total" name="sub_total" type="hidden" value="{{ $defaultValues['sub_total'] }}">
                 </div>
-                <div class="d-flex justify-content-between align-items-center m-1 cost-summary-tax">
-                    <p class="m-0">Tax (15%):  </p>
-                    <strong>${{ number_format($defaultValues['tax'], 2) }}</strong>
+                <div class="m-1">
+                    <p class="m-0 d-flex justify-content-between align-items-center cost-summary-tax">
+                        Tax (15%):
+                        <strong>${{ number_format($defaultValues['tax'], 2) }}</strong>
+                    </p>
                     <input id="modal-tax" name="tax" type="hidden" value="{{ $defaultValues['tax'] }}">
                 </div>
                 <hr>
-                <div class="d-flex justify-content-between align-items-center m-1 cost-summary-total">
-                    <p class="m-0">TOTAL: </p>
-                    <strong>${{ number_format($defaultValues['total_cost'], 2) }}</strong>
+                <div class="m-1">
+                    <p class="d-flex justify-content-between align-items-center cost-summary-total m-0">
+                        TOTAL:
+                        <strong>${{ number_format($defaultValues['total_cost'], 2) }}</strong>
+                    </p>
                     <input id="modal-total-cost" name="total_cost" type="hidden" value="{{ $defaultValues['total_cost'] }}">
                 </div>
                 @if($mode === 'edit')
@@ -194,7 +206,7 @@
             <i class="la la-save"></i> <span>{{ $saveButtonText }}</span>
         </button>
 
-        @if($showPushButton && $order->push === 0)
+        @if($showPushButton)
             @if(!$defaultValues['novex_pushed'])
                 <button id="push-btn-{{ $order->id }}" onclick="tryPushOrderToNovex({{ $order->id }})" class="btn btn-primary button-push" style="background: gray">
                     Push Order
@@ -203,7 +215,6 @@
             @else
                 <span id="push-status-{{ $order->id }}" class="ml-2 text-sm text-muted status-push">Order pushed</span>
             @endif
-            <span id="push-status-{{ $order->id }}" class="ml-2 text-sm text-muted status-push"></span>
         @endif
 
         <button class="btn btn-secondary mx-2" data-bs-dismiss="modal">Cancel</button>
