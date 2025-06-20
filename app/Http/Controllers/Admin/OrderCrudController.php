@@ -282,7 +282,7 @@ class OrderCrudController extends CrudController
                 $product = Product::find(2);
                 $orderItem = $order->items()->create([
                     'order_id' => $order->id,
-                    'product_id' => 1,
+                    'product_id' => 2,
                     'amount_of_items' => $validated['amount_of_ice'],
                     'unit_price' => $product->price,
                     'total_price' => $boxCost,
@@ -619,44 +619,63 @@ class OrderCrudController extends CrudController
             $diff = $newQty - $oldQty;
 
             if ($diff != 0) {
-                $product->increment('current_stock', -$diff); // handles both + and -
+                if ($diff > 0) {
+                    // Order increased -> stock goes down
+                    $product->decrement('current_stock', $diff);
+                } elseif ($diff < 0) {
+                    // Order decreased -> stock goes back up
+                    $product->increment('current_stock', abs($diff));
+                }
 
                 $orderItem = OrderItem::where('product_id', $product->id)->where('order_id', $order->id)->first();
                 $stockMovement = StockMovement::where('product_id', $product->id)->where('order_id', $order->id)->first();
 
                 if ($orderItem) {
-                    $orderItem->amount_of_items = $newQty;
+                    $orderItem->amount_of_items = intval($newQty);
                     $orderItem->total_price = $newQty * $product->price;
                     $orderItem->save();
                 }
 
                 if ($stockMovement) {
-                    $stockMovement->quantity = abs($diff);
+                    if ($diff > 0) {
+                        $stockMovement->increment('quantity', abs($diff));
+                    } elseif ($diff < 0) {
+                        $stockMovement->decrement('quantity', abs($diff));
+
+                    }
                     $stockMovement->save();
                 }
             }
 
             // BOXES
             $product2 = Product::find(2);
-            $newQty = $validatedData['amount_of_boxes'] ?? 0;
-            $oldQty = $order->amount_of_boxes ?? 0;
-            $diff = $newQty - $oldQty;
+            $newQty2 = $validatedData['amount_of_boxes'] ?? 0;
+            $oldQty2 = $order->amount_of_boxes ?? 0;
+            $diff2 = $newQty2 - $oldQty2;
 
-            if ($diff != 0) {
-                $product2->increment('current_stock', -$diff);
-
-                $orderItem = OrderItem::where('product_id', $product2->id)->where('order_id', $order->id)->first();
-                $stockMovement = StockMovement::where('product_id', $product2->id)->where('order_id', $order->id)->first();
-
-                if ($orderItem) {
-                    $orderItem->amount_of_items = $newQty;
-                    $orderItem->total_price = $newQty * $product2->price;
-                    $orderItem->save();
+            if ($diff2 != 0) {
+                if ($diff2 > 0) {
+                    $product2->decrement('current_stock', $diff2);
+                } elseif ($diff2 < 0) {
+                    $product2->increment('current_stock', abs($diff2));
                 }
 
-                if ($stockMovement) {
-                    $stockMovement->quantity = abs($diff);
-                    $stockMovement->save();
+                $orderItem2 = OrderItem::where('product_id', $product2->id)->where('order_id', $order->id)->tosql();
+                $stockMovement2 = StockMovement::where('product_id', $product2->id)->where('order_id', $order->id)->first();
+
+                if ($orderItem2) {
+                    $orderItem2->amount_of_items = intval($newQty2);
+                    $orderItem2->total_price = $newQty2 * $product2->price;
+                    $orderItem2->save();
+                }
+
+                if ($stockMovement2) {
+                    if ($diff2 > 0) {
+                        $stockMovement2->increment('quantity', $diff2);
+                    } elseif ($diff2 < 0) {
+                        $stockMovement2->decrement('quantity', abs($diff2));
+                    }
+                    $stockMovement2->save();
                 }
             }
 
