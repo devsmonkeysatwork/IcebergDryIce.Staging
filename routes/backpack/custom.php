@@ -128,17 +128,21 @@ Route::group([
 
     Route::put('orders/{id}/ajax-update', [OrderCrudController::class, 'updateOrderAjax'])
         ->name('admin.orders.ajax-update');
-    Route::delete('orders/{id}/ajax-delete', [OrderCrudController::class, 'deleteOrderAjax'])
+
+    Route::delete('order/{id}/delete/', [OrderCrudController::class, 'deleteOrderAjax'])
         ->name('admin.orders.ajax-delete');
 
 
     Route::get('orders/modal/{id}/edit', [OrderCrudController::class, 'editModal'])->name('admin.orders.modal.edit');
+    Route::get('orders/modal/create', [OrderCrudController::class, 'modalCreate'])->name('admin.orders.modal.create');
 
     Route::get('/customers/search', [CustomersCrudController::class, 'searchCustomers'])
         ->name('admin.customers.search');
 
     Route::get('/customers/get-by-email', [OrderCrudController::class, 'getCustomerByEmail'])
         ->name('admin.customers.get-by-email');
+
+
 
 });
 

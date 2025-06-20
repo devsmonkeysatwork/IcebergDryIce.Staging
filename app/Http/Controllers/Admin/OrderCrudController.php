@@ -207,6 +207,8 @@ class OrderCrudController extends CrudController
 
     }
 
+
+
     // In your OrderCrudController or similar
 
     public function ajaxCreate(Request $request)
@@ -219,6 +221,7 @@ class OrderCrudController extends CrudController
             'amount_of_ice' => 'nullable|numeric|min:0',
             'amount_of_boxes' => 'nullable|numeric|min:0',
             'recurring' => 'string|in:recurring,non-recurring',
+            'origin' => 'nullable|string|max:100',
             'location_name' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
             'unit' => 'nullable|string|max:50',
@@ -227,41 +230,46 @@ class OrderCrudController extends CrudController
             'province' => 'string|max:50',
             'country' => 'string|max:100',
             'delivery_date' => 'nullable|date',
+            'delivery_cost' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'status' => 'required|string|in:valid,cancelled,skip',
             'pickup_delivery' => 'required|string|in:pickup,delivery'
         ]);
 
-
         try {
             // Handle customer lookup or creation
             $customer = $this->handleCustomerData($request);
-            // Calculate cost (adjust pricing logic as needed)
-            $iceCost = ($validated['amount_of_ice'] ?? 0) * 5;      // Example: $5 per unit of ice
-            $boxCost = ($validated['amount_of_boxes'] ?? 0) * 2.5;  // Example: $2.50 per box
-            $totalCost = $iceCost + $boxCost;
+
+            // Calculate costs server-side
+            $iceCost = ($validated['amount_of_ice'] ?? 0) * 1.95;
+            $boxCost = ($validated['amount_of_boxes'] ?? 0) * 30.00;
+//            $deliveryFee = ($validated['pickup_delivery'] === 'delivery') ? NULL : 0.00;
+            $subtotal = $iceCost + $boxCost;
+            $tax = $subtotal * 0.15;
 
 
-            // Merge calculated and derived fields into validated data
+            // Add calculated fields
+            $validated['sub_total'] = $subtotal;
+            $validated['tax'] = $tax;
+            $validated['total_cost'] = $subtotal + $tax;
+//            $validated['delivery_cost'] = $deliveryFee;
             $validated['customer_id'] = $customer->id;
-            $validated['total_cost'] = $totalCost;
+            $validated['origin'] = 'manual';
 
-
-            $validated['origin'] = 'manual'; // ✅ set origin to manual
-
-
-            // Create the order with customer_id
+            // Create the order
             $order = Order::create($validated);
 
             Mail::to($order->email)->send(new OrderPlacedMail($order));
 
-
-            return response()->json(['success' => true, 'order' => $order]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Order created successfully',
+                'order' => $order
+            ]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()]);
         }
     }
-
 
     /**
      * Handle AJAX submission from review form
@@ -300,12 +308,12 @@ class OrderCrudController extends CrudController
             'notes' => 'nullable|string',
             'status' => 'string|in:valid,cancelled,skip',
             'pickup_delivery' => 'string|in:pickup,delivery',
-            'subtotal' => 'nullable|numeric|min:0',
+            'sub_total' => 'nullable|numeric|min:0',
             'delivery_cost' => 'nullable|numeric|min:0',
             'tax' => 'nullable|numeric|min:0',
             'total_cost' => 'nullable|numeric|min:0',
             'accept' => 'required|accepted',
-            'items' => 'required|array|min:1',
+//            'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.amount_of_items' => 'required|numeric|min:1',
             'items.*.unit_price' => 'nullable|numeric|min:0',
@@ -338,7 +346,7 @@ class OrderCrudController extends CrudController
                 'notes' => $validated['notes'],
                 'status' => $validated['status'] ?? 'valid',
                 'pickup_delivery' => $validated['pickup_delivery'] ?? 'delivery',
-                'sub_total' => $validated['subtotal'] ?? 0,
+                'sub_total' => $validated['sub_total'] ?? 0,
                 'tax' => $validated['tax'] ?? 0,
                 'delivery_cost' => $validated['delivery_cost'] ?? 5.00,
                 'total_cost' => $validated['total_cost'] ?? 0,
@@ -418,20 +426,7 @@ class OrderCrudController extends CrudController
         $this->setupCreateOperation();
     }
 
-//    protected function addCustomFilters()
-//    {
-//        $today = request()->query('today');
-//        $future = request()->query('future');
-//        $past = request()->query('past');
-//
-//        if ($today) {
-//            CRUD::addClause('whereDate', 'delivery_date', '=', Carbon::today()->toDateString());
-//        } elseif ($future) {
-//            CRUD::addClause('whereDate', 'delivery_date', '>', Carbon::today()->toDateString());
-//        } elseif ($past) {
-//            CRUD::addClause('whereDate', 'delivery_date', '<', Carbon::today()->toDateString());
-//        }
-//    }
+
 
     protected function handleCustomerData($data)
     {
@@ -488,15 +483,15 @@ class OrderCrudController extends CrudController
 
 
     // Override update method to update order and customer
-    public function update($id)
-    {
-        $request = $this->crud->validateRequest();
-        $data = $request->all();
-
-        $this->updateOrderData($data, $id);
-
-        return $this->crud->performUpdateAction($id);
-    }
+//    public function update($id)
+//    {
+//        $request = $this->crud->validateRequest();
+//        $data = $request->all();
+//
+//        $this->updateOrderData($data, $id);
+//
+//        return $this->crud->performUpdateAction($id);
+//    }
 
     /**
      * Show order details (AJAX endpoint)
@@ -534,6 +529,7 @@ class OrderCrudController extends CrudController
                 'amount_of_ice' => 'nullable|numeric|min:0',
                 'amount_of_boxes' => 'nullable|numeric|min:0',
                 'recurring' => 'nullable|string|in:recurring,non-recurring',
+                'origin' => 'nullable|string|max:100',
                 'location_name' => 'nullable|string|max:255',
                 'address' => 'string|max:255',
                 'unit' =>  'nullable|string|max:50',
@@ -543,6 +539,7 @@ class OrderCrudController extends CrudController
                 'country' => 'nullable|string|max:100',
                 'delivery_date' => 'nullable|date',
                 'notes' => 'nullable|string',
+                'delivery_cost' => 'nullable|decimal|max:10',
                 'status' => 'required|string|in:valid,cancelled,skip',
                 'pickup_delivery' => 'required|string|in:pickup,delivery'
             ]);
@@ -561,22 +558,23 @@ class OrderCrudController extends CrudController
                         'country' => $validatedData['country'] ?? null
                     ]
                 );
-                $validatedData['customer_id'] = $customer->id;
             }
 
-            // Calculate total cost
+            // Calculate costs server-side
+
             $iceCost = ($validatedData['amount_of_ice'] ?? 0) * 1.95;
             $boxCost = ($validatedData['amount_of_boxes'] ?? 0) * 30.00;
-            $deliveryFee = ($validatedData['pickup_delivery'] === 'delivery') ? 20.00 : 0.00;
-            $subtotal = $iceCost + $boxCost + $deliveryFee;
+            $subtotal = $iceCost + $boxCost;
             $tax = $subtotal * 0.15;
+
+            // Add calculated fields
+            $validatedData['sub_total'] = $subtotal;
+            $validatedData['tax'] = $tax;
             $validatedData['total_cost'] = $subtotal + $tax;
 
-            // Fix field name mapping
-            if (isset($validatedData['postal'])) {
-                $validatedData['postal_code'] = $validatedData['postal'];
-                unset($validatedData['postal']);
-            }
+
+            // Keep original origin value
+            $validatedData['origin'] = $order->origin;
 
             // Update the order
             $order->update($validatedData);
@@ -600,7 +598,6 @@ class OrderCrudController extends CrudController
             ], 500);
         }
     }
-
     /**
      * Delete order via AJAX
      *
@@ -718,11 +715,55 @@ class OrderCrudController extends CrudController
                 'delivery_cost' => $order->delivery_cost ?? 0,
                 'tax' => $order->tax ?? 0,
                 'total_cost' => $order->total_cost ?? 0,
+                'origin' => $order->origin,
                 'novex_pushed' => $order->push ?? 0,
             ]
         ];
 
         return view('vendor.backpack.crud.inc.order_modal', $data);
     }
+
+    public function modalCreate()
+    {
+        $defaultValues = [
+            'order_id' => '',
+            'customer_email' => '',
+            'customer_name' => '',
+            'customer_phone' => '',
+            'ice_amount' => 0,
+            'box_amount' => 0,
+            'recurring' => '',
+            'location_name' => '',
+            'origin' => 'manual',
+            'address' => '',
+            'unit' => '',
+            'city' => '',
+            'postal_code' => '',
+            'province' => '',
+            'country' => 'Canada',
+            'pickup_delivery' => '',
+            'status' => 'valid',
+            'delivery_date' => '',
+            'delivery_time' => '',
+            'notes' => '',
+            'delivery_cost' => 0,
+            'sub_total' => 0,
+            'tax' => 0,
+            'total_cost' => 0,
+            'novex_pushed' => false
+        ];
+
+        return view('vendor.backpack.crud.inc.order_modal', [
+            'mode' => 'create',
+            'modalTitle' => 'Create New Order',
+            'saveButtonText' => 'Create Order',
+            'showOrderId' => false,
+            'showDeleteButton' => false,
+            'showPushButton' => false,
+            'defaultValues' => $defaultValues,
+            'order' => null
+        ]);
+    }
+
 
 }

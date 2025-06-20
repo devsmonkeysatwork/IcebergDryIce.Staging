@@ -134,29 +134,9 @@
                     @php
                         $dateTime = \Carbon\Carbon::parse($order->delivery_date);
                     @endphp
-                    <button class="btn btn-primary btn-view"
-                            data-bs-toggle="modal"
-                            data-bs-target="#orderSummaryModal"
-                            data-id="{{ $order->id }}"
-                            data-customer="{{ $order->customer_name }}"
-                            data-email="{{ $order->email }}"
-                            data-phone="{{ $order->phone }}"
-                            data-ice="{{ $order->amount_of_ice }}"
-                            data-boxes="{{ $order->amount_of_boxes }}"
-                            data-recurring="{{ $order->recurring }}"
-                            data-location="{{ $order->location_name }}"
-                            data-address="{{ $order->address }}"
-                            data-unit="{{ $order->unit }}"
-                            data-city="{{ $order->city }}"
-                            data-postal_code="{{ $order->postal_code }}"
-                            data-province="{{ $order->province }}"
-                            data-country="{{ $order->country }}"
-                            data-delivery-date="{{ $dateTime->format('Y-m-d') }}"
-                            data-delivery-time="{{ $dateTime->format('H:i') }}"
-                            data-notes="{{ $order->notes }}"
-                            data-status="{{ $order->status }}"
-                            data-pickup_delivery="{{ $order->pickup_delivery }}"
-                    >View</button>
+                    <button class="btn btn-primary btn-view" data-order-id="{{ $order->id }}">
+                        View
+                    </button>
                 </td>
             </tr>
             @endforeach
@@ -204,190 +184,12 @@
 <!-- Modal -->
 <div class="modal fade" id="orderSummaryModal" tabindex="-1" aria-labelledby="orderSummaryLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header border-0">
-                <h4 class="modal-title fw-bold" id="modal-title">
-                    <i class="la la-file-invoice mx-2"></i>
-                    <span id="modal-title-text">Create New Order</span>
-                </h4>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
+        <div class="modal-content" id="modal-content-container">
 
-            <div class="modal-body">
-                <div class="row">
-                    <!-- Order Details -->
-                    <div class="col-md-3">
-                        <h5><i class="la la-shopping-cart"></i> Order</h5>
 
-                        <!-- Order ID field - only shown in edit mode -->
-                        <div class="mb-2" id="order-id-section" style="display: none;">
-                            <label class="form-label">Order #</label>
-                            <input id="modal-order-id" class="form-control" readonly>
-                        </div>
-
-                        <div class="mb-2">
-                            <label class="form-label">Email <span class="text-danger">*</span></label>
-                            <select id="modal-customer-email" class="form-control" style="width: 100%;" required>
-                                <!-- Options will be populated by Select2 -->
-                            </select>
-                        </div>
-
-                        <div class="mb-2">
-                            <label class="form-label">Name <span class="text-danger">*</span></label>
-                            <input id="modal-customer-name" class="form-control" required>
-                        </div>
-
-                        <div class="mb-2">
-                            <label class="form-label">Phone <span class="text-danger">*</span></label>
-                            <input id="modal-customer-phone" class="form-control" type="tel" required>
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">Amount of Ice (lbs) <span class="text-danger">*</span></label>
-                            <input id="modal-ice-amount" class="form-control" type="number" min="1" step="0.1" placeholder="Enter lbs" required>
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">Amount of Boxes</label>
-                            <input id="modal-box-amount" class="form-control" type="number" min="0" step="1" value="0">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">Recurring <span class="text-danger">*</span></label>
-                            <select id="modal-recurring" class="form-select">
-                                <option value="">Select...</option>
-                                <option value="recurring">Yes</option>
-                                <option value="non-recurring">No</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Delivery Details -->
-                    <div class="col-md-5 px-3">
-                        <h5><i class="la la-truck"></i> Delivery</h5>
-                        <div class="mb-2">
-                            <label class="form-label">Location Name <span class="text-danger">*</span></label>
-                            <input id="modal-location-name" type="text" class="form-control" required>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-8">
-                                <label class="form-label">Address <span class="text-danger">*</span></label>
-                                <input id="modal-address" class="form-control" required>
-                            </div>
-                            <div class="col-4">
-                                <label class="form-label">Unit</label>
-                                <input id="modal-unit" class="form-control">
-                            </div>
-                        </div>
-
-                        <div class="row mb-2">
-                            <div class="col-md-3">
-                                <label class="form-label">City <span class="text-danger">*</span></label>
-                                <input id="modal-city" type="text" class="form-control" required>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Postal <span class="text-danger">*</span></label>
-                                <input id="modal-postal" type="text" class="form-control" required>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Province <span class="text-danger">*</span></label>
-                                <select id="modal-province" class="form-select" required>
-                                    <option value="">Select...</option>
-                                    <option value="BC">BC</option>
-                                    <option value="AB">AB</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Country</label>
-                                <input id="modal-country" class="form-control" value="Canada" readonly>
-                            </div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-5">
-                                <label class="form-label">Pickup or Delivery <span class="text-danger">*</span></label>
-                                <select id="modal-pickup-or-delivery" class="form-select" required>
-                                    <option value="">Select...</option>
-                                    <option value="pickup">Pick Up</option>
-                                    <option value="delivery">Delivery</option>
-                                </select>
-                            </div>
-                            <div class="col-4" id="status-section">
-                                <label class="form-label">Status</label>
-                                <select class="form-select" id="modal-status">
-                                    <option value="valid">Valid</option>
-                                    <option value="cancelled">Cancelled</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-md-5">
-                                <label class="form-label">Delivery Date<span class="text-danger">*</span></label>
-                                <input id="modal-delivery-date" type="date" class="form-control" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Delivery Time</label>
-                                <input id="modal-delivery-time" type="time" class="form-control">
-                            </div>
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">Notes</label>
-                            <textarea id="modal-notes" class="form-control" rows="3"></textarea>
-                        </div>
-                    </div>
-
-                    <!-- Cost Summary -->
-                    <div class="col-md-4">
-                        <h5><i class="la la-dollar-sign"></i> Cost Summary</h5>
-                        <div class="p-3 rounded" style="background: rgba(245, 246, 250, 1);">
-                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-ice">
-                                <p class="m-0">Dry Ice (0 lbs @ $1.95/lb):</p>
-                                <strong>$0.00</strong>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-box">
-                                <p class="m-0">Styrofoam Box (0 @ $30.00/box): </p>
-                                <strong>$0.00</strong>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-delivery">
-                                <p class="m-0">Pickup/Delivery: </p>
-                                <strong>$0.00</strong>
-                            </div>
-                            <hr>
-                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-subtotal">
-                                <p class="m-0">Sub-Total: </p>
-                                <strong>$0.00</strong>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-tax">
-                                <p class="m-0">Tax (15%):  </p>
-                                <strong>$0.00</strong>
-                            </div>
-                            <hr>
-                            <div class="d-flex justify-content-between align-items-center m-1 cost-summary-total">
-                                <p class="m-0">TOTAL: </p>
-                                <strong>$0.00</strong>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="modal-footer border-0 d-flex justify-content-between">
-                <div>
-                    <button id="save-order-btn" class="btn btn-primary">
-                        <i class="la la-save"></i> <span id="save-btn-text">Create Order</span>
-                    </button>
-                    @if(isset($order) && $order)
-                        <button id="push-btn-{{ $order->id }}" onclick="tryPushOrderToNovex({{ $order->id }})" class="btn btn-primary button-push" style="background: gray">
-                            Push Order
-                        </button>
-                        <span id="push-status-{{ $order->id }}" class="ml-2 text-sm text-muted status-push"></span>
-                    @endif
-                    <button class="btn btn-secondary mx-2" data-bs-dismiss="modal">Cancel</button>
-                </div>
-                <button id="delete-order-btn" class="btn btn-danger" style="display: none;">
-                    <i class="la la-trash"></i> Delete
-                </button>
-            </div>
         </div>
     </div>
-</div>
-<!-- Bootstrap Modal -->
+</div><!-- Bootstrap Modal -->
 
 
 @endsection
@@ -885,139 +687,78 @@
 
         // Create New Order button
         document.getElementById('create-order-btn').addEventListener('click', function() {
-            prepareModalForCreate();
+            loadModalContent('create');
         });
 
         // Edit Order buttons (existing functionality)
-        document.querySelectorAll('.btn-view').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                prepareModalForEdit(this);
-            });
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('btn-view')) {
+                const orderId = e.target.dataset.orderId;
+                loadModalContent('edit', orderId);
+            }
         });
+// Replace loadModalContent function with this optimized version:
+        function loadModalContent(action, orderId = null) {
+            const url = action === 'edit'
+                ? `/admin/orders/modal/${orderId}/edit`
+                : '/admin/orders/modal/create';
 
-        function prepareModalForCreate() {
-            isEditMode = false;
+            // Show loading state
+            document.getElementById('modal-content-container').innerHTML = `
+        <div class="modal-body text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading...</p>
+        </div>
+    `;
 
-            // Update modal title and button text
-            document.getElementById('modal-title-text').textContent = 'Create New Order';
-            document.getElementById('save-btn-text').textContent = 'Create Order';
+            // Show the modal immediately with loading state
+            const modal = new bootstrap.Modal(summaryModal);
+            modal.show();
 
-            // Hide order ID section and delete button
-            document.getElementById('order-id-section').style.display = 'none';
-            document.getElementById('delete-order-btn').style.display = 'none';
-
-            // Hide push button and status in create mode
-            document.querySelectorAll('.button-push').forEach(btn => btn.style.display = 'none');
-            document.querySelectorAll('.status-push').forEach(status => status.style.display = 'none');
-
-            // Clear all form fields
-            clearModalForm();
-
-            // Set default values
-            document.getElementById('modal-country').value = 'Canada';
-            document.getElementById('modal-box-amount').value = '0';
-            document.getElementById('modal-status').value = 'valid';
-
-            // Calculate initial cost
-            updateCostSummary();
-        }
-
-        function prepareModalForEdit(btn) {
-            isEditMode = true;
-            const orderId = btn.dataset.id; // Get the order ID from the button
-
-            // Update modal title and button text
-            document.getElementById('modal-title-text').textContent = 'Edit Order';
-            document.getElementById('save-btn-text').textContent = 'Update Order';
-
-            // Show order ID section and delete button
-            document.getElementById('order-id-section').style.display = 'block';
-            document.getElementById('delete-order-btn').style.display = 'block';
-
-            // Show push button and status in edit mode
-            document.querySelectorAll('.button-push').forEach(btn => {
-                btn.style.display = 'inline-block';
-                btn.dataset.orderId = orderId;
-            });
-            document.querySelectorAll('.status-push').forEach(status => {
-                status.style.display = 'inline';
-            });
-
-            // Populate form with existing data
-            document.getElementById('modal-order-id').value = orderId;
-
-            // For email field in edit mode, we need to handle Select2 differently
-            const customerEmail = btn.dataset.email || '';
-            if (customerEmail) {
-                // Create option and set it as selected
-                const emailOption = new Option(customerEmail, customerEmail, true, true);
-                $('#modal-customer-email').append(emailOption).trigger('change');
-            }
-            $('#modal-customer-email').prop('disabled', isEditMode);
-
-            document.getElementById('modal-customer-name').value = btn.dataset.customer || '';
-            document.getElementById('modal-customer-phone').value = btn.dataset.phone || '';
-            document.getElementById('modal-ice-amount').value = btn.dataset.ice || '';
-            document.getElementById('modal-box-amount').value = btn.dataset.boxes || '0';
-            document.getElementById('modal-recurring').value = btn.dataset.recurring || '';
-            document.getElementById('modal-location-name').value = btn.dataset.location || '';
-            document.getElementById('modal-address').value = btn.dataset.address || '';
-            document.getElementById('modal-unit').value = btn.dataset.unit || '';
-            document.getElementById('modal-city').value = btn.dataset.city || '';
-            document.getElementById('modal-postal').value = btn.dataset.postal_code || '';
-            document.getElementById('modal-province').value = btn.dataset.province || '';
-            document.getElementById('modal-country').value = btn.dataset.country || 'Canada';
-            document.getElementById('modal-delivery-date').value = btn.dataset.deliveryDate || '';
-            document.getElementById('modal-delivery-time').value = btn.dataset.deliveryTime || '';
-            document.getElementById('modal-notes').value = btn.dataset.notes || '';
-            document.getElementById('modal-status').value = btn.dataset.status || 'valid';
-            document.getElementById('modal-pickup-or-delivery').value = btn.dataset.pickup_delivery || '';
-
-            // Store order ID for operations
-            document.getElementById('save-order-btn').dataset.orderId = orderId;
-            document.getElementById('delete-order-btn').dataset.orderId = orderId;
-
-            // Calculate and display costs
-            updateCostSummary();
-        }
-
-        function clearModalForm() {
-            // Clear Select2 email field
-            if ($('#modal-customer-email').hasClass('select2-hidden-accessible')) {
-                $('#modal-customer-email').val(null).trigger('change');
-            } else {
-                document.getElementById('modal-customer-email').value = '';
-            }
-
-            $('#modal-customer-email').prop('disabled', false);
-
-            // Clear all other input fields
-            document.querySelectorAll('#orderSummaryModal input').forEach(input => {
-                if (input.id !== 'modal-customer-email') { // Skip email field as it's handled above
-                    if (input.type === 'number') {
-                        input.value = '0';
-                    } else if (input.type !== 'readonly') {
-                        input.value = '';
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html'
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
-                }
-            });
+                    return response.text();
+                })
+                .then(html => {
+                    document.getElementById('modal-content-container').innerHTML = html;
+                    isEditMode = action === 'edit';
 
-            // Clear select fields
-            document.querySelectorAll('#orderSummaryModal select').forEach(select => {
-                if (select.id !== 'modal-customer-email') { // Skip email field
-                    select.selectedIndex = 0;
-                }
-            });
+                    // Initialize components after content is loaded
+                    setTimeout(() => {
+                        initializeEmailSelect2();
+                        addCostCalculationListeners();
 
-            // Clear textarea
-            document.querySelectorAll('#orderSummaryModal textarea').forEach(textarea => {
-                textarea.value = '';
-            });
-
-            // Remove stored order IDs
-            document.getElementById('save-order-btn').removeAttribute('data-order-id');
-            document.getElementById('delete-order-btn').removeAttribute('data-order-id');
+                        // Calculate costs for edit mode
+                        if (isEditMode) {
+                            updateCostSummary();
+                        }
+                    }, 100);
+                })
+                .catch(error => {
+                    console.error('Error loading modal content:', error);
+                    document.getElementById('modal-content-container').innerHTML = `
+            <div class="modal-body text-center">
+                <i class="la la-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+                <h5 class="mt-3">Error Loading Content</h5>
+                <p>Unable to load modal content. Please try again.</p>
+                <button class="btn btn-primary" onclick="loadModalContent('${action}', ${orderId})">Retry</button>
+            </div>
+        `;
+                });
         }
+
+
 
         // Dynamic cost calculation
         function updateCostSummary() {
@@ -1027,7 +768,7 @@
 
             const pricePerLb = 1.95;
             const pricePerBox = 30.00;
-            const deliveryFee = pickupDelivery === 'delivery' ? 20.00 : 0.00;
+            const deliveryFee = pickupDelivery === 'delivery' ? "Calculating" : 0.00; // Fix this line
 
             const iceCost = iceAmount * pricePerLb;
             const boxCost = boxAmount * pricePerBox;
@@ -1062,10 +803,31 @@
      <strong>$${total.toFixed(2)}</strong>`;
         }
 
-        // Add event listeners for cost calculation
-        document.getElementById('modal-ice-amount').addEventListener('input', updateCostSummary);
-        document.getElementById('modal-box-amount').addEventListener('input', updateCostSummary);
-        document.getElementById('modal-pickup-or-delivery').addEventListener('change', updateCostSummary);
+        function addCostCalculationListeners() {
+            const iceField = document.getElementById('modal-ice-amount');
+            const boxField = document.getElementById('modal-box-amount');
+            const deliveryField = document.getElementById('modal-pickup-or-delivery');
+
+            if (iceField) iceField.addEventListener('input', updateCostSummary);
+            if (boxField) boxField.addEventListener('input', updateCostSummary);
+            if (deliveryField) deliveryField.addEventListener('change', updateCostSummary);
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const dateInput = document.getElementById('modal-delivery-date');
+            if (dateInput) {
+                const today = new Date().toISOString().split('T')[0];
+                dateInput.min = today;
+
+                // Optional fallback: listen for manual changes
+                dateInput.addEventListener('change', function () {
+                    if (this.value < today) {
+                        alert('You cannot select a past date.');
+                        this.value = today;
+                    }
+                });
+            }
+        });
 
         // Form validation
         function validateForm() {
@@ -1155,57 +917,43 @@
         }
 
         // Handle Save/Update Button Click
-        document.getElementById('save-order-btn').addEventListener('click', function() {
+
+        $(document).on('click','#save-order-btn',function (e) {
+            e.preventDefault();
+
             if (!validateForm()) return;
 
             const saveBtn = this;
+            const mode = this.dataset.mode;
+            const orderId = this.dataset.orderId;
+            const form = document.getElementById('order-form');
+
+            // Store original text for reset
             const originalText = saveBtn.innerHTML;
 
             // Show loading state
-            saveBtn.innerHTML = isEditMode ?
+            saveBtn.innerHTML = mode === 'edit' ?
                 '<i class="la la-spinner la-spin"></i> Updating...' :
                 '<i class="la la-spinner la-spin"></i> Creating...';
             saveBtn.disabled = true;
 
-            // Collect form data
-            const formData = new FormData();
-
-            if (isEditMode) {
-                formData.append('_method', 'PUT');
+            // Set form action and method based on mode
+            if (mode === 'edit') {
+                form.action = `/admin/orders/${orderId}/ajax-update`;
+            } else {
+                form.action = '/admin/orders/ajax-create';
             }
 
-            // Get email value from Select2
-            let emailValue = document.getElementById('modal-customer-email').value;
-            if ($('#modal-customer-email').hasClass('select2-hidden-accessible')) {
-                emailValue = $('#modal-customer-email').val();
-            }
+            // Get form data
+            const formData = new FormData(form);
 
-            formData.append('customer_name', document.getElementById('modal-customer-name').value);
-            formData.append('email', emailValue);
-            formData.append('phone', document.getElementById('modal-customer-phone').value);
-            formData.append('amount_of_ice', document.getElementById('modal-ice-amount').value);
-            formData.append('amount_of_boxes', document.getElementById('modal-box-amount').value);
-            formData.append('recurring', document.getElementById('modal-recurring').value);
-            formData.append('location_name', document.getElementById('modal-location-name').value);
-            formData.append('address', document.getElementById('modal-address').value);
-            formData.append('unit', document.getElementById('modal-unit').value);
-            formData.append('city', document.getElementById('modal-city').value);
-            formData.append('postal_code', document.getElementById('modal-postal').value);
-            formData.append('province', document.getElementById('modal-province').value);
-            formData.append('country', document.getElementById('modal-country').value);
-            formData.append('notes', document.getElementById('modal-notes').value);
-            formData.append('status', document.getElementById('modal-status').value);
-            formData.append('pickup_delivery', document.getElementById('modal-pickup-or-delivery').value);
-
-            // Handle delivery date/time
+            // Handle delivery date/time combination
             const date = document.getElementById('modal-delivery-date').value;
             const time = document.getElementById('modal-delivery-time').value;
             if (date && time) {
-                formData.append('delivery_date', `${date} ${time}:00`);
+                formData.set('delivery_date', `${date} ${time}:00`);
             } else if (date) {
-                formData.append('delivery_date', `${date} 00:00:00`);
-            } else {
-                formData.append('delivery_date', '');
+                formData.set('delivery_date', `${date} 00:00:00`);
             }
 
             // Get CSRF token
@@ -1216,22 +964,9 @@
                 return;
             }
 
-            // Determine URL and method
-            const baseUrl = '{{ url("admin/orders") }}';
-            let url, method;
-
-            if (isEditMode) {
-                const orderId = this.dataset.orderId;
-                url = `${baseUrl}/${orderId}/ajax-update`;
-                method = 'POST';
-            } else {
-                url = `${baseUrl}/ajax-create`;
-                method = 'POST';
-            }
-
             // Send AJAX request
-            fetch(url, {
-                method: method,
+            fetch(form.action, {
+                method: 'POST',
                 body: formData,
                 headers: {
                     'X-CSRF-TOKEN': csrfToken.getAttribute('content'),
@@ -1250,7 +985,7 @@
                         // Show success notification
                         Swal.fire({
                             title: 'Success!',
-                            text: isEditMode ?
+                            text: mode === 'edit' ?
                                 'Order has been updated successfully' :
                                 'Order has been created successfully',
                             icon: 'success',
@@ -1279,9 +1014,24 @@
                 saveBtn.disabled = false;
             }
         });
-
         // Handle Delete Button Click
-        document.getElementById('delete-order-btn').addEventListener('click', function() {
+
+        $(document).on('click', '#delete-pushed-order-btn', function() {
+
+
+            Swal.fire({
+                title: 'Pushed!',
+                text: 'This order has already been pushed to delivery service and cannot be deleted.',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            }).then(() => {
+
+            });
+
+        });
+
+
+        $(document).on('click', '#delete-order-btn', function() {
             const orderId = this.dataset.orderId;
 
             if (!orderId) {
@@ -1305,7 +1055,7 @@
                         return;
                     }
 
-                    fetch(`{{ url('admin/orders') }}/${orderId}/ajax-delete`, {
+                    fetch(`order/${orderId}/delete/`, {
                         method: 'DELETE',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1346,30 +1096,48 @@
         });
     });
 
+
     document.addEventListener('DOMContentLoaded', function () {
         let closestSupplier = null;
 
-        const deliveryOption = document.getElementById('modal-pickup-or-delivery');
+        // const deliveryOption = document.getElementById('modal-pickup-or-delivery');
 
         function getInput(id) {
             return document.getElementById(id)?.value?.trim();
         }
 
         function updateDeliveryCostSummary(amount) {
-            document.querySelector('.cost-summary-delivery strong').textContent = `$${amount.toFixed(2)}`;
+            // Update the form field instead of just display
+            const deliveryCostField = document.getElementById('modal-delivery-cost');
+            if (deliveryCostField) {
+                deliveryCostField.value = amount !== null ? amount.toFixed(2) : 0 ;
+            }
 
-            // Update TOTAL
-            const dryIceText = document.querySelector('.cost-summary-ice strong').textContent.replace('$', '') || 0;
-            const boxText = document.querySelector('.cost-summary-box strong').textContent.replace('$', '') || 0;
-            const delivery = amount;
+            // Update display
+            const displayElement = document.querySelector('.cost-summary-delivery strong');
+            if (displayElement) {
+                displayElement.textContent = amount !== null ? `$${amount.toFixed(2)}` : 'Not found';
+            }
 
-            const subtotal = parseFloat(dryIceText) + parseFloat(boxText) + delivery;
-            const tax = subtotal * 0.15;
-            const total = subtotal + tax;
+            // Update TOTAL only if amount is not null
+            if (amount !== null) {
+                const dryIceText = document.querySelector('.cost-summary-ice strong').textContent.replace('$', '') || 0;
+                const boxText = document.querySelector('.cost-summary-box strong').textContent.replace('$', '') || 0;
+                const delivery = amount;
 
-            document.querySelector('.cost-summary-subtotal strong').textContent = `$${subtotal.toFixed(2)}`;
-            document.querySelector('.cost-summary-tax strong').textContent = `$${tax.toFixed(2)}`;
-            document.querySelector('.cost-summary-total strong').textContent = `$${total.toFixed(2)}`;
+                const subtotal = parseFloat(dryIceText) + parseFloat(boxText) + delivery;
+                const tax = subtotal * 0.15;
+                const total = subtotal + tax;
+
+                document.querySelector('.cost-summary-subtotal strong').textContent = `$${subtotal.toFixed(2)}`;
+                document.querySelector('.cost-summary-tax strong').textContent = `$${tax.toFixed(2)}`;
+                document.querySelector('.cost-summary-total strong').textContent = `$${total.toFixed(2)}`;
+            } else {
+                // Reset totals when delivery cost can't be calculated
+                document.querySelector('.cost-summary-subtotal strong').textContent = '$0.00';
+                document.querySelector('.cost-summary-tax strong').textContent = '$0.00';
+                document.querySelector('.cost-summary-total strong').textContent = '$0.00';
+            }
         }
 
         function tryGetDeliveryQuote() {
@@ -1387,16 +1155,19 @@
                 unit: getInput('modal-unit') || ''
             };
 
-            // Check required fields
-            const required = [formData.address, formData.city, formData.province, formData.email, formData.name, formData.phone, formData.postal, formData.locationName];
-            if (!required.every(val => val && val.trim())) {
-                console.log('Missing required fields');
+            // Check required address fields for delivery calculation
+            const requiredAddressFields = [formData.address, formData.city, formData.province, formData.postal];
+            if (!requiredAddressFields.every(val => val && val.trim())) {
+                console.log('Missing required address fields for delivery calculation');
+                updateDeliveryCostSummary(null);
                 return;
             }
 
             // Show loading
             const deliveryCostElement = document.querySelector('.cost-summary-delivery strong');
-            deliveryCostElement.textContent = 'Calculating...';
+            if (deliveryCostElement) {
+                deliveryCostElement.textContent = 'Calculating...';
+            }
 
             console.log('Starting delivery quote request...');
 
@@ -1410,7 +1181,6 @@
                     return response.json();
                 })
                 .then(data => {
-
                     // Extract supplier from response
                     if (!data.closest_supplier || !data.closest_supplier.id) {
                         throw new Error('No supplier found in response');
@@ -1418,20 +1188,19 @@
 
                     const supplier = data.closest_supplier;
 
-
                     // Get delivery quote
                     const quotePayload = {
                         supplier_id: supplier.id,
                         delivery: {
-                            name: formData.locationName.trim(),
+                            name: formData.locationName.trim() || 'N/A',
                             street: formData.address.trim(),
                             unit: formData.unit.trim() || '', // Ensure it's always a string
                             city: formData.city.trim(),
                             province: formData.province.trim(),
                             postal_code: formData.postal.trim(),
-                            contact: formData.name.trim(),
-                            phone: formData.phone.trim(),
-                            email: formData.email.trim()
+                            contact: formData.name.trim() || 'N/A',
+                            phone: formData.phone.trim() || 'N/A',
+                            email: formData.email.trim() || 'N/A'
                         },
                         weight: formData.iceAmount
                     };
@@ -1482,47 +1251,94 @@
                 .catch(error => {
                     console.error('Full error details:', error);
                     console.error('Error message:', error.message);
-                    updateDeliveryCostSummary(20.00); // Default fallback
+                    updateDeliveryCostSummary(null); // Set to null on error
                     showError(deliveryCostElement);
                 });
         }
 
         function showSuccess(element) {
-            element.style.color = 'green';
-            setTimeout(() => element.style.color = '', 2000);
+            if (element) {
+                element.style.color = 'green';
+                setTimeout(() => element.style.color = '', 2000);
+            }
         }
 
         function showError(element) {
-            element.style.color = 'orange';
-            setTimeout(() => element.style.color = '', 3000);
+            if (element) {
+                element.style.color = 'red';
+                setTimeout(() => element.style.color = '', 3000);
+            }
         }
 
-        deliveryOption.addEventListener('change', function () {
+        // Setup event listeners for address fields that should trigger recalculation
+        function setupDeliveryCalculation() {
+            const addressFields = ['modal-address', 'modal-city', 'modal-province', 'modal-postal', 'modal-ice-amount'];
+
+            // Remove existing listeners to prevent duplicates
+            addressFields.forEach(id => {
+                const field = document.getElementById(id);
+                if (field) {
+                    // Remove old listener if it exists
+                    field.removeEventListener('input', field._deliveryListener);
+
+                    // Create new listener
+                    field._deliveryListener = () => {
+                        const deliveryOption = document.getElementById('modal-pickup-or-delivery');
+                        if (deliveryOption && deliveryOption.value === 'delivery') {
+                            clearTimeout(window.__quoteTimer);
+                            window.__quoteTimer = setTimeout(tryGetDeliveryQuote, 500); // debounce
+                        }
+                    };
+
+                    // Add new listener
+                    field.addEventListener('input', field._deliveryListener);
+                }
+            });
+        }
+
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('btn-view')) {
+                const orderId = e.target.dataset.orderId;
+                loadModalContent('edit', orderId);
+            }
+        });
+
+        // Setup event listeners for address fields that should trigger recalculation
+        function initializeDeliveryCalculation() {
+            const deliveryOption = document.getElementById('modal-pickup-or-delivery');
+
+            // Check current state on page load
+            if (deliveryOption && deliveryOption.value === 'delivery') {
+                setupDeliveryCalculation();
+                tryGetDeliveryQuote(); // Calculate immediately if delivery is already selected
+            } else if (deliveryOption && deliveryOption.value === 'pickup') {
+                updateDeliveryCostSummary(0); // Set to 0 for pickup
+            }
+        }
+
+        $(document).on('change','#modal-pickup-or-delivery',function () {
             if (this.value === 'delivery') {
                 // Setup auto listener to check fields and trigger quote
-                const inputs = ['modal-address', 'modal-city', 'modal-province', 'modal-customer-email', 'modal-customer-name', 'modal-customer-phone', 'modal-ice-amount', 'modal-postal', 'modal-location-name'];
-
-                inputs.forEach(id => {
-                    document.getElementById(id)?.addEventListener('input', () => {
-                        clearTimeout(window.__quoteTimer);
-                        window.__quoteTimer = setTimeout(tryGetDeliveryQuote, 500); // debounce
-                    });
-                });
+                setupDeliveryCalculation();
 
                 // Initial trigger in case fields are already filled
                 tryGetDeliveryQuote();
+            } else if (this.value === 'pickup') {
+                // Set delivery cost to 0 for pickup
+                updateDeliveryCostSummary(0);
+            } else {
+                // Clear delivery cost for other options
+                updateDeliveryCostSummary(null);
             }
         });
+
+        // Initialize on page load
+        initializeDeliveryCalculation();
     });
 
 
-
     function tryPushOrderToNovex(orderId) {
-        // Check if orderId is valid
-        if (!orderId || orderId === '' || orderId === 'undefined') {
-            console.error('Invalid order ID provided');
-            return;
-        }
+
 
         // Get orderId from modal if not provided as parameter
         if (!orderId) {
@@ -1584,23 +1400,6 @@
                 }
             });
     }
-
-
-
-
-    document.addEventListener('DOMContentLoaded', function () {
-        const dateInput = document.getElementById('modal-delivery-date');
-        const today = new Date();
-
-        // Force the timezone offset so it's truly today's date even if user is in a different timezone
-        const localISODate = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
-            .toISOString()
-            .split('T')[0];
-
-        if (dateInput) {
-            dateInput.setAttribute('min', localISODate);
-        }
-    });
 
 
 
