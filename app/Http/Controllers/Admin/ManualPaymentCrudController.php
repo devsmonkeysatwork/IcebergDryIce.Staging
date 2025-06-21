@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Requests\ManualPaymentRequest;
+use App\Mail\OrderPlacedMail;
 use Illuminate\Http\Request;
 use App\Models\Order;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * Class ManualPaymentCrudController
@@ -68,6 +70,30 @@ class ManualPaymentCrudController extends CrudController
         CRUD::field('description')->type('textarea');
         CRUD::field('amount')->type('number');
     }
+
+
+    public function store()
+    {
+        $this->crud->hasAccessOrFail('create');
+
+        $request = $this->crud->validateRequest();
+        $data = $request->all();
+        $order = Order::find($data['order_number']);
+
+        if ($order->total_cost != $data['amount']) {
+            \Alert::error('The payment amount does not match the order total.')->flash();
+            return redirect()->back()->withInput();
+        }
+        $item = $this->crud->create($data);
+        $order->payment_status = 1;
+        $order->save();
+        Mail::to($order->email ?? $data['email'])->send(new OrderPlacedMail($order));
+
+        \Alert::success('Manual payment created and order updated.')->flash();
+
+        return redirect($this->crud->route);
+    }
+
 
     public function view($id)
     {

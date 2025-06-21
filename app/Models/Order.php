@@ -36,6 +36,7 @@ class Order extends Model
         'delivery_cost',
         'tax',
         'total_cost',
+        'payment_status',
     ];
 
     public function scopeToday($query)

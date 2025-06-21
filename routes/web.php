@@ -111,7 +111,7 @@ Route::POST('/logout', [LoginController::class, 'logout'])->name('logout.custom'
 
 Route::get('/test-email', function () {
     $order = Order::latest()->first(); // or mock an Order
-    Mail::to('hamza40javed@gmail.com')->send(new OrderPlacedMail($order));
+    Mail::to('touseefktk22@gmail.com')->send(new OrderPlacedMail($order));
     return 'Email sent.';
 });
 

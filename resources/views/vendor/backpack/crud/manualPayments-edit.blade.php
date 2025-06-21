@@ -45,8 +45,8 @@
                         </div>
                         <div class="form-group">
                             <label for="amount">Amount</label>
-                            <input type="text" class="form-control" id="amount" name="amount"
-                                   value="{{ old('amount', $entry->amount ?? '') }}"
+                            <input type="number" class="form-control" id="amount" name="amount"
+                                   value="{{ old('amount', $entry->amount ?? 0) }}"
                                    placeholder="Amount - example 15.75" required>
                         </div>
                     </div>
