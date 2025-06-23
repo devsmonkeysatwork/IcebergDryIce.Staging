@@ -30,6 +30,7 @@ class Order extends Model
         'country',
         'pickup_delivery',
         'status',
+        'hazmat',
         'delivery_date',
         'notes',
         'sub_total',

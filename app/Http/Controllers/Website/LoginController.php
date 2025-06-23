@@ -28,10 +28,14 @@ class LoginController extends Controller
             return redirect()->intended('/admin/dashboard');
         }
 
-        // Then try customer
         if (Auth::guard('customer')->attempt($credentials)) {
-            $redirect = $request->input('redirect') ?? '/customer/dashboard';
-            return redirect()->intended($redirect);
+            $redirect = $request->input('redirect');
+
+            if ($redirect) {
+                return redirect($redirect);
+            }
+
+            return redirect('/customer/dashboard');
         }
 
         // Failed login

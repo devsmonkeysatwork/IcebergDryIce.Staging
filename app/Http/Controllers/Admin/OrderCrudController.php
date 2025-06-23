@@ -368,7 +368,8 @@ class OrderCrudController extends CrudController
             'tax' => 'nullable|numeric|min:0',
             'total_cost' => 'nullable|numeric|min:0',
             'accept' => 'required|accepted',
-//            'items' => 'required|array|min:1',
+            'items' => 'required|array|min:1',
+            'hazmat' => 'nullable|numeric|min:0',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.amount_of_items' => 'required|numeric|min:1',
             'items.*.unit_price' => 'nullable|numeric|min:0',
@@ -406,7 +407,9 @@ class OrderCrudController extends CrudController
                 'delivery_cost' => $validated['delivery_cost'] ?? 5.00,
                 'total_cost' => $validated['total_cost'] ?? 0,
                 'origin' => 'online',
+                'hazmat' => $validated['hazmat'],
             ]);
+
 
             // Step 3: Process items
             foreach ($validated['items'] as $item) {
@@ -460,11 +463,18 @@ class OrderCrudController extends CrudController
 
             DB::commit();
 
+            $order->payment_status = 0;
+            $order->save();
+
+
+            $redirectUrl = $this->generateExactRedirectUrl($order);
+
             return response()->json([
                 'success' => true,
-                'message' => 'Online Order submitted successfully',
+//                'message' => 'Online Order submitted successfully',
                 'order' => $order->load('items'),
-                'order_id' => $order->id
+                'order_id' => $order->id,
+                'redirect_url' => $redirectUrl
             ]);
 
         } catch (\Exception $e) {
@@ -481,6 +491,28 @@ class OrderCrudController extends CrudController
             ], 422);
         }
     }
+
+    protected function generateExactRedirectUrl($order)
+    {
+        $x_login = env('EXACT_LOGIN_ID'); // Set in .env
+        $x_amount = number_format($order->total_cost, 2, '.', '');
+        $x_invoice_num = $order->id;
+        $x_description = 'Order #' . $order->id;
+        $x_email = $order->email;
+        $x_return_url = route('home'); // We'll define this route
+
+        $params = [
+            'x_login' => $x_login,
+            'x_amount' => $x_amount,
+            'x_invoice_num' => $x_invoice_num,
+            'x_description' => $x_description,
+            'x_email' => $x_email,
+            'x_return_url' => $x_return_url,
+        ];
+
+        return 'https://rpm.demo.e-xact.com/payment?' . http_build_query($params);
+    }
+
     /* Handle customer data for review form */
 
     protected function setupUpdateOperation()

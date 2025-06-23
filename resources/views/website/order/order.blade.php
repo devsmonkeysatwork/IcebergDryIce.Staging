@@ -405,7 +405,8 @@
                 <!-- Review-specific cost fields -->
                 <input type="hidden" id="hidden_weight_cost" name="weight_cost" value="">
                 <input type="hidden" id="hidden_box_cost" name="box_cost" value="">
-                <input type="hidden" id="hidden_subtotal" name="subtotal" value="">
+                <input type="hidden" id="hidden_subtotal" name="sub_total" value="">
+                <input type="hidden" id="hidden_hazmat" name="hazmat" value="">
                 <input type="hidden" id="hidden_delivery_cost" name="delivery_cost" value="5.00">
                 <input type="hidden" id="hidden_tax" name="tax" value="">
                 <input type="hidden" id="hidden_total_cost" name="total_cost" value="">
@@ -425,6 +426,10 @@
                     <tr>
                         <td>Delivery</td>
                         <td align='right'>$5.00</td>
+                    </tr>
+                    <tr>
+                        <td>Hazmat fee</td>
+                        <td align='right'>$12.00</td>
                     </tr>
                     <tr>
                         <td>
@@ -937,6 +942,11 @@
 
                     const unitPrice = parseFloat(input.getAttribute('data-unit-price')) || 0;
                     // Create hidden fields for this product
+                    if (productId === '1') {
+                        document.getElementById('hidden_amount_of_ice').value = quantity;
+                    } else if (productId === '2') {
+                        document.getElementById('hidden_amount_of_boxes').value = quantity;
+                    }
 
                     if (productHiddenContainer) {
                         const hiddenFields = `
@@ -960,14 +970,16 @@
             document.getElementById('order-costs').innerHTML = orderCosts;
 
             // Delivery, Tax & Total
+            const hazmat = 12.00;
             const delivery = 5.00;
-            const tax = (subtotal + delivery) * 0.12;
-            const total = subtotal + delivery + tax;
+            const tax = (subtotal + delivery) * 0.15;
+            const total = subtotal + delivery + tax + hazmat;
 
             document.getElementById('tax-total').innerHTML =
                 `$${tax.toFixed(2)}<br><hr><b>$${total.toFixed(2)}</b>`;
 
             // Set cost hidden fields
+            document.getElementById('hidden_hazmat').value = hazmat.toFixed(2);
             document.getElementById('hidden_subtotal').value = subtotal.toFixed(2);
             document.getElementById('hidden_tax').value = tax.toFixed(2);
             document.getElementById('hidden_total_cost').value = total.toFixed(2);
@@ -1021,6 +1033,8 @@
             document.getElementById('order-notes').innerHTML = notes || 'No special notes';
 
             // Hidden fields for order data
+
+            document.getElementById('hidden_customer_name').value = name;
             document.getElementById('hidden_customer_name').value = name;
             document.getElementById('hidden_email').value = email;
             document.getElementById('hidden_phone').value = phone;
@@ -1076,19 +1090,20 @@
                 .then(data => {
                     console.log('Response data:', data);
 
-                    if (data.success) {
-                        clearSavedData(); // Clear saved data on success
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Order Submitted!',
-                            text: 'A confirmation email has been sent to you.',
-                            allowOutsideClick: false,
-                            allowEscapeKey: false,
-                            showConfirmButton: true,
-                            confirmButtonText: 'OK'
-                        }).then(() => {
-                            window.location.href = `/`;
-                        });
+                    if (data.success && data.redirect_url) {
+                        window.location.href = data.redirect_url;
+                        // clearSavedData(); // Clear saved data on success
+                        // Swal.fire({
+                        //     icon: 'success',
+                        //     title: 'Order Submitted!',
+                        //     text: 'A confirmation email has been sent to you.',
+                        //     allowOutsideClick: false,
+                        //     allowEscapeKey: false,
+                        //     showConfirmButton: true,
+                        //     confirmButtonText: 'OK'
+                        // }).then(() => {
+                        //     window.location.href = `/`;
+                        // });
                     } else {
                         Swal.fire({
                             icon: 'error',
