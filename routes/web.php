@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\WarehouseSaleCrudController;
 use App\Http\Controllers\Admin\ManualPaymentCrudController;
 use App\Http\Controllers\Website\LoginController;
 use App\Http\Controllers\Website\CustomerRegisterController;
+use App\Http\Controllers\Website\CustomerForgotPasswordController;
 
 use App\Mail\OrderPlacedMail;
 use Illuminate\Support\Facades\Mail;
@@ -134,6 +135,18 @@ Route::post('/get-novex-quote', [SupplierController::class, 'getNovexQuote']);
 
 Route::post('/orders/{id}/push-novex', [SupplierController::class, 'pushToNovex']);
 
+
+Route::prefix('customer')->group(function () {
+    Route::get('forgot-password', [CustomerForgotPasswordController::class, 'showLinkRequestForm'])->name('customer.password.request');
+    Route::post('forgot-password', [CustomerForgotPasswordController::class, 'sendResetLinkEmail'])->name('customer.password.email');
+
+    Route::get('reset-password/{token}', [CustomerForgotPasswordController::class, 'showResetForm'])->name('customer.password.reset');
+    Route::post('reset-password', [CustomerForgotPasswordController::class, 'reset'])->name('customer.password.update');
+
+    Route::get('password-reset-success', function () {
+        return view('website.auth.customer-password-success');
+    })->name('customer.password.reset.success');
+});
 
 
 // require __DIR__ . '/auth.php';

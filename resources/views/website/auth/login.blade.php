@@ -65,9 +65,14 @@
 
             <div class="additional-info">
                 <p>
+                    If you have forget your password Click here -
+                    <a style='color: #002480; text-decoration: underline;'
+                       href="{{ route('customer.password.request') }}">Forget Password</a>
+                </p>
+                <p>
                     You can now buy dry ice for delivery here -
                     <a style='color: #F00; text-decoration: underline;'
-                       href="">BUY NOW</a>
+                       href="{{route('order')}}">BUY NOW</a>
                 </p>
 
                 <p>
