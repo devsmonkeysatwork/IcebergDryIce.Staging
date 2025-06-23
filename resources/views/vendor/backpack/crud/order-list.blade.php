@@ -541,11 +541,12 @@
                         setTimeout(() => {
                             initializeEmailSelect2();
                             addCostCalculationListeners();
+                            setupDeliveryCalculation();
 
                             // Calculate costs for edit mode
-                            if (isEditMode) {
-                                updateCostSummary();
-                            }
+                            // if (isEditMode) {
+                            //     updateCostSummary();
+                            // }
                         }, 100);
                     })
                     .catch(error => {
@@ -560,6 +561,57 @@
                     });
             }
 
+            function setupDeliveryCalculation() {
+                const addressFields = ['modal-address', 'modal-city', 'modal-province', 'modal-postal', 'modal-ice-amount'];
+                let btnHtml = `<button
+                                id="recalculate-delivery-btn"
+                                type="button"
+                                class="btn btn-xs btn-outline-primary"
+                                title="Click to recalculate delivery charges">
+                                Recalculate
+                            </button>`;
+
+                addressFields.forEach(id => {
+                    const field = document.getElementById(id);
+                    if (field) {
+                        field.removeEventListener('input', field._deliveryListener);
+
+                        // Create new listener
+                        field._deliveryListener = () => {
+                            const deliveryOption = document.getElementById('modal-pickup-or-delivery');
+                            const recalculateButton = document.getElementById('recalculate-delivery-btn');
+                            if (deliveryOption && deliveryOption.value === 'delivery') {
+                                if (!recalculateButton) {
+                                    $('.cost-summary-delivery').append(btnHtml);
+                                }
+                            }
+                        };
+                        field.addEventListener('input', field._deliveryListener);
+                    }
+                });
+            }
+
+            $(document).on('change','#modal-pickup-or-delivery',function () {
+                if (this.value === 'delivery') {
+                    // Setup auto listener to check fields and trigger quote
+                    setupDeliveryCalculation();
+
+                    // Initial trigger in case fields are already filled
+                    tryGetDeliveryQuote();
+                } else if (this.value === 'pickup') {
+                    // Set delivery cost to 0 for pickup
+                    updateDeliveryCostSummary(0);
+                } else {
+                    // Clear delivery cost for other options
+                    updateDeliveryCostSummary(null);
+                }
+            });
+
+            $(document).on('click','#recalculate-delivery-btn',function () {
+                $('#recalculate-delivery-btn').remove();
+                tryGetDeliveryQuote();
+            });
+
 
 
             // Dynamic cost calculation
@@ -567,10 +619,11 @@
                 const iceAmount = parseFloat(document.getElementById('modal-ice-amount').value) || 0;
                 const boxAmount = parseFloat(document.getElementById('modal-box-amount').value) || 0;
                 const pickupDelivery = document.getElementById('modal-pickup-or-delivery').value;
+                const deliveryCost = document.getElementById('modal-delivery-cost').value;
 
                 const pricePerLb = 1.95;
                 const pricePerBox = 30.00;
-                const deliveryFee = pickupDelivery === 'delivery' ? "Calculating" : 0.00; // Fix this line
+                const deliveryFee = pickupDelivery === 'delivery' ? parseFloat(deliveryCost) : 0.00; // Fix this line
 
                 const iceCost = iceAmount * pricePerLb;
                 const boxCost = boxAmount * pricePerBox;
@@ -891,10 +944,6 @@
                     }
                 });
             });
-        });
-
-
-        document.addEventListener('DOMContentLoaded', function () {
             let closestSupplier = null;
 
             // const deliveryOption = document.getElementById('modal-pickup-or-delivery');
@@ -1067,31 +1116,7 @@
                 }
             }
 
-            // Setup event listeners for address fields that should trigger recalculation
-            function setupDeliveryCalculation() {
-                const addressFields = ['modal-address', 'modal-city', 'modal-province', 'modal-postal', 'modal-ice-amount'];
 
-                // Remove existing listeners to prevent duplicates
-                addressFields.forEach(id => {
-                    const field = document.getElementById(id);
-                    if (field) {
-                        // Remove old listener if it exists
-                        field.removeEventListener('input', field._deliveryListener);
-
-                        // Create new listener
-                        field._deliveryListener = () => {
-                            const deliveryOption = document.getElementById('modal-pickup-or-delivery');
-                            if (deliveryOption && deliveryOption.value === 'delivery') {
-                                clearTimeout(window.__quoteTimer);
-                                window.__quoteTimer = setTimeout(tryGetDeliveryQuote, 500); // debounce
-                            }
-                        };
-
-                        // Add new listener
-                        field.addEventListener('input', field._deliveryListener);
-                    }
-                });
-            }
 
             document.addEventListener('change', function(e) {
                 if (e.target.classList.contains('btn-view')) {
@@ -1100,37 +1125,21 @@
                 }
             });
 
-            // Setup event listeners for address fields that should trigger recalculation
-            function initializeDeliveryCalculation() {
-                const deliveryOption = document.getElementById('modal-pickup-or-delivery');
+            // // Setup event listeners for address fields that should trigger recalculation
+            // function initializeDeliveryCalculation() {
+            //     const deliveryOption = document.getElementById('modal-pickup-or-delivery');
+            //
+            //     // Check current state on page load
+            //     if (deliveryOption && deliveryOption.value === 'delivery') {
+            //         setupDeliveryCalculation();
+            //         tryGetDeliveryQuote(); // Calculate immediately if delivery is already selected
+            //     } else if (deliveryOption && deliveryOption.value === 'pickup') {
+            //         updateDeliveryCostSummary(0); // Set to 0 for pickup
+            //     }
+            // }
 
-                // Check current state on page load
-                if (deliveryOption && deliveryOption.value === 'delivery') {
-                    setupDeliveryCalculation();
-                    tryGetDeliveryQuote(); // Calculate immediately if delivery is already selected
-                } else if (deliveryOption && deliveryOption.value === 'pickup') {
-                    updateDeliveryCostSummary(0); // Set to 0 for pickup
-                }
-            }
-
-            $(document).on('change','#modal-pickup-or-delivery',function () {
-                if (this.value === 'delivery') {
-                    // Setup auto listener to check fields and trigger quote
-                    setupDeliveryCalculation();
-
-                    // Initial trigger in case fields are already filled
-                    tryGetDeliveryQuote();
-                } else if (this.value === 'pickup') {
-                    // Set delivery cost to 0 for pickup
-                    updateDeliveryCostSummary(0);
-                } else {
-                    // Clear delivery cost for other options
-                    updateDeliveryCostSummary(null);
-                }
-            });
-
-            // Initialize on page load
-            initializeDeliveryCalculation();
+            // // Initialize on page load
+            // initializeDeliveryCalculation();
         });
 
 

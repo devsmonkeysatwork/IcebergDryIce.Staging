@@ -3,8 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <title>Order Invoice</title>
+    <style>
+        @import url(https://fonts.googleapis.com/css?family=Inter:400,600,700);
+        body { margin: 0; padding: 0; background: #e1e1e1; }
+        div, p, a, li, td { -webkit-text-size-adjust: none; }
+        .ReadMsgBody { width: 100%; background-color: #ffffff; }
+        .ExternalClass { width: 100%; background-color: #ffffff; }
+        body { width: 100%; height: 100%; background-color: #e1e1e1; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+        html { width: 100%; }
+        p {margin: 0 !important;}
+        .visibleMobile { display: none; }
+        .hiddenMobile { display: block; }
+
+        @media only screen and (max-width: 600px) {
+            body { width: auto !important; }
+            table[class=fullTable] { width: 96% !important; clear: both; }
+            table[class=fullPadding] { width: 85% !important; clear: both; }
+            table[class=col] { width: 45% !important; }
+            .erase { display: none; }
+        }
+
+        @media only screen and (max-width: 420px) {
+            table[class=fullTable] { width: 100% !important; clear: both; }
+            table[class=fullPadding] { width: 85% !important; clear: both; }
+            table[class=col] { width: 100% !important; clear: both; }
+            table[class=col] td { text-align: left !important; }
+            .erase { display: none; font-size: 0; max-height: 0; line-height: 0; padding: 0; }
+            .visibleMobile { display: block !important; }
+            .hiddenMobile { display: none !important; }
+        }
+    </style>
 </head>
-<body>
+<body style="margin: 0px;padding: 40px 0px;background: #e1e1e1;">
 <!-- Header -->
 <table width="100%" border="0" cellpadding="0" cellspacing="0" align="center" class="fullTable" bgcolor="#e1e1e1">
     <tr>
@@ -47,7 +77,7 @@
                                                 @endif
 
                                             </td>
-                                            <td>
+                                            <td style="vertical-align: top;">
                                                 <p style="font-family: Inter;font-weight: 600;font-size: 36px;leading-trim: Cap height;line-height: 40px;letter-spacing: -3%;text-align: right;color:#B2B7C2;">Invoice</p>
                                                 <p style="font-family: Inter;font-weight: 500;font-size: 10px;line-height: 14px;letter-spacing: 0%;color:#5E6470;text-align: right;">#{{ $order->id }}</p>
                                             </td>
@@ -97,7 +127,7 @@
                                 </td>
                                 <td style="vertical-align: top;text-align:right;">
                                     <p style="font-family: Inter;font-weight: 400;font-size: 10px;line-height: 14px;letter-spacing: 0%;color:#5E6470;">Amount</p>
-                                    <p style="font-family: Inter;font-weight: 700;font-size: 20px;line-height: 28px;letter-spacing: 0%;color:#fff;background-color: #0B75AF;width: 128px;height: 32px;position:absolute;right: 0px;top:20px;gap: 10px;padding-top: 6px;padding-right: 40px;padding-bottom: 6px;padding-left: 12px;">
+                                    <p style="margin-right: -100px !important;font-family: Inter;font-weight: 700;font-size: 20px;line-height: 28px;letter-spacing: 0%;color:#fff;background-color: #0B75AF;width: 128px;height: 32px;transform: translateX(85px);gap: 10px;padding-top: 6px;padding-right: 40px;padding-bottom: 6px;padding-left: 12px;">
                                         ${{ number_format($order->total_cost, 2) }}
                                     </p>
                                 </td>
@@ -129,50 +159,38 @@
                 </tr>
                 <tr>
                     <td>
-                        <table width="480" border="0" cellpadding="0" cellspacing="0" align="center" class="fullPadding">
-                            <tbody>
-                            <tr>
-                                <th style="font-family: Inter;font-weight: 600;font-size: 8px;line-height: 12px;letter-spacing: 4%;text-transform: uppercase;color:#5E6470;" width="5%" align="left">
-                                    #
-                                </th>
-                                <th style="font-family: Inter;font-weight: 600;font-size: 8px;line-height: 12px;letter-spacing: 4%;text-transform: uppercase;color:#5E6470;" width="45%" align="left">
-                                    Item
-                                </th>
-                                <th style="font-family: Inter;font-weight: 600;font-size: 8px;line-height: 12px;letter-spacing: 4%;text-transform: uppercase;color:#5E6470;" align="left">
-                                    Unit Price
-                                </th>
-                                <th style="font-family: Inter;font-weight: 600;font-size: 8px;line-height: 12px;letter-spacing: 4%;text-transform: uppercase;color:#5E6470;" align="center">
-                                    Quantity
-                                </th>
-                                <th style="font-family: Inter;font-weight: 600;font-size: 8px;line-height: 12px;letter-spacing: 4%;text-transform: uppercase;color:#5E6470;" width="15%" align="right">
-                                    Subtotal
-                                </th>
+                        <table width="480" border="0" cellpadding="0" cellspacing="0" align="center">
+                            <!-- Table Header -->
+                            <tr style="background-color: #f8f9fa;">
+                                <td width="5%" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 8px; line-height: 12px; color: #5E6470; text-transform: uppercase; padding: 10px 5px; text-align: left;">#</td>
+                                <td width="45%" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 8px; line-height: 12px; color: #5E6470; text-transform: uppercase; padding: 10px 5px; text-align: left;">Item</td>
+                                <td width="20%" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 8px; line-height: 12px; color: #5E6470; text-transform: uppercase; padding: 10px 5px; text-align: center;">Unit Price</td>
+                                <td width="15%" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 8px; line-height: 12px; color: #5E6470; text-transform: uppercase; padding: 10px 5px; text-align: center;">Quantity</td>
+                                <td width="15%" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 8px; line-height: 12px; color: #5E6470; text-transform: uppercase; padding: 10px 5px; text-align: right;">Subtotal</td>
                             </tr>
+
+                            <!-- Separator -->
                             <tr>
-                                <td height="1" style="background: #bebebe;" colspan="5"></td>
+                                <td colspan="5" style="border-bottom: 1px solid #bebebe; height: 1px;"></td>
                             </tr>
-                            <tr>
-                                <td height="10" colspan="5"></td>
-                            </tr>
+
+                            <!-- Items Loop -->
                             @foreach($order->items as $index => $item)
                                 <tr>
-                                    <td style="font-family: Inter;font-weight: 500;font-size: 10px;line-height: 14px;letter-spacing: 0%;color: #1A1C21;" class="article">
-                                        {{ $index + 1 }}
-                                    </td>
-                                    <td style="font-family: Inter;font-weight: 600;font-size: 10px;line-height: 14px;letter-spacing: 0%;color: #1A1C21;">
-                                        {{ $item->product->product_name ?? 'Product' }}
-                                    </td>
-                                    <td style="font-family: Inter;font-weight: 500;font-size: 10px;line-height: 14px;letter-spacing: 0%;color: #1A1C21;" align="center">${{ number_format($item->unit_price, 2) }}</td>
-                                    <td style="font-family: Inter;font-weight: 500;font-size: 10px;line-height: 14px;letter-spacing: 0%;color: #1A1C21;" align="center">{{ $item->amount_of_items }}</td>
-                                    <td style="font-family: Inter;font-weight: 500;font-size: 10px;line-height: 14px;letter-spacing: 0%;color: #5E6470;" align="right">${{ number_format($item->total_price, 2) }}</td>
+                                    <td style="font-family: Arial, sans-serif; font-size: 10px; line-height: 14px; color: #1A1C21; padding: 15px 5px; text-align: left; border-bottom: 1px solid #D7DAE0;">{{ $index + 1 }}</td>
+                                    <td style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10px; line-height: 14px; color: #1A1C21; padding: 15px 5px; text-align: left; border-bottom: 1px solid #D7DAE0;">{{ $item->product->product_name ?? 'Product' }}</td>
+                                    <td style="font-family: Arial, sans-serif; font-size: 10px; line-height: 14px; color: #1A1C21; padding: 15px 5px; text-align: center; border-bottom: 1px solid #D7DAE0;">${{ number_format($item->unit_price, 2) }}</td>
+                                    <td style="font-family: Arial, sans-serif; font-size: 10px; line-height: 14px; color: #1A1C21; padding: 15px 5px; text-align: center; border-bottom: 1px solid #D7DAE0;">{{ $item->amount_of_items }}</td>
+                                    <td style="font-family: Arial, sans-serif; font-size: 10px; line-height: 14px; color: #5E6470; padding: 15px 5px; text-align: right; border-bottom: 1px solid #D7DAE0;">${{ number_format($item->total_price, 2) }}</td>
                                 </tr>
-                                @if(!$loop->last)
-                                    <tr>
-                                        <td height="1" colspan="5" style="background: #D7DAE0;border-top: 15px solid #fff;border-bottom: 10px solid #fff;"></td>
-                                    </tr>
-                                @endif
+                                <tr>
+                                    <td colspan="5" style="border-bottom: 1px solid #bebebe; height: 1px;"></td>
+                                </tr>
                             @endforeach
-                            </tbody>
+
+                            <tr>
+                                <td height="20" colspan="5"></td>
+                            </tr>
                         </table>
                     </td>
                 </tr>

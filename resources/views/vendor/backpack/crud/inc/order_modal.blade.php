@@ -159,12 +159,14 @@
                         <strong>${{ number_format($defaultValues['box_amount'] * 30.00, 2) }}</strong>
                     </p>
                 </div>
-                <div class=" m-1">
+                <div class="m-1">
                     <p class="m-0 d-flex justify-content-between align-items-center cost-summary-delivery">
                         Pickup/Delivery:
-                        <strong>${{ number_format($defaultValues['delivery_cost'], 2) }}</strong>
+                        <span class="d-flex align-items-center">
+                            <strong class="me-2">${{ number_format($defaultValues['delivery_cost'], 2) }}</strong>
+                        </span>
                     </p>
-                    <input id="modal-delivery-cost" name="delivery_cost" type="hidden" value="{{ $defaultValues['delivery_cost'] }}">
+                    <input id="modal-delivery-cost" name="delivery_cost" type="hidden" value="{{ $defaultValues['delivery_cost']??0 }}">
                 </div>
                 <hr>
                 <div class=" m-1">

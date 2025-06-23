@@ -245,8 +245,9 @@ class OrderCrudController extends CrudController
             // Calculate costs server-side
             $iceCost = ($validated['amount_of_ice'] ?? 0) * 1.95;
             $boxCost = ($validated['amount_of_boxes'] ?? 0) * 30.00;
+            $delivery_cost = $validated['delivery_cost'];
 //            $deliveryFee = ($validated['pickup_delivery'] === 'delivery') ? NULL : 0.00;
-            $subtotal = $iceCost + $boxCost;
+            $subtotal = $iceCost + $boxCost + floatval($delivery_cost);
             $tax = $subtotal * 0.15;
 
 
@@ -660,14 +661,14 @@ class OrderCrudController extends CrudController
 
             $iceCost = ($validatedData['amount_of_ice'] ?? 0) * 1.95;
             $boxCost = ($validatedData['amount_of_boxes'] ?? 0) * 30.00;
-            $subtotal = $iceCost + $boxCost;
+            $delivery_cost = $validatedData['delivery_cost'];
+            $subtotal = $iceCost + $boxCost + floatval($delivery_cost);
             $tax = $subtotal * 0.15;
 
             // Add calculated fields
             $validatedData['sub_total'] = $subtotal;
             $validatedData['tax'] = $tax;
             $validatedData['total_cost'] = $subtotal + $tax;
-
 
             // ICE
             $product = Product::find(1);
