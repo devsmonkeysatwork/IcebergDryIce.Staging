@@ -971,9 +971,9 @@
                     const boxText = document.querySelector('.cost-summary-box strong').textContent.replace('$', '') || 0;
                     const delivery = amount;
 
-                    const subtotal = parseFloat(dryIceText) + parseFloat(boxText) + delivery;
+                    const subtotal = parseFloat(dryIceText) + parseFloat(boxText);
                     const tax = subtotal * 0.15;
-                    const total = subtotal + tax;
+                    const total = subtotal + tax + delivery;
 
                     document.querySelector('.cost-summary-subtotal strong').textContent = `$${subtotal.toFixed(2)}`;
                     document.querySelector('.cost-summary-tax strong').textContent = `$${tax.toFixed(2)}`;
