@@ -627,10 +627,10 @@
 
                 const iceCost = iceAmount * pricePerLb;
                 const boxCost = boxAmount * pricePerBox;
-                const subTotal = iceCost + boxCost + deliveryFee;
+                const subTotal = iceCost + boxCost;
                 const taxRate = 0.15;
                 const tax = subTotal * taxRate;
-                const total = subTotal + tax;
+                const total = subTotal + tax + deliveryFee;
 
                 // Update the cost summary section
                 document.querySelector('.cost-summary-ice').innerHTML =

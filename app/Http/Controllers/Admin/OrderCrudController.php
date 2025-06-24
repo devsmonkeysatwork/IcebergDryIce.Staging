@@ -247,14 +247,14 @@ class OrderCrudController extends CrudController
             $boxCost = ($validated['amount_of_boxes'] ?? 0) * 30.00;
             $delivery_cost = $validated['delivery_cost'];
 //            $deliveryFee = ($validated['pickup_delivery'] === 'delivery') ? NULL : 0.00;
-            $subtotal = $iceCost + $boxCost + floatval($delivery_cost);
+            $subtotal = $iceCost + $boxCost;
             $tax = $subtotal * 0.15;
 
 
             // Add calculated fields
             $validated['sub_total'] = $subtotal;
             $validated['tax'] = $tax;
-            $validated['total_cost'] = $subtotal + $tax;
+            $validated['total_cost'] = $subtotal + $tax + floatval($delivery_cost);
 //            $validated['delivery_cost'] = $deliveryFee;
             $validated['customer_id'] = $customer->id;
             $validated['origin'] = 'manual';
@@ -662,13 +662,13 @@ class OrderCrudController extends CrudController
             $iceCost = ($validatedData['amount_of_ice'] ?? 0) * 1.95;
             $boxCost = ($validatedData['amount_of_boxes'] ?? 0) * 30.00;
             $delivery_cost = $validatedData['delivery_cost'];
-            $subtotal = $iceCost + $boxCost + floatval($delivery_cost);
+            $subtotal = $iceCost + $boxCost;
             $tax = $subtotal * 0.15;
 
             // Add calculated fields
             $validatedData['sub_total'] = $subtotal;
             $validatedData['tax'] = $tax;
-            $validatedData['total_cost'] = $subtotal + $tax;
+            $validatedData['total_cost'] = $subtotal + $tax + floatval($delivery_cost);
 
             // ICE
             $product = Product::find(1);
