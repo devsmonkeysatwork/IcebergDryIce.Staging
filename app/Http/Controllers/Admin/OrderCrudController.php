@@ -234,7 +234,8 @@ class OrderCrudController extends CrudController
             'delivery_cost' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'status' => 'required|string|in:valid,cancelled,skip',
-            'pickup_delivery' => 'required|string|in:pickup,delivery'
+            'pickup_delivery' => 'required|string|in:pickup,delivery',
+            'supplier_id' => 'required|numeric|min:0'
         ]);
 
         try {

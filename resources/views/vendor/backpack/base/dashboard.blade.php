@@ -544,6 +544,7 @@
 <!-- SweetAlert2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+    // Replace the existing JavaScript section in your blade template with this:
 
     document.addEventListener('DOMContentLoaded', function() {
         let summaryModal = document.getElementById("orderSummaryModal");
@@ -738,25 +739,76 @@
                     setTimeout(() => {
                         initializeEmailSelect2();
                         addCostCalculationListeners();
+                        setupDeliveryCalculation();
 
                         // Calculate costs for edit mode
-                        if (isEditMode) {
-                            updateCostSummary();
-                        }
+                        // if (isEditMode) {
+                        //     updateCostSummary();
+                        // }
                     }, 100);
                 })
                 .catch(error => {
                     console.error('Error loading modal content:', error);
                     document.getElementById('modal-content-container').innerHTML = `
-            <div class="modal-body text-center">
-                <i class="la la-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
-                <h5 class="mt-3">Error Loading Content</h5>
-                <p>Unable to load modal content. Please try again.</p>
-                <button class="btn btn-primary" onclick="loadModalContent('${action}', ${orderId})">Retry</button>
-            </div>
-        `;
+                    <div class="modal-body text-center">
+                        <i class="la la-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+                        <h5 class="mt-3">Error Loading Content</h5>
+                        <p>Unable to load modal content. Please try again.</p>
+                        <button class="btn btn-primary" onclick="loadModalContent('${action}', ${orderId})">Retry</button>
+                    </div>`;
                 });
         }
+
+        function setupDeliveryCalculation() {
+            const addressFields = ['modal-address', 'modal-city', 'modal-province', 'modal-postal', 'modal-ice-amount'];
+            let btnHtml = `<button
+                                id="recalculate-delivery-btn"
+                                type="button"
+                                class="btn btn-xs btn-outline-primary"
+                                title="Click to recalculate delivery charges">
+                                Recalculate
+                            </button>`;
+
+            addressFields.forEach(id => {
+                const field = document.getElementById(id);
+                if (field) {
+                    field.removeEventListener('input', field._deliveryListener);
+
+                    // Create new listener
+                    field._deliveryListener = () => {
+                        const deliveryOption = document.getElementById('modal-pickup-or-delivery');
+                        const recalculateButton = document.getElementById('recalculate-delivery-btn');
+                        if (deliveryOption && deliveryOption.value === 'delivery') {
+                            if (!recalculateButton) {
+                                $('.cost-summary-delivery').append(btnHtml);
+                            }
+                        }
+                    };
+                    field.addEventListener('input', field._deliveryListener);
+                }
+            });
+        }
+
+        $(document).on('change','#modal-pickup-or-delivery',function () {
+            if (this.value === 'delivery') {
+                // Setup auto listener to check fields and trigger quote
+                setupDeliveryCalculation();
+
+                // Initial trigger in case fields are already filled
+                tryGetDeliveryQuote();
+            } else if (this.value === 'pickup') {
+                // Set delivery cost to 0 for pickup
+                updateDeliveryCostSummary(0);
+            } else {
+                // Clear delivery cost for other options
+                updateDeliveryCostSummary(null);
+            }
+        });
+
+        $(document).on('click','#recalculate-delivery-btn',function () {
+            $('#recalculate-delivery-btn').remove();
+            tryGetDeliveryQuote();
+        });
 
 
 
@@ -765,17 +817,18 @@
             const iceAmount = parseFloat(document.getElementById('modal-ice-amount').value) || 0;
             const boxAmount = parseFloat(document.getElementById('modal-box-amount').value) || 0;
             const pickupDelivery = document.getElementById('modal-pickup-or-delivery').value;
+            const deliveryCost = document.getElementById('modal-delivery-cost').value;
 
             const pricePerLb = 1.95;
             const pricePerBox = 30.00;
-            const deliveryFee = pickupDelivery === 'delivery' ? "Calculating" : 0.00; // Fix this line
+            const deliveryFee = pickupDelivery === 'delivery' ? parseFloat(deliveryCost) : 0.00; // Fix this line
 
             const iceCost = iceAmount * pricePerLb;
             const boxCost = boxAmount * pricePerBox;
-            const subTotal = iceCost + boxCost + deliveryFee;
+            const subTotal = iceCost + boxCost;
             const taxRate = 0.15;
             const tax = subTotal * taxRate;
-            const total = subTotal + tax;
+            const total = subTotal + tax + deliveryFee;
 
             // Update the cost summary section
             document.querySelector('.cost-summary-ice').innerHTML =
@@ -783,24 +836,19 @@
      <strong>$${iceCost.toFixed(2)}</strong>`;
 
             document.querySelector('.cost-summary-box').innerHTML =
-                `<p class="m-0">Styrofoam Box (${boxAmount} @ $${pricePerBox.toFixed(2)}/box):</p>
-     <strong>$${boxCost.toFixed(2)}</strong>`;
+                `Styrofoam Box (${boxAmount} @ $${pricePerBox.toFixed(2)}/box):<strong>$${boxCost.toFixed(2)}</strong>`;
 
             document.querySelector('.cost-summary-delivery').innerHTML =
-                `<p class="m-0">Pickup/Delivery:</p>
-     <strong>$${deliveryFee.toFixed(2)}</strong>`;
+                `Pickup/Delivery:<strong>$${deliveryFee.toFixed(2)}</strong>`;
 
             document.querySelector('.cost-summary-subtotal').innerHTML =
-                `<p class="m-0">Sub-Total:</p>
-     <strong>$${subTotal.toFixed(2)}</strong>`;
+                `Sub-Total:<strong>$${subTotal.toFixed(2)}</strong>`;
 
             document.querySelector('.cost-summary-tax').innerHTML =
-                `<p class="m-0">Tax (${(taxRate * 100).toFixed(0)}%):</p>
-     <strong>$${tax.toFixed(2)}</strong>`;
+                `Tax (${(taxRate * 100).toFixed(0)}%):<strong>$${tax.toFixed(2)}</strong>`;
 
             document.querySelector('.cost-summary-total').innerHTML =
-                `<p class="m-0">TOTAL:</p>
-     <strong>$${total.toFixed(2)}</strong>`;
+                `TOTAL:<strong>$${total.toFixed(2)}</strong>`;
         }
 
         function addCostCalculationListeners() {
@@ -1094,10 +1142,6 @@
                 }
             });
         });
-    });
-
-
-    document.addEventListener('DOMContentLoaded', function () {
         let closestSupplier = null;
 
         // const deliveryOption = document.getElementById('modal-pickup-or-delivery');
@@ -1125,9 +1169,9 @@
                 const boxText = document.querySelector('.cost-summary-box strong').textContent.replace('$', '') || 0;
                 const delivery = amount;
 
-                const subtotal = parseFloat(dryIceText) + parseFloat(boxText) + delivery;
+                const subtotal = parseFloat(dryIceText) + parseFloat(boxText);
                 const tax = subtotal * 0.15;
-                const total = subtotal + tax;
+                const total = subtotal + tax + delivery;
 
                 document.querySelector('.cost-summary-subtotal strong').textContent = `$${subtotal.toFixed(2)}`;
                 document.querySelector('.cost-summary-tax strong').textContent = `$${tax.toFixed(2)}`;
@@ -1187,7 +1231,9 @@
                     }
 
                     const supplier = data.closest_supplier;
-
+                    if($('#supplier_id').length){
+                        $('#supplier_id').val(supplier.id);
+                    }
                     // Get delivery quote
                     const quotePayload = {
                         supplier_id: supplier.id,
@@ -1270,31 +1316,7 @@
             }
         }
 
-        // Setup event listeners for address fields that should trigger recalculation
-        function setupDeliveryCalculation() {
-            const addressFields = ['modal-address', 'modal-city', 'modal-province', 'modal-postal', 'modal-ice-amount'];
 
-            // Remove existing listeners to prevent duplicates
-            addressFields.forEach(id => {
-                const field = document.getElementById(id);
-                if (field) {
-                    // Remove old listener if it exists
-                    field.removeEventListener('input', field._deliveryListener);
-
-                    // Create new listener
-                    field._deliveryListener = () => {
-                        const deliveryOption = document.getElementById('modal-pickup-or-delivery');
-                        if (deliveryOption && deliveryOption.value === 'delivery') {
-                            clearTimeout(window.__quoteTimer);
-                            window.__quoteTimer = setTimeout(tryGetDeliveryQuote, 500); // debounce
-                        }
-                    };
-
-                    // Add new listener
-                    field.addEventListener('input', field._deliveryListener);
-                }
-            });
-        }
 
         document.addEventListener('change', function(e) {
             if (e.target.classList.contains('btn-view')) {
@@ -1303,37 +1325,21 @@
             }
         });
 
-        // Setup event listeners for address fields that should trigger recalculation
-        function initializeDeliveryCalculation() {
-            const deliveryOption = document.getElementById('modal-pickup-or-delivery');
+        // // Setup event listeners for address fields that should trigger recalculation
+        // function initializeDeliveryCalculation() {
+        //     const deliveryOption = document.getElementById('modal-pickup-or-delivery');
+        //
+        //     // Check current state on page load
+        //     if (deliveryOption && deliveryOption.value === 'delivery') {
+        //         setupDeliveryCalculation();
+        //         tryGetDeliveryQuote(); // Calculate immediately if delivery is already selected
+        //     } else if (deliveryOption && deliveryOption.value === 'pickup') {
+        //         updateDeliveryCostSummary(0); // Set to 0 for pickup
+        //     }
+        // }
 
-            // Check current state on page load
-            if (deliveryOption && deliveryOption.value === 'delivery') {
-                setupDeliveryCalculation();
-                tryGetDeliveryQuote(); // Calculate immediately if delivery is already selected
-            } else if (deliveryOption && deliveryOption.value === 'pickup') {
-                updateDeliveryCostSummary(0); // Set to 0 for pickup
-            }
-        }
-
-        $(document).on('change','#modal-pickup-or-delivery',function () {
-            if (this.value === 'delivery') {
-                // Setup auto listener to check fields and trigger quote
-                setupDeliveryCalculation();
-
-                // Initial trigger in case fields are already filled
-                tryGetDeliveryQuote();
-            } else if (this.value === 'pickup') {
-                // Set delivery cost to 0 for pickup
-                updateDeliveryCostSummary(0);
-            } else {
-                // Clear delivery cost for other options
-                updateDeliveryCostSummary(null);
-            }
-        });
-
-        // Initialize on page load
-        initializeDeliveryCalculation();
+        // // Initialize on page load
+        // initializeDeliveryCalculation();
     });
 
 
@@ -1403,5 +1409,31 @@
 
 
 
+
+    // Initialize Select2 for customer search
+    $(document).ready(function() {
+        $('#customer_id').select2({
+            placeholder: 'Search by Customer ID or Name',
+            minimumInputLength: 1,
+            ajax: {
+                url: '{{ route("ajax.customers") }}',
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        q: params.term
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            }
+        });
+    });
+
 </script>
+
 @endpush

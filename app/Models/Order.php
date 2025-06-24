@@ -38,6 +38,7 @@ class Order extends Model
         'tax',
         'total_cost',
         'payment_status',
+        'supplier_id',
     ];
 
     public function scopeToday($query)

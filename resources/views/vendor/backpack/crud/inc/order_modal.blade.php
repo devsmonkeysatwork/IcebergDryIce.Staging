@@ -196,6 +196,7 @@
                     <input type="hidden" name="origin" value="{{ $defaultValues['origin'] }}">
                 @else
                     <input type="hidden" name="origin" value="manual">
+                    <input type="hidden" name="supplier_id" id="supplier_id">
                 @endif
             </div>
         </div>

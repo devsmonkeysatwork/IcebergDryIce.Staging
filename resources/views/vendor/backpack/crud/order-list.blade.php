@@ -1033,7 +1033,9 @@
                         }
 
                         const supplier = data.closest_supplier;
-
+                        if($('#supplier_id').length){
+                            $('#supplier_id').val(supplier.id);
+                        }
                         // Get delivery quote
                         const quotePayload = {
                             supplier_id: supplier.id,
