@@ -254,6 +254,20 @@
                         <th colspan='4'>Delivery Location</th>
                     </tr>
                     <tr>
+                        <td>Pickup / Delivery</td>
+                        <td></td>
+                        <td>
+                            <select class='textbox_data' style='width: 215px;' id='delivery_type'>
+                                <option value=''>Select</option>
+                                <option value='pickup'>Pickup</option>
+                                <option value='delivery'>Delivery</option>
+                            </select>
+                        </td>
+                        <td>
+                            <div id='delivery_notes'></div>
+                        </td>
+                    </tr>
+                    <tr>
                         <td>Province</td>
                         <td></td>
                         <td>
@@ -401,15 +415,16 @@
                 <input type="hidden" id="hidden_delivery_date" name="delivery_date" value="">
                 <input type="hidden" id="hidden_notes" name="notes" value="">
                 <input type="hidden" id="hidden_status" name="status" value="valid">
-                <input type="hidden" id="hidden_pickup_delivery" name="pickup_delivery" value="delivery">
+                <input type="hidden" id="hidden_pickup_delivery" name="pickup_delivery" value="">
                 <!-- Review-specific cost fields -->
                 <input type="hidden" id="hidden_weight_cost" name="weight_cost" value="">
                 <input type="hidden" id="hidden_box_cost" name="box_cost" value="">
                 <input type="hidden" id="hidden_subtotal" name="sub_total" value="">
                 <input type="hidden" id="hidden_hazmat" name="hazmat" value="">
-                <input type="hidden" id="hidden_delivery_cost" name="delivery_cost" value="5.00">
+                <input type="hidden" id="hidden_delivery_cost" name="delivery_cost" value="">
                 <input type="hidden" id="hidden_tax" name="tax" value="">
                 <input type="hidden" id="hidden_total_cost" name="total_cost" value="">
+                <input type="hidden" id="hidden_supplier_id" name="supplier_id" value="">
 
                 <table>
                     <tr>
@@ -425,7 +440,7 @@
                     </tr>
                     <tr>
                         <td>Delivery</td>
-                        <td align='right'>$5.00</td>
+                        <td align='right' id="delivery-cost"></td>
                     </tr>
                     <tr>
                         <td>Hazmat fee</td>
@@ -726,8 +741,9 @@
             var contactError = check_contact();
             var phoneError = check_phone();
             var emailError = check_email();
+            var deliveryError = check_delivery();
 
-            if (!(checkDate || addressError || companyError || contactError || phoneError || emailError)) {
+            if (!(checkDate || addressError || companyError || contactError || phoneError || emailError || deliveryError)) {
                 showTab('review');
             }
         }
@@ -794,6 +810,16 @@
                 set_msg('date_notes', error_msg, true);
             }
 
+            return error_msg;
+        }
+
+        function check_delivery() {
+            error_msg = '';
+            var delivery = document.getElementById('delivery_type').value;
+            if (delivery === ''){
+                error_msg = 'Please Select a valid option';
+                set_msg('delivery_notes', error_msg, true);
+            }
             return error_msg;
         }
 
@@ -950,11 +976,11 @@
 
                     if (productHiddenContainer) {
                         const hiddenFields = `
-                        <input type="hidden" name="items[${itemIndex}][product_id]" value="${productId}">
-                        <input type="hidden" name="items[${itemIndex}][amount_of_items]" value="${quantity}">
-                        <input type="hidden" name="items[${itemIndex}][unit_price]" value="${unitPrice.toFixed(2)}">
-                        <input type="hidden" name="items[${itemIndex}][total_price]" value="${totalPrice.toFixed(2)}">
-                        `;
+                <input type="hidden" name="items[${itemIndex}][product_id]" value="${productId}">
+                <input type="hidden" name="items[${itemIndex}][amount_of_items]" value="${quantity}">
+                <input type="hidden" name="items[${itemIndex}][unit_price]" value="${unitPrice.toFixed(2)}">
+                <input type="hidden" name="items[${itemIndex}][total_price]" value="${totalPrice.toFixed(2)}">
+                `;
                         productHiddenContainer.innerHTML += hiddenFields;
                     }
 
@@ -969,84 +995,248 @@
             document.getElementById('order-summary').innerHTML = orderSummary;
             document.getElementById('order-costs').innerHTML = orderCosts;
 
-            // Delivery, Tax & Total
-            const hazmat = 12.00;
-            const delivery = 5.00;
-            const tax = (subtotal + delivery) * 0.15;
-            const total = subtotal + delivery + tax + hazmat;
+            // Handle delivery type and calculate delivery cost
+            const deliveryType = document.getElementById('delivery_type')?.value;
+            const pickupDeliveryInput = document.querySelector('[name="pickup_delivery"]');
+            const deliveryCostElement = document.getElementById('delivery-cost');
 
-            document.getElementById('tax-total').innerHTML =
-                `$${tax.toFixed(2)}<br><hr><b>$${total.toFixed(2)}</b>`;
+            let deliveryCost = 0;
 
-            // Set cost hidden fields
-            document.getElementById('hidden_hazmat').value = hazmat.toFixed(2);
-            document.getElementById('hidden_subtotal').value = subtotal.toFixed(2);
-            document.getElementById('hidden_tax').value = tax.toFixed(2);
-            document.getElementById('hidden_total_cost').value = total.toFixed(2);
-            document.getElementById('hidden_delivery_cost').value = delivery.toFixed(2);
+            if (deliveryType === 'pickup') {
+                // Set delivery cost to 0 for pickup
+                deliveryCost = 0;
+                if (pickupDeliveryInput) pickupDeliveryInput.value = 'pickup';
+                if (deliveryCostElement) deliveryCostElement.textContent = '$0.00';
 
-            // Location
-            const company = getValue('company');
-            const address = getValue('address');
-            const city = getValue('city');
-            const province = getValue('province');
-            const postal = getValue('postal');
-            let locationHtml = '';
-            if (company && company !== 'Residence') locationHtml += `<b>${company}</b><br>`;
-            if (address) locationHtml += `${address}<br>`;
-            if (city || province || postal) {
-                locationHtml += city;
-                if (province) locationHtml += `, ${province}`;
-                if (postal) locationHtml += ` ${postal}`;
+                // Continue with the rest of the calculations
+                calculateTotalsAndFinalize(subtotal, deliveryCost);
+            } else if (deliveryType === 'delivery') {
+                if (pickupDeliveryInput) pickupDeliveryInput.value = 'delivery';
+                getDeliveryQuoteForReview()
+                    .then(quoteTotal => {
+                        deliveryCost = quoteTotal || 0.00; // Fallback to default delivery cost
+                        if (deliveryCostElement) deliveryCostElement.textContent = `$${deliveryCost.toFixed(2)}`;
+                        // Continue with the rest of the calculations
+                        calculateTotalsAndFinalize(subtotal, deliveryCost);
+                    })
+                    .catch(error => {
+                        console.error('Error getting delivery quote:', error);
+                        deliveryCost = 0.00; // Fallback to default delivery cost
+                        if (deliveryCostElement) deliveryCostElement.textContent = `$${deliveryCost.toFixed(2)}`;
+                        // Continue with the rest of the calculations
+                        calculateTotalsAndFinalize(subtotal, deliveryCost);
+                    });
+                return; // Exit early as calculations will be done in the promise
+            } else {
+                // Default case - use standard delivery cost
+                deliveryCost = 0.00;
+                if (pickupDeliveryInput) pickupDeliveryInput.value = deliveryCost.toFixed(2);
+                if (deliveryCostElement) deliveryCostElement.textContent = `$${deliveryCost.toFixed(2)}`;
+
+                calculateTotalsAndFinalize(subtotal, deliveryCost);
             }
-            document.getElementById('delivery-location').innerHTML = locationHtml || 'No address provided';
 
-            // Delivery Date
-            const month = getValue('month');
-            const day = getValue('day');
-            const year = getValue('year');
-            const monthNames = [
-                "January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December"
-            ];
-            const dateHtml = (month && day && year)
-                ? `${monthNames[month - 1]} ${day}, ${year}`
-                : 'No date selected';
+            function calculateTotalsAndFinalize(subtotal, delivery) {
+                // Delivery, Tax & Total
+                const hazmat = 12.00;
+                const tax = (subtotal + delivery) * 0.15;
+                const total = subtotal + delivery + tax + hazmat;
 
-            document.getElementById('delivery-date').innerHTML = dateHtml;
-            document.getElementById('hidden_delivery_date').value = (month && day && year)
-                ? `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
-                : '';
+                document.getElementById('tax-total').innerHTML =
+                    `$${tax.toFixed(2)}<br><hr><b>$${total.toFixed(2)}</b>`;
 
-            // Contact Info
-            const name = getValue('name');
-            const phone = getValue('phone');
-            const email = getValue('email');
-            let contactHtml = '';
-            if (name) contactHtml += `<b>${name}</b><br>`;
-            if (phone) contactHtml += `Phone: ${phone}<br>`;
-            if (email) contactHtml += `Email: ${email}`;
-            document.getElementById('contact-info').innerHTML = contactHtml || 'No contact info';
+                // Set cost hidden fields
+                document.getElementById('hidden_hazmat').value = hazmat.toFixed(2);
+                document.getElementById('hidden_subtotal').value = subtotal.toFixed(2);
+                document.getElementById('hidden_tax').value = tax.toFixed(2);
+                document.getElementById('hidden_total_cost').value = total.toFixed(2);
+                document.getElementById('hidden_delivery_cost').value = delivery.toFixed(2);
 
-            // Notes
-            const notes = getValue('notes');
-            document.getElementById('order-notes').innerHTML = notes || 'No special notes';
+                // Continue with the rest of the original function
+                populateLocationAndContactInfo();
+            }
 
-            // Hidden fields for order data
+            function populateLocationAndContactInfo() {
+                // Location
+                const company = getValue('company');
+                const address = getValue('address');
+                const city = getValue('city');
+                const province = getValue('province');
+                const postal = getValue('postal');
+                let locationHtml = '';
+                if (company && company !== 'Residence') locationHtml += `<b>${company}</b><br>`;
+                if (address) locationHtml += `${address}<br>`;
+                if (city || province || postal) {
+                    locationHtml += city;
+                    if (province) locationHtml += `, ${province}`;
+                    if (postal) locationHtml += ` ${postal}`;
+                }
+                document.getElementById('delivery-location').innerHTML = locationHtml || 'No address provided';
 
-            document.getElementById('hidden_customer_name').value = name;
-            document.getElementById('hidden_customer_name').value = name;
-            document.getElementById('hidden_email').value = email;
-            document.getElementById('hidden_phone').value = phone;
-            document.getElementById('hidden_location_name').value = company;
-            document.getElementById('hidden_address').value = address;
-            document.getElementById('hidden_city').value = city;
-            document.getElementById('hidden_postal_code').value = postal;
-            document.getElementById('hidden_province').value = province;
-            document.getElementById('hidden_notes').value = notes;
+                // Delivery Date
+                const month = getValue('month');
+                const day = getValue('day');
+                const year = getValue('year');
+                const monthNames = [
+                    "January", "February", "March", "April", "May", "June",
+                    "July", "August", "September", "October", "November", "December"
+                ];
+                const dateHtml = (month && day && year)
+                    ? `${monthNames[month - 1]} ${day}, ${year}`
+                    : 'No date selected';
+
+                document.getElementById('delivery-date').innerHTML = dateHtml;
+                document.getElementById('hidden_delivery_date').value = (month && day && year)
+                    ? `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+                    : '';
+
+                // Contact Info
+                const name = getValue('name');
+                const phone = getValue('phone');
+                const email = getValue('email');
+                let contactHtml = '';
+                if (name) contactHtml += `<b>${name}</b><br>`;
+                if (phone) contactHtml += `Phone: ${phone}<br>`;
+                if (email) contactHtml += `Email: ${email}`;
+                document.getElementById('contact-info').innerHTML = contactHtml || 'No contact info';
+
+                // Notes
+                const notes = getValue('notes');
+                document.getElementById('order-notes').innerHTML = notes || 'No special notes';
+
+                // Hidden fields for order data
+                document.getElementById('hidden_customer_name').value = name;
+                document.getElementById('hidden_email').value = email;
+                document.getElementById('hidden_phone').value = phone;
+                document.getElementById('hidden_location_name').value = company;
+                document.getElementById('hidden_address').value = address;
+                document.getElementById('hidden_city').value = city;
+                document.getElementById('hidden_postal_code').value = postal;
+                document.getElementById('hidden_province').value = province;
+                document.getElementById('hidden_notes').value = notes;
+            }
         }
 
+        // Integrated delivery quote function for the review
+        async function getDeliveryQuoteForReview() {
+            const getValue = (id) => document.getElementById(id)?.value.trim() || '';
 
+            // Get form values
+            const formData = {
+                address: getValue('address'),
+                city: getValue('city'),
+                province: getValue('province'),
+                email: getValue('email'),
+                name: getValue('name'),
+                phone: getValue('phone'),
+                iceAmount: parseFloat(getValue('hidden_amount_of_ice')) || 1,
+                postal: getValue('postal'),
+                locationName: getValue('company'),
+                unit: getValue('unit') || ''
+            };
+
+            // Check required address fields for delivery calculation
+            const requiredAddressFields = [formData.address, formData.city, formData.province, formData.postal];
+            if (!requiredAddressFields.every(val => val && val.trim())) {
+                console.log('Missing required address fields for delivery calculation');
+                throw new Error('Missing required address fields');
+            }
+
+            console.log('Starting delivery quote request for review...');
+
+            try {
+                // Get closest supplier first
+                const supplierResponse = await fetch(`/test-closest-supplier?street=${encodeURIComponent(formData.address)}&city=${encodeURIComponent(formData.city)}&province=${encodeURIComponent(formData.province)}`);
+
+                if (!supplierResponse.ok) {
+                    throw new Error(`Supplier API returned ${supplierResponse.status}`);
+                }
+
+                const supplierData = await supplierResponse.json();
+
+                if (!supplierData.closest_supplier || !supplierData.closest_supplier.id) {
+                    throw new Error('No supplier found in response');
+                }
+
+
+
+                const supplier = supplierData.closest_supplier;
+
+                // Update supplier_id if element exists
+                const supplierIdElement = document.getElementById('hidden_supplier_id');
+                if (supplierIdElement) {
+                    supplierIdElement.value = supplier.id;
+                }
+
+                document.getElementById('hidden_customer_name').value = name;
+
+                // Get delivery quote
+                const quotePayload = {
+                    supplier_id: supplier.id,
+                    delivery: {
+                        name: formData.locationName.trim() || 'N/A',
+                        street: formData.address.trim(),
+                        unit: formData.unit.trim() || '',
+                        city: formData.city.trim(),
+                        province: formData.province.trim(),
+                        postal_code: formData.postal.trim(),
+                        contact: formData.name.trim() || 'N/A',
+                        phone: formData.phone.trim() || 'N/A',
+                        email: formData.email.trim() || 'N/A'
+                    },
+                    weight: formData.iceAmount
+                };
+
+                console.log('Quote payload being sent:', quotePayload);
+
+
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+
+                console.log('CSRF:', csrfToken);
+
+
+                const quoteResponse = await fetch('/get-delivery-quote', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(quotePayload)
+                });
+
+                console.log('CSRF Token found:', csrfToken ? 'Yes' : 'No');
+                console.log('Quote response status:', quoteResponse.status);
+                console.log('Quote response headers:', quoteResponse.headers);
+
+                const responseText = await quoteResponse.text();
+                console.log('Quote response text:', responseText);
+
+                if (!quoteResponse.ok) {
+                    throw new Error(`Quote API returned ${quoteResponse.status}: ${responseText}`);
+                }
+
+                let quoteData;
+                try {
+                    quoteData = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('Failed to parse JSON:', e);
+                    throw new Error('Invalid JSON response from quote API');
+                }
+
+                if (quoteData.success && quoteData.total) {
+                    console.log('Quote successful for review, total:', quoteData.total);
+                    return parseFloat(quoteData.total);
+                } else {
+                    throw new Error(quoteData.error || 'Quote failed');
+                }
+
+            } catch (error) {
+                console.error('Error in getDeliveryQuoteForReview:', error);
+                throw error;
+            }
+        }
 
 
 
@@ -1090,20 +1280,21 @@
                 .then(data => {
                     console.log('Response data:', data);
 
-                    if (data.success && data.redirect_url) {
-                        window.location.href = data.redirect_url;
-                        // clearSavedData(); // Clear saved data on success
-                        // Swal.fire({
-                        //     icon: 'success',
-                        //     title: 'Order Submitted!',
-                        //     text: 'A confirmation email has been sent to you.',
-                        //     allowOutsideClick: false,
-                        //     allowEscapeKey: false,
-                        //     showConfirmButton: true,
-                        //     confirmButtonText: 'OK'
-                        // }).then(() => {
-                        //     window.location.href = `/`;
-                        // });
+                    if (data.success) {
+                        // && data.redirect_url
+                        // window.location.href = data.redirect_url;
+                        clearSavedData(); // Clear saved data on success
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Order Submitted!',
+                            text: 'A confirmation email has been sent to you.',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            showConfirmButton: true,
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            window.location.href = `/`;
+                        });
                     } else {
                         Swal.fire({
                             icon: 'error',

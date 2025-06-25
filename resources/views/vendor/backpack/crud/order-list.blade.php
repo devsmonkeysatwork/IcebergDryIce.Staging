@@ -944,6 +944,7 @@
                     }
                 });
             });
+
             let closestSupplier = null;
 
             // const deliveryOption = document.getElementById('modal-pickup-or-delivery');

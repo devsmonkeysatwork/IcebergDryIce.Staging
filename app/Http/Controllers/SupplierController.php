@@ -179,6 +179,8 @@ class SupplierController extends Controller
             ]
         ];
 
+
+
         try {
             $response = Http::withOptions([
                 'verify' => config('services.http_verify'),
@@ -186,11 +188,8 @@ class SupplierController extends Controller
                 'Authorization' => 'Basic ' . config('services.novex.auth_key'),
                 'Content-Type' => 'application/json',
             ])->post(config('services.novex.api_url'), $orderDetails);
+            
 
-            Log::info('Novex API response', [
-                'status' => $response->status(),
-                'body' => $response->body()
-            ]);
 
             if ($response->successful()) {
                 $data = $response->json();
