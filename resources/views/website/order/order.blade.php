@@ -1282,19 +1282,19 @@
 
                     if (data.success) {
                         // && data.redirect_url
-                        // window.location.href = data.redirect_url;
+                        window.location.href = data.redirect_url;
                         clearSavedData(); // Clear saved data on success
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Order Submitted!',
-                            text: 'A confirmation email has been sent to you.',
-                            allowOutsideClick: false,
-                            allowEscapeKey: false,
-                            showConfirmButton: true,
-                            confirmButtonText: 'OK'
-                        }).then(() => {
-                            window.location.href = `/`;
-                        });
+                        // Swal.fire({
+                        //     icon: 'success',
+                        //     title: 'Order Submitted!',
+                        //     text: 'A confirmation email has been sent to you.',
+                        //     allowOutsideClick: false,
+                        //     allowEscapeKey: false,
+                        //     showConfirmButton: true,
+                        //     confirmButtonText: 'OK'
+                        // }).then(() => {
+                        //     window.location.href = `/`;
+                        // });
                     } else {
                         Swal.fire({
                             icon: 'error',
