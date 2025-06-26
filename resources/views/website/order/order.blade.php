@@ -209,7 +209,7 @@
                                 <div id="{{ $notesId }}">
                                     <i>
                                         ${{ $priceFormatted }} / {{ $product->unit }}
-                                        @if (str_contains(strtolower($product->product_name), 'dry ice'))
+                                        @if ($product->id == 1)
                                             , <span style="color:red">minimum 10 lbs.</span>
                                         @endif
                                     </i>

@@ -235,7 +235,7 @@ class OrderCrudController extends CrudController
             'notes' => 'nullable|string',
             'status' => 'required|string|in:valid,cancelled,skip',
             'pickup_delivery' => 'required|string|in:pickup,delivery',
-            'supplier_id' => 'required|numeric|min:0'
+            'supplier_id' => 'nullable|numeric|min:0'
         ]);
 
         try {
@@ -264,7 +264,7 @@ class OrderCrudController extends CrudController
             $order = Order::create($validated);
             if($iceCost){
                 $product = Product::find(1);
-                if ($product->current_stock == 0.0) {
+                if ($product->current_stock == 0.0 || $product->current_stock < $validated['amount_of_ice']) {
                     DB::rollBack();
                     return response()->json([
                         'success' => false,
@@ -422,12 +422,12 @@ class OrderCrudController extends CrudController
 
                 $product = Product::find($item['product_id']);
 
-                if ($product && stripos($product->product_name, 'dry ice') !== false) {
+                if ($product && $product->id == 1) {
                     if ($amount < 10) {
                         DB::rollBack(); // rollback before returning
                         return response()->json([
                             'success' => false,
-                            'message' => 'Dry Ice requires a minimum order of 10 lbs.'
+                            'message' => 'Dry Ice Pellets requires a minimum order of 10 lbs.'
                         ]);
                     }
                 }
@@ -441,7 +441,7 @@ class OrderCrudController extends CrudController
                     'total_price' => $totalPrice,
                 ]);
 
-                if ($product && stripos($product->product_name, 'ice') == true) {
+                if ($product && $product->id == 1) {
                     if ($product->current_stock == 0.0 || $product->current_stock < $amount) {
                         DB::rollBack();
                         return response()->json([
@@ -918,6 +918,7 @@ class OrderCrudController extends CrudController
                 'total_cost' => $order->total_cost ?? 0,
                 'origin' => $order->origin,
                 'novex_pushed' => $order->push ?? 0,
+                'hazmat' => $order->hazmat ?? 0,
             ]
         ];
 

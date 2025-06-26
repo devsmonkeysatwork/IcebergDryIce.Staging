@@ -72,7 +72,7 @@ class IceOrdersCrudController extends CrudController
 
             // 2. Update stock only if order created successfully
             if ($item && isset($data['weight'])) {
-                $iceProduct = Product::where('product_name', 'dry ice')->first();
+                $iceProduct = Product::find(1);
 
                 if ($iceProduct) {
                     // Update current stock
