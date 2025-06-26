@@ -414,7 +414,6 @@ class OrderCrudController extends CrudController
                 'hazmat' => $validated['hazmat'],
             ]);
 
-
             // Step 3: Process items
             foreach ($validated['items'] as $item) {
                 $amount = $item['amount_of_items'];
@@ -470,15 +469,11 @@ class OrderCrudController extends CrudController
             $order->payment_status = 0;
             $order->save();
 
-
-            $redirectUrl = $this->generateExactRedirectUrl($order);
-
             return response()->json([
                 'success' => true,
                 'message' => 'Online Order submitted successfully',
                 'order' => $order->load('items'),
-                'order_id' => $order->id,
-                'redirect_url' => $redirectUrl
+                'order_id' => $order->id
             ]);
 
         } catch (\Exception $e) {
@@ -497,7 +492,23 @@ class OrderCrudController extends CrudController
     }
 
 
-    protected function generateExactRedirectUrl($order)
+    public function paymentRedirect($orderId)
+    {
+        try {
+            $order = Order::findOrFail($orderId);
+
+            // Generate payment parameters
+            $paymentParams = $this->generatePaymentParams($order);
+
+            return view('website.order.payment-redirect', compact('paymentParams'));
+
+        } catch (\Exception $e) {
+            \Log::error('Payment redirect failed: ' . $e->getMessage());
+            return redirect()->route('home')->with('error', 'Order not found or payment setup failed.');
+        }
+    }
+
+    protected function generatePaymentParams($order)
     {
         $x_login = env('EXACT_LOGIN_ID');
         $transaction_key = env('EXACT_TRANSACTION_KEY');
@@ -506,15 +517,16 @@ class OrderCrudController extends CrudController
         $x_description = 'Order #' . $order->id;
         $x_email = $order->email;
         $x_return_url = route('home');
-        $x_fp_sequence		= rand(1000, 100000) + 123456;
-        $x_fp_timestamp		= Carbon::now();
-        $hmac_data			= $x_login . "^" . $x_fp_sequence . "^" . $x_fp_timestamp . "^" . $x_amount . "^" . 'CAD';
-        $x_fp_hash			= hash_hmac('MD5', $hmac_data, $transaction_key);
+        $x_fp_sequence = rand(1000, 100000) + 123456;
+        $x_fp_timestamp = Carbon::now();
+        $hmac_data = $x_login . "^" . $x_fp_sequence . "^" . $x_fp_timestamp . "^" . $x_amount . "^" . 'CAD';
+        $x_fp_hash = hash_hmac('MD5', $hmac_data, $transaction_key);
 
-        $params = [
+        return [
             'x_login' => $x_login,
             'x_amount' => $x_amount,
             'x_fp_timestamp' => $x_fp_timestamp,
+            'x_fp_sequence' => $x_fp_sequence,
             'x_invoice_num' => $x_invoice_num,
             'x_description' => $x_description,
             'x_email' => $x_email,
@@ -522,9 +534,8 @@ class OrderCrudController extends CrudController
             'x_fp_hash' => $x_fp_hash,
             'x_show_form' => 'PAYMENT_FORM',
             'x_test_request' => 'TRUE',
+            'payment_url' => 'https://rpm.demo.e-xact.com/payment'
         ];
-
-        return 'https://rpm.demo.e-xact.com/payment?' . http_build_query($params);
     }
     /* Handle customer data for review form */
 

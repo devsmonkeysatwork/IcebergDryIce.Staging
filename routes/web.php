@@ -135,6 +135,8 @@ Route::post('/get-novex-quote', [SupplierController::class, 'getNovexQuote']);
 
 Route::post('/orders/{id}/push-novex', [SupplierController::class, 'pushToNovex']);
 
+Route::get('/payment-redirect/{order}', [OrderCrudController::class, 'paymentRedirect'])->name('payment.redirect');
+
 
 Route::prefix('customer')->group(function () {
     Route::get('forgot-password', [CustomerForgotPasswordController::class, 'showLinkRequestForm'])->name('customer.password.request');

@@ -188,7 +188,7 @@ class SupplierController extends Controller
                 'Authorization' => 'Basic ' . config('services.novex.auth_key'),
                 'Content-Type' => 'application/json',
             ])->post(config('services.novex.api_url'), $orderDetails);
-            
+
 
 
             if ($response->successful()) {

@@ -390,6 +390,7 @@
         </div>
 
         <!-- REVIEW TAB -->
+
         <div id="review-content" class="tab-content">
             <form id="orderForm" action="/order/ajax-create-from-review" method="POST">
                 @csrf
@@ -1281,20 +1282,11 @@
                     console.log('Response data:', data);
 
                     if (data.success) {
-                        // && data.redirect_url
-                        window.location.href = data.redirect_url;
-                        clearSavedData(); // Clear saved data on success
-                        // Swal.fire({
-                        //     icon: 'success',
-                        //     title: 'Order Submitted!',
-                        //     text: 'A confirmation email has been sent to you.',
-                        //     allowOutsideClick: false,
-                        //     allowEscapeKey: false,
-                        //     showConfirmButton: true,
-                        //     confirmButtonText: 'OK'
-                        // }).then(() => {
-                        //     window.location.href = `/`;
-                        // });
+                        // Clear saved data on success
+                        clearSavedData();
+
+                        // Redirect to payment loading page with order ID
+                        window.location.href = `/payment-redirect/${data.order_id}`;
                     } else {
                         Swal.fire({
                             icon: 'error',
@@ -1318,6 +1310,7 @@
                     });
                 });
         });
+
 
         document.addEventListener('DOMContentLoaded', function() {
             restoreFormData();
