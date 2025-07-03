@@ -1,5 +1,6 @@
 @include(backpack_view('inc.menu_items'))
 
+
 @push('after_scripts')
     @bassetBlock('tabler-menu-javascript.js')
     <script type="text/javascript">

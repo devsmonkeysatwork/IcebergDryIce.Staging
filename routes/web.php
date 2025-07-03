@@ -96,10 +96,6 @@ Route::group([
 
 
 
-
-
-
-
 });
 // Login
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login.form');
@@ -110,11 +106,14 @@ Route::POST('/logout', [LoginController::class, 'logout'])->name('logout.custom'
 
 
 
+<<<<<<< Updated upstream
 Route::get('/test-email', function () {
     $order = Order::latest()->first(); // or mock an Order
     Mail::to('touseefktk22@gmail.com')->send(new OrderPlacedMail($order));
     return 'Email sent.';
 });
+=======
+>>>>>>> Stashed changes
 
 
 

@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\VariablesCrudController;
 use App\Http\Controllers\Admin\CustomersCrudController;
 use App\Http\Controllers\Admin\ManualPaymentCrudController;
 use App\Http\Controllers\Customer\CustomerDashboardController;
+use App\Http\Controllers\Customer\CustomerProfileController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -27,6 +28,10 @@ Route::group([
     'prefix' => 'customer',
 ], function () {
     Route::get('/dashboard', [CustomerDashboardController::class, 'index'])->name('customer.dashboard');
+    Route::get('/my_orders', [CustomerDashboardController::class, 'myOrders'])->name('customer.orders');
+    Route::get('/profile', [CustomerProfileController::class, 'show'])->name('customer.profile');
+    Route::put('/profile', [CustomerProfileController::class, 'updateProfile'])->name('customer.profile.update');
+    Route::put('/password', [CustomerProfileController::class, 'updatePassword'])->name('customer.password.update');
 });
 
 Route::middleware('auth')->group(function () {
@@ -141,8 +146,6 @@ Route::group([
 
     Route::get('/customers/get-by-email', [OrderCrudController::class, 'getCustomerByEmail'])
         ->name('admin.customers.get-by-email');
-
-
 
 });
 
