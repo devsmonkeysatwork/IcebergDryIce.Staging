@@ -106,15 +106,6 @@ Route::POST('/logout', [LoginController::class, 'logout'])->name('logout.custom'
 
 
 
-<<<<<<< Updated upstream
-Route::get('/test-email', function () {
-    $order = Order::latest()->first(); // or mock an Order
-    Mail::to('touseefktk22@gmail.com')->send(new OrderPlacedMail($order));
-    return 'Email sent.';
-});
-=======
->>>>>>> Stashed changes
-
 
 
 Route::get('/register-customer', [CustomerRegisterController::class, 'showForm'])->name('customer.register.form');
