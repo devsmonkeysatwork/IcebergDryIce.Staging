@@ -18,7 +18,26 @@ use App\Models\Order;
 
 
 // routes/web.php
-Route::get('/', [App\Http\Controllers\WebsiteController::class, 'index'])->name('home');
+Route::get('/route-cache', function() {
+    Artisan::call('cache:clear');
+    Artisan::call('route:clear');
+    Artisan::call('config:clear');
+    Artisan::call('view:clear');
+    return redirect()->route('home')->with('cache','System Cache Has Been Removed.');
+});
+
+
+Route::middleware(['web', App\Http\Middleware\Localization::class])->group(function () {
+    Route::get('/', [App\Http\Controllers\WebsiteController::class, 'index'])->name('home');
+    Route::get('/contact', [App\Http\Controllers\WebsiteController::class, 'contact'])->name('contact');
+    Route::get('/order', [App\Http\Controllers\WebsiteController::class, 'showOrderForm'])->name('order');
+    Route::post('/order', [App\Http\Controllers\WebsiteController::class, 'storeOrder'])->name('submitOrder');
+    Route::get('/location', [App\Http\Controllers\WebsiteController::class, 'location'])->name('location');
+    Route::post('/location', [App\Http\Controllers\WebsiteController::class, 'storeLocation'])->name('storeLocation');
+    Route::get('/review', [App\Http\Controllers\WebsiteController::class, 'review'])->name('review');
+});
+
+
 
 Route::get('/dryice_uses', function () {
     return view('website.dryice.dryice_uses');
@@ -38,20 +57,6 @@ Route::get('/blasting_manuals', function () {
 Route::get('/blasting_services', function () {
     return view('website.blasting.blasting_services');
 });
-
-Route::get('/contact', [App\Http\Controllers\WebsiteController::class, 'contact'])->name('contact');
-
-Route::get('/order', [App\Http\Controllers\WebsiteController::class, 'showOrderForm'])->name('order');
-
-Route::post('/order', [App\Http\Controllers\WebsiteController::class, 'storeOrder'])->name('submitOrder');
-
-
-
-Route::get('/location', [App\Http\Controllers\WebsiteController::class, 'location'])->name('location');
-
-Route::post('/location', [App\Http\Controllers\WebsiteController::class, 'storeLocation'])->name('storeLocation');
-
-Route::get('/review', [App\Http\Controllers\WebsiteController::class, 'review'])->name('review');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -139,6 +144,13 @@ Route::prefix('customer')->group(function () {
         return view('website.auth.customer-password-success');
     })->name('customer.password.reset.success');
 });
-
+Route::get('/change-language/{locale}', function ($locale) {
+    if (in_array($locale, ['en', 'fr'])) {
+        session(['locale' => $locale]);
+        app()->setLocale($locale);
+    }
+//    dd(app()->get('locale'),$locale);
+    return redirect()->back();
+})->name('change.language');
 
 // require __DIR__ . '/auth.php';

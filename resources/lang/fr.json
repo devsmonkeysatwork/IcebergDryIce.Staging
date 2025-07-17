@@ -1,0 +1,20 @@
+{
+    "iceberg": "Iceberg",
+    "dry_ice": "Glace Sèche",
+    "uses": "Utilisations",
+    "safety": "Sécurité",
+    "buy_now": "ACHETER MAINTENANT",
+    "cleaning": "Nettoyage",
+    "info": "Informations",
+    "examples": "Exemples",
+    "manuals": "Manuels",
+    "services": "Services",
+    "online": "EN LIGNE",
+    "log_out": "Déconnexion",
+    "dashboard": "Tableau de Bord",
+    "order_list": "Liste des Commandes",
+    "place_order": "Passer Commande",
+    "usage_info": "Informations d'Usage",
+    "login": "Connexion",
+    "contact": "Contact"
+}

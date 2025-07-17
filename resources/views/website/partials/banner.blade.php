@@ -8,22 +8,22 @@
 
 <div class='layout' id='buttons'>
     <ul class='dropdown'>
-        <li><a href='{{ url('/') }}'>Iceberg</a></li>
+        <li><a href='{{ url('/') }}'>{{ __('iceberg') }}</a></li>
 
-        <li><a href='{{ url('/') }}'>Dry Ice</a>
+        <li><a href='{{ url('/') }}'>{{ __('dry_ice') }}</a>
             <ul class='sub-menu'>
-                <li><a href='{{ url('/dryice_uses') }}'>Uses</a></li>
-                <li><a href='{{ url('/dryice_safety') }}'>Safety</a></li>
-                <li><a href='{{ url('/order') }}'><font color='#F00'>BUY NOW</font></a></li>
+                <li><a href='{{ url('/dryice_uses') }}'>{{ __('uses') }}</a></li>
+                <li><a href='{{ url('/dryice_safety') }}'>{{ __('safety') }}</a></li>
+                <li><a href='{{ url('/order') }}'><font color='#F00'>{{ __('buy_now') }}</font></a></li>
             </ul>
         </li>
 
-        <li><a href='{{ url('/') }}'>Cleaning</a>
+        <li><a href='{{ url('/') }}'>{{ __('cleaning') }}</a>
             <ul class='sub-menu'>
-                <li><a href='{{ url('/blasting_info') }}'>Info</a></li>
-                <li><a href='{{ url('/blasting_examples') }}'>Examples</a></li>
-                <li><a href='{{ url('/blasting_manuals') }}'>Manuals</a></li>
-                <li><a href='{{ url('/blasting_services') }}'>Services</a></li>
+                <li><a href='{{ url('/blasting_info') }}'>{{ __('info') }}</a></li>
+                <li><a href='{{ url('/blasting_examples') }}'>{{ __('examples') }}</a></li>
+                <li><a href='{{ url('/blasting_manuals') }}'>{{ __('manuals') }}</a></li>
+                <li><a href='{{ url('/blasting_services') }}'>{{ __('services') }}</a></li>
             </ul>
         </li>
 
@@ -40,7 +40,7 @@
 
             <li>
                 <a href="{{ $onlineLink }}">
-                    <span class='online' style='text-shadow: 1px 1px 1px #000'><b>ONLINE</b></span>
+                    <span class='online' style='text-shadow: 1px 1px 1px #000'><b>{{ __('online') }}</b></span>
                 </a>
                 <ul class='sub-menu'>
                     <!-- Logout -->
@@ -49,25 +49,33 @@
                     </form>
                     <li>
                         <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                            Log Out
+                            {{ __('log_out') }}
                         </a>
                     </li>
 
                     <!-- Dashboard -->
 
                     @if ($admin)
-                        <li><a href="{{ url('/admin/dashboard') }}"><font color='#0C0'>Dashboard</font></a></li>
-                        <li><a href="{{ url('/admin/orders') }}">Order List</a></li>
+                        <li><a href="{{ url('/admin/dashboard') }}"><font color='#0C0'>{{ __('dashboard') }}</font></a></li>
+                        <li><a href="{{ url('/admin/orders') }}">{{ __('order_list') }}</a></li>
                     @elseif ($customer)
-                        <li><a href="{{ url('/order') }}">Place Order</a></li>
-                        <li><a href="{{ url('/dryice_uses') }}">Usage Info</a></li>
+                        <li><a href="{{ url('/order') }}">{{ __('place_order') }}</a></li>
+                        <li><a href="{{ url('/dryice_uses') }}">{{ __('usage_info') }}</a></li>
                     @endif
                 </ul>
             </li>
         @else
-            <li><a href="{{ url('/login') }}">Login</a></li>
+            <li><a href="{{ url('/login') }}">{{ __('login') }}</a></li>
         @endif
 
-        <li><a href='{{ url('/contact') }}'>Contact</a></li>
+        <li><a href='{{ url('/contact') }}'>{{ __('contact') }}</a></li>
+        <li>
+            <div class="language-switcher" style="width: 100px;">
+                <select id="language-select" onchange="changeLanguage(this.value)">
+                    <option value="en" {{ app()->getLocale() == 'en' ? 'selected' : '' }}>English</option>
+                    <option value="fr" {{ app()->getLocale() == 'fr' ? 'selected' : '' }}>Français</option>
+                </select>
+            </div>
+        </li>
     </ul>
 </div>

@@ -37,5 +37,8 @@
 
 {{-- Include scripts --}}
 @yield('scripts')
-</body>
-</html>
+<script>
+    function changeLanguage(locale) {
+        window.location.href = "{{ url('/') }}/change-language/" + locale;
+    }
+</script>
