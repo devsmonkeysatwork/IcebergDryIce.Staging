@@ -7,7 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
-
+use App\Models\Customer;
+use Illuminate\Support\Facades\Validator;
 class CustomerProfileController extends Controller
 {
 
@@ -79,6 +80,8 @@ class CustomerProfileController extends Controller
     /**
      * Update the customer password
      */
+
+
     public function updatePassword(Request $request)
     {
         $customer = auth()->guard('customer')->user();
@@ -87,16 +90,13 @@ class CustomerProfileController extends Controller
             return redirect()->route('customer.login')->with('error', 'Please login to change your password');
         }
 
-
-
-        // Validate the request
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'current_password' => 'required',
             'new_password' => [
                 'required',
                 'min:8',
                 'confirmed',
-//                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/'
+                // 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/'
             ],
             'new_password_confirmation' => 'required'
         ], [
@@ -104,10 +104,18 @@ class CustomerProfileController extends Controller
             'new_password.confirmed' => 'New password confirmation does not match.'
         ]);
 
-        // Check if current password is correct
-        if (!Hash::check($request->current_password, $customer->password)) {
+        // Add custom check for current password
+        $validator->after(function ($validator) use ($request, $customer) {
+            if (!Hash::check($request->current_password, $customer->password)) {
+                $validator->errors()->add('current_password', 'The current password you entered is incorrect. If you’ve forgotten it, please reset your password using the "Forgot Password" option.');
+            }
+        });
+
+        // Handle validation failure
+        if ($validator->fails()) {
             return redirect()->route('customer.profile')
-                ->with('error', 'Current password is incorrect.');
+                ->withErrors($validator)
+                ->withInput();
         }
 
         // Update password

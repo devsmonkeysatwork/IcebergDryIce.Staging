@@ -16,7 +16,6 @@
                         <p class="ms-2 ml-2 mb-0" bp-section="page-subheading">Manage your account information.</p>
                     </section>
 
-                    {{-- Error Messages --}}
                     @if ($errors->any())
                         <div class="alert alert-danger">
                             <ul class="mb-0">
@@ -26,6 +25,7 @@
                             </ul>
                         </div>
                     @endif
+
 
                     {{-- Success Messages --}}
                     @if (session('success'))
@@ -110,7 +110,7 @@
                     </form>
 
                     {{-- Change Password Form --}}
-                    <form method="post" class="card" action="{{ route('customer.password.update') }}">
+                    <form method="post" class="card" action="{{ route('customer.password.change') }}">
                         @csrf
                         @method('PUT')
                         <div class="row">

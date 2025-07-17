@@ -133,7 +133,7 @@ Route::prefix('customer')->group(function () {
     Route::post('forgot-password', [CustomerForgotPasswordController::class, 'sendResetLinkEmail'])->name('customer.password.email');
 
     Route::get('reset-password/{token}', [CustomerForgotPasswordController::class, 'showResetForm'])->name('customer.password.reset');
-    Route::post('reset-password', [CustomerForgotPasswordController::class, 'reset'])->name('customer.password.reset');
+    Route::post('reset-password', [CustomerForgotPasswordController::class, 'reset'])->name('customer.password.update');
 
     Route::get('password-reset-success', function () {
         return view('website.auth.customer-password-success');
