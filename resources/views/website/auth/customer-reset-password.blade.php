@@ -25,7 +25,7 @@
             @endif
 
             {{-- Password Reset Form --}}
-            <form action="{{ route('customer.password.update') }}" method="POST">
+            <form action="{{ route('customer.password.reset') }}" method="POST">
                 @csrf
                 <input type="hidden" name="token" value="{{ $token }}">
 

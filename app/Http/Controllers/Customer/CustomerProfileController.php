@@ -87,6 +87,8 @@ class CustomerProfileController extends Controller
             return redirect()->route('customer.login')->with('error', 'Please login to change your password');
         }
 
+
+
         // Validate the request
         $request->validate([
             'current_password' => 'required',
@@ -94,7 +96,7 @@ class CustomerProfileController extends Controller
                 'required',
                 'min:8',
                 'confirmed',
-                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/'
+//                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/'
             ],
             'new_password_confirmation' => 'required'
         ], [

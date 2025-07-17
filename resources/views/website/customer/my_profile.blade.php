@@ -113,7 +113,6 @@
                     <form method="post" class="card" action="{{ route('customer.password.update') }}">
                         @csrf
                         @method('PUT')
-
                         <div class="row">
                             <div class="col-md-12 px-4">
                                 <h3 class="form-group-heading m-0 mb-4">
