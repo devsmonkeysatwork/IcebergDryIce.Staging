@@ -11,6 +11,8 @@ class Order extends Model
 {
     use CrudTrait;
     use HasFactory;
+    const RECURRING = 'recurring';
+    const NON_RECURRING = 'non-recurring';
 
     protected $fillable = [
         'customer_id',

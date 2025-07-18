@@ -72,7 +72,7 @@
                         <h3 class="form-group-heading m-0 mb-4 mt-4">
                             <i class="la la-map-marker me-2"></i> Delivery Information
                             @if ($status)
-                                <span class="order-status float-end"><strong>Status:</strong> {{ $status }}</span>
+                                <span class="order-status float-end"><strong>Delivery status:</strong> {{ $status }}</span>
                             @endif
                         </h3>
 
@@ -142,7 +142,7 @@
                             <div class="form-group col-md-4">
                                 <label>Recurring</label>
                                 <div class="form-control d-flex align-items-center" style="background-color: #f8f9fa;">
-                                    @if($order->recurring)
+                                    @if($order->recurring == \App\Models\Order::RECURRING)
                                         <span class="badge badge-info">Yes</span>
                                     @else
                                         <span class="badge badge-secondary">No</span>
@@ -153,11 +153,7 @@
                             <div class="form-group col-md-4">
                                 <label>Hazmat</label>
                                 <div class="form-control d-flex align-items-center" style="background-color: #f8f9fa;">
-                                    @if($order->hazmat)
-                                        <span class="badge badge-warning">Yes</span>
-                                    @else
-                                        <span class="badge badge-success">No</span>
-                                    @endif
+                                    <span class="badge badge-warning">{{$order->hazmat}}</span>
                                 </div>
                             </div>
 
@@ -165,12 +161,8 @@
                                 <label>Payment Status</label>
                                 <div class="form-control d-flex align-items-center" style="background-color: #f8f9fa;">
                                     <span class="badge
-                                        @if($order->payment_status == 'paid') badge-success
-                                        @elseif($order->payment_status == 'pending') badge-warning
-                                        @elseif($order->payment_status == 'failed') badge-danger
-                                        @else badge-secondary
-                                        @endif">
-                                        {{ ucfirst($order->payment_status) }}
+                                        @if($order->payment_status == 1) bg-success @elseif($order->payment_status == 0) bg-danger @else badge-secondary @endif">
+                                        {{ $order->payment_status? 'PAID' : 'UNPAID' }}
                                     </span>
                                 </div>
                             </div>

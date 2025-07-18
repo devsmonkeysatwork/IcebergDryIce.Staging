@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -36,10 +37,12 @@ class CustomerDashboardController extends Controller
     {
         $order = Order::with(['items.product'])->findOrFail($id);
         $status = null;
-        if($order->novex_order_id){
-            $status = $this->getOrderStatus($order->novex_order_id);
+        if ($order->novex_order_id) {
+            $cacheKey = 'order_status_' . $order->novex_order_id;
+            $status = Cache::remember($cacheKey, now()->addHours(3), function () use ($order) {
+                return $this->getOrderStatus($order->novex_order_id);
+            });
         }
-        // Optional: ensure the order belongs to logged-in customer
         if ($order->customer_id !== auth()->guard('customer')->id()) {
             abort(403);
         }

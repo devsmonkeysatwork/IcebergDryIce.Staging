@@ -163,7 +163,7 @@
                                                     <td>${{ number_format($order->total_cost, 2) }}</td>
                                                     <td>{{ $order->origin }}</td>
                                                     <td>
-                                                        @if($order->recurring)
+                                                        @if($order->recurring == \App\Models\Order::RECURRING)
                                                             <span class="badge badge-info">Yes</span>
                                                         @else
                                                             <span class="badge badge-secondary">No</span>
