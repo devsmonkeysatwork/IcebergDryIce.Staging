@@ -71,6 +71,9 @@
                         {{-- Delivery Information --}}
                         <h3 class="form-group-heading m-0 mb-4 mt-4">
                             <i class="la la-map-marker me-2"></i> Delivery Information
+                            @if ($status)
+                                <span class="order-status float-end"><strong>Status:</strong> {{ $status }}</span>
+                            @endif
                         </h3>
 
                         <div class="row">

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class CustomerDashboardController extends Controller
 {
@@ -33,13 +35,39 @@ class CustomerDashboardController extends Controller
     public function orderDetails($id)
     {
         $order = Order::with(['items.product'])->findOrFail($id);
-
+        $status = null;
+        if($order->novex_order_id){
+            $status = $this->getOrderStatus($order->novex_order_id);
+        }
         // Optional: ensure the order belongs to logged-in customer
         if ($order->customer_id !== auth()->guard('customer')->id()) {
             abort(403);
         }
+        return view('website.customer.partials.order_details', compact('order','status'));
+    }
 
-        return view('website.customer.partials.order_details', compact('order'));
+
+    function getOrderStatus($orderNumber)
+    {
+        try {
+            $response = Http::withOptions([
+                'verify' => config('services.http_verify'),
+            ])->withHeaders([
+                'Authorization' => 'Basic ' . config('services.novex.auth_key'),
+                'Content-Type' => 'application/json'
+            ])->get(config('services.novex.push_url') . "/{$orderNumber}");
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['status'];
+            }
+
+            return null;
+
+        } catch (\Exception $e) {
+            Log::info($e->getMessage());
+            return null;
+        }
     }
 
 }

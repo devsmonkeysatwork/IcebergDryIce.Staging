@@ -294,6 +294,8 @@ class SupplierController extends Controller
 
             if ($response->successful()) {
                 $order->push = 1;
+                $body = json_decode($response->getBody());
+                $order->novex_order_id = $body->orderNumber ?? null;
                 $order->save();
 
                 return response()->json(['success' => true]);

@@ -230,7 +230,7 @@ class OrderCrudController extends CrudController
             'postal_code' => 'string|max:20',
             'province' => 'string|max:50',
             'country' => 'string|max:100',
-            'delivery_date' => 'nullable|date',
+            'delivery_date' => 'nullable',
             'delivery_cost' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'status' => 'required|string|in:valid,cancelled,skip',
