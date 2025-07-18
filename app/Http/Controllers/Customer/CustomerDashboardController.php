@@ -15,9 +15,8 @@ class CustomerDashboardController extends Controller
 
     public function myOrders()
     {
-        // Get the authenticated customer ID
         $customerId = auth()->guard('customer')->id();
-        // If you're using a different authentication guard for customers
+
         // $customerId = auth()->guard('customer')->id();
 
         // Get orders for the current customer with pagination
@@ -30,4 +29,17 @@ class CustomerDashboardController extends Controller
 
         return view('website.customer.my_orders', compact('orders', 'isPaginated'));
     }
+
+    public function orderDetails($id)
+    {
+        $order = Order::with(['items.product'])->findOrFail($id);
+
+        // Optional: ensure the order belongs to logged-in customer
+        if ($order->customer_id !== auth()->guard('customer')->id()) {
+            abort(403);
+        }
+
+        return view('website.customer.partials.order_details', compact('order'));
+    }
+
 }

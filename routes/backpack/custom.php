@@ -29,9 +29,10 @@ Route::group([
 ], function () {
     Route::get('/dashboard', [CustomerDashboardController::class, 'index'])->name('customer.dashboard');
     Route::get('/my_orders', [CustomerDashboardController::class, 'myOrders'])->name('customer.orders');
+    Route::get('/order-details/{id}', [CustomerDashboardController::class, 'orderDetails'])->name('customer.order-details');
     Route::get('/profile', [CustomerProfileController::class, 'show'])->name('customer.profile');
     Route::put('/profile', [CustomerProfileController::class, 'updateProfile'])->name('customer.profile.update');
-    Route::put('/password', [CustomerProfileController::class, 'updatePassword'])->name('customer.password.update');
+    Route::put('/change-password', [CustomerProfileController::class, 'updatePassword'])->name('customer.password.change');
 });
 
 Route::middleware('auth')->group(function () {
