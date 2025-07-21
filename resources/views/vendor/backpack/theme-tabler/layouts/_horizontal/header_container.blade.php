@@ -34,7 +34,7 @@
                     <li class="nav-item"><a class="nav-link text-white" href="{{ url('/blasting_services') }}">Services</a></li>
                     <li class="nav-item"><a class="nav-link text-white" href="{{ url('/contact') }}">Contact</a></li>
                 </ul>
-                <a class="nav-link admin text-white" href="{{ backpack_url('dashboard') }}">Welcome Admin!</a>
+                <a class="nav-link admin text-white" href="{{ backpack_url('dashboard') }}">Welcome {{ auth()->user()->name }}!</a>
             </div>
         </div>
     </nav>

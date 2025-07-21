@@ -129,7 +129,7 @@
             Dashboard
         </h2>
         <div class="row flex-row mb-3">
-            <div class="col-md-3">
+            <div class="col-12 col-lg-4">
                 <h2 class="title">Recurring Orders</h2>
                 @if($orderWithNextRecurringDue)
                 <div class="card dashboard text-center">
