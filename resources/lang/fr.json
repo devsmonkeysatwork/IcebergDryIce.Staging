@@ -16,5 +16,19 @@
     "place_order": "Passer Commande",
     "usage_info": "Informations d'Usage",
     "login": "Connexion",
-    "contact": "Contact"
+    "contact": "Contact",
+    "Online Ordering System - Login": "Système de commande en ligne - Connexion",
+    "Email:": "Email :",
+    "Password:": "Mot de passe :",
+    "Sign Up": "S'inscrire",
+    "Login": "Connexion",
+    "If you have forget your password Click here -": "Si vous avez oublié votre mot de passe, cliquez ici -",
+    "Forget Password": "Mot de passe oublié",
+    "You can now buy dry ice for delivery here -": "Vous pouvez maintenant acheter de la glace carbonique pour la livraison ici -",
+    "BUY NOW": "ACHETER MAINTENANT",
+    "Online access is reserved for account holders.": "L'accès en ligne est réservé aux titulaires de compte.",
+    "To obtain an account, please request a credit application.": "Pour obtenir un compte, veuillez demander un formulaire de demande de crédit.",
+    "The email field is required.": "Le champ email est requis.",
+    "The password field is required.": "Le champ mot de passe est requis.",
+    "Invalid login credentials.": "Identifiants de connexion invalides."
 }

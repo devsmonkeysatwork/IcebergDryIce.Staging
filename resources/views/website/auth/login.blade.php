@@ -4,7 +4,7 @@
 
     <div class="container">
         <div class='info'>
-            <h1 class=''>Online Ordering System - Login</h1>
+            <h1>{{ __('Online Ordering System - Login') }}</h1>
 
             {{-- Display error messages --}}
             @if(session('ibdi_error'))
@@ -23,7 +23,7 @@
                 @csrf
                 <table border="0">
                     <tr>
-                        <td width="100px">Email:</td>
+                        <td width="100px">{{ __('Email:') }}</td>
                         <td>
                             <input class='textbox_data'
                                    type="email"
@@ -36,7 +36,7 @@
                     </tr>
                     <input type="hidden" name="redirect" value="{{ request('redirect') }}">
                     <tr>
-                        <td>Password:</td>
+                        <td>{{ __('Password:') }}</td>
                         <td>
                             <input class='textbox_data'
                                    type="password"
@@ -49,7 +49,7 @@
                             <a href="{{ route('customer.register.form') }}?redirect={{ urlencode(request('redirect')) }}"
                                style="width: 100px; text-align: center; color: #090; border: outset 2px #090;"
                                class="is_button">
-                                Sign Up
+                                {{ __('Sign Up') }}
                             </a>
                         </td>
                         <td colspan="2" align="right">
@@ -65,19 +65,19 @@
 
             <div class="additional-info">
                 <p>
-                    If you have forget your password Click here -
+                    {{ __('If you have forget your password Click here -') }}
                     <a style='color: #002480; text-decoration: underline;'
-                       href="{{ route('customer.password.request') }}">Forget Password</a>
+                       href="{{ route('customer.password.request') }}">{{ __('Forget Password') }}</a>
                 </p>
                 <p>
-                    You can now buy dry ice for delivery here -
+                    {{ __('You can now buy dry ice for delivery here -') }}
                     <a style='color: #F00; text-decoration: underline;'
-                       href="{{route('order')}}">BUY NOW</a>
+                       href="{{route('order')}}">{{ __('BUY NOW') }}</a>
                 </p>
 
                 <p>
-                    Online access is reserved for account holders.
-                    To obtain an account, please request a credit application.
+                    {{ __('Online access is reserved for account holders.') }} {{ __('To obtain an account, please request a credit application.') }}
+
                 </p>
             </div>
         </div>
