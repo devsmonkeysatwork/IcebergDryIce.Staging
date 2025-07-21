@@ -73,4 +73,20 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+
+
+    public function recurringOrders()
+    {
+        return $this->hasMany(RecurringOrder::class);
+    }
+
+    public function nextRecurringOrder()
+    {
+        return $this->recurringOrders()
+            ->where('status', 'open')
+            ->where('scheduled_delivery_date', '>', now())
+            ->orderBy('scheduled_delivery_date')
+            ->first();
+    }
+
 }

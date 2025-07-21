@@ -13,7 +13,43 @@ class CustomerDashboardController extends Controller
     public function index()
     {
         // You can pass data to the view if needed
-        return view('website.customer.customer_dashboard');
+
+
+        $customerId = auth()->guard('customer')->id();
+
+
+        // Get all recurring orders for the customer
+        $recurringOrders = Order::where('recurring', Order::RECURRING)
+            ->where('customer_id', $customerId)
+            ->get();
+
+        // Get the order which has the next recurring due
+        $orderWithNextRecurringDue = Order::where('recurring', Order::RECURRING)
+            ->where('customer_id', $customerId)
+            ->whereHas('recurringOrders', function ($query) {
+                $query->where('status', 'open')
+                    ->where('scheduled_delivery_date', '>', now());
+            })
+            ->with(['recurringOrders' => function ($query) {
+                $query->where('status', 'open')
+                    ->where('scheduled_delivery_date', '>', now())
+                    ->orderBy('scheduled_delivery_date');
+            }])
+            ->get()
+            ->sortBy(function ($order) {
+                return $order->recurringOrders->first()?->scheduled_delivery_date;
+            })
+            ->first();
+
+        // Get orders for the current customer with pagination
+        $orders = Order::where('customer_id', $customerId)
+            ->orderBy('created_at', 'desc') // or 'delivery_date'
+            ->paginate(request('per_page', 10));
+
+        // Check if pagination is being used
+        $isPaginated = $orders instanceof \Illuminate\Pagination\LengthAwarePaginator;
+
+        return view('website.customer.customer_dashboard',compact('orders', 'isPaginated','orderWithNextRecurringDue'));
     }
 
     public function myOrders()
