@@ -7,4 +7,4 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote')->hourly();
 
-\Illuminate\Support\Facades\Schedule::command('orders:process-recurring')->everyMinute();
+\Illuminate\Support\Facades\Schedule::command('orders:process-recurring')->dailyAt('00:05');
