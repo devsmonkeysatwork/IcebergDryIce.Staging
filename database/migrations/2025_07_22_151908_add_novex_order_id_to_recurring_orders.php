@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('recurring_orders', function (Blueprint $table) {
-            $table->foreignId('novex_order_id');
+            $table->foreignId('novex_order_id')->nullable();
         });
     }
 

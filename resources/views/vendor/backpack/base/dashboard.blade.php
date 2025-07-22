@@ -160,6 +160,7 @@
               <!-- <th>Box</th> -->
               <th>Status</th>
               <th>Total</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -173,6 +174,7 @@
               <!-- <td>{{ $order->order->amount_of_boxes }}</td> -->
               <td class="status">{{ $order->status }}</td>
               <td>${{ $order->order->total_cost }}</td>
+              <td><button class="btn btn-primary" onclick="loadRecurringOrderDetails(1,'{{$order->order_id}}','{{$order->id}}')">View</button></td>
             </tr>
             @endforeach
           </tbody>
@@ -530,6 +532,16 @@
         display: none;
     }
 
+    .order-details-card .form-group label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+    }
+    .order-details-card .form-group .form-control{
+        width: 100% !important;
+        height: 40px !important;
+    }
+
 </style>
 
 @endsection
@@ -706,13 +718,12 @@
 
             // Show loading state
             document.getElementById('modal-content-container').innerHTML = `
-        <div class="modal-body text-center">
-            <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-2">Loading...</p>
-        </div>
-    `;
+                <div class="modal-body text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading...</p>
+                </div>`;
 
             // Show the modal immediately with loading state
             const modal = new bootstrap.Modal(summaryModal);
@@ -1433,6 +1444,54 @@
             }
         });
     });
+
+
+
+    function loadRecurringOrderDetails(action=0, orderId,recurring_id) {
+        const url = `/admin/orders/modal/${orderId}/edit?recurring=`+action+`&recurring_id=`+recurring_id;
+        console.log(action,orderId);
+
+        // Show loading state
+        document.getElementById('modal-content-container').innerHTML = `
+                <div class="modal-body text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading...</p>
+                </div>`;
+
+        // Show the modal immediately with loading state
+        $("#orderSummaryModal").modal('show');
+
+        fetch(url, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html'
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.text();
+            })
+            .then(html => {
+                document.getElementById('modal-content-container').innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error loading modal content:', error);
+                document.getElementById('modal-content-container').innerHTML = `
+                    <div class="modal-body text-center">
+                        <i class="la la-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+                        <h5 class="mt-3">Error Loading Content</h5>
+                    </div>`;
+            });
+    }
+
+    function hideOrderDetails(){
+        $("#orderSummaryModal").modal('hide');
+    }
 
 </script>
 

@@ -288,10 +288,12 @@
                         </p>
                         <div class="flex">
                             <button class="btn btn-primary btn-view btn-submission" data-recurring="1" data-order-id="{{ $orderWithNextRecurringDue->recurringOrders->first()->order_id }}">View</button>
+                            @if(!$orderWithNextRecurringDue->recurringOrders->first()->novex_order_id)
                             <button class="btn bg-transparent border-0 text-danger cancel-renewal-btn" id="cancel-btn-{{ $orderWithNextRecurringDue->recurringOrders->first()->id }}"
                                     onclick="cancelRecurring({{ $orderWithNextRecurringDue->recurringOrders->first()->id }})">
                                 Cancel Renewal
                             </button>
+                            @endif
                         </div>
                     </div>
                 </div>

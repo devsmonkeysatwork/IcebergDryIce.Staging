@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Customer\CustomerDashboardController;
 use App\Mail\CustomerRegisteredMail;
 use App\Models\OrderItem;
 use App\Models\StockMovement;
@@ -14,7 +15,9 @@ use App\Models\Product;
 use App\Models\Customer;
 use Carbon\Carbon;
 use App\Mail\OrderPlacedMail;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Services\ClosestSupplierService;
@@ -880,8 +883,36 @@ class OrderCrudController extends CrudController
     }
 
 
-    public function editModal($id)
+    public function editModal($id, Request $request)
     {
+        $recurring = intval($request->query('recurring'));
+        if($recurring){
+            $recurring_id = intval($request->query('recurring_id'));
+            $order = Order::where('recurring', Order::RECURRING)
+                ->where('id', $id)
+                ->whereHas('recurringOrders', function ($query) {
+                    $query->where('status', 'open')
+                        ->where('scheduled_delivery_date', '>', now());
+                })
+                ->with(['recurringOrders' => function ($query) use ($recurring_id) {
+                    $query->where('id',$recurring_id);
+                }])
+                ->get()
+                ->first();
+            $status = null;
+            if ($order->recurringOrders?->first()->novex_order_id) {
+                $cacheKey = 'order_status_' . $order->recurringOrders?->first()->novex_order_id;
+                $status = Cache::remember($cacheKey, now()->addHours(3), function () use ($order) {
+                    return $this->getOrderStatus($order->recurringOrders?->first()->novex_order_id);
+                });
+            }
+            $data = [
+                'order' => $order,
+                'recurring' => $recurring,
+                'status' => $status,
+            ];
+            return view('website.customer.partials.order_details', $data);
+        }
         $order = Order::findOrFail($id);
 
         $data = [
@@ -965,6 +996,29 @@ class OrderCrudController extends CrudController
             'defaultValues' => $defaultValues,
             'order' => null
         ]);
+    }
+
+    function getOrderStatus($orderNumber)
+    {
+        try {
+            $response = Http::withOptions([
+                'verify' => config('services.http_verify'),
+            ])->withHeaders([
+                'Authorization' => 'Basic ' . config('services.novex.auth_key'),
+                'Content-Type' => 'application/json'
+            ])->get(config('services.novex.push_url') . "/{$orderNumber}");
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['status'];
+            }
+
+            return null;
+
+        } catch (\Exception $e) {
+            Log::info($e->getMessage());
+            return null;
+        }
     }
 
 
