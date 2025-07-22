@@ -540,8 +540,14 @@
     .order-details-card .form-group .form-control{
         width: 100% !important;
         height: 40px !important;
+        padding-left: 10px;
     }
-
+    .header-operation{
+        padding-top: 15px;
+    }
+    .order-details-card{
+        box-shadow: none !important;
+    }
 </style>
 
 @endsection
@@ -1449,7 +1455,6 @@
 
     function loadRecurringOrderDetails(action=0, orderId,recurring_id) {
         const url = `/admin/orders/modal/${orderId}/edit?recurring=`+action+`&recurring_id=`+recurring_id;
-        console.log(action,orderId);
 
         // Show loading state
         document.getElementById('modal-content-container').innerHTML = `
