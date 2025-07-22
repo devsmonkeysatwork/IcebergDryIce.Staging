@@ -84,6 +84,17 @@ class CustomerDashboardController extends Controller
         }
         return view('website.customer.partials.order_details', compact('order','status'));
     }
+    public function orderInvoice($id)
+    {
+        $order = Order::with(['items.product'])->findOrFail($id);
+
+        if ($order->customer_id !== auth()->guard('customer')->id()) {
+            abort(403);
+        }
+        return response()->json([
+            'html' => view('website.customer.partials.invoice', compact('order'))->render()
+        ]);
+    }
 
 
     function getOrderStatus($orderNumber)

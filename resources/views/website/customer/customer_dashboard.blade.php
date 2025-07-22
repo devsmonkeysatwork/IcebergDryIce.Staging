@@ -119,17 +119,162 @@
                 float: none !important;
             }
         }
+        .invoice-container {
+            font-family: 'Inter', sans-serif;
+            padding: 2rem;
+            color: #1A1C21;
+        }
+
+        .company-info {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .company-logo {
+            width: 54px;
+            height: 54px;
+        }
+
+        .invoice-meta {
+            text-align: right;
+        }
+
+        .payment-status {
+            display: inline-block;
+            padding: 0.3rem 1rem;
+            border-radius: 999px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .payment-status.paid {
+            background-color: #28A745;
+            color: #000;
+        }
+
+        .payment-status.unpaid {
+            background-color: #FFC107;
+            color: #000;
+        }
+
+        .invoice-details {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
+        }
+
+        .label {
+            font-weight: 500;
+            color: #5E6470;
+            margin-bottom: 0.25rem;
+        }
+
+        .value {
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .amount-box {
+            background-color: #0B75AF;
+            color: white;
+            padding: 1rem;
+            border-radius: 4px;
+            text-align: center;
+            min-width: 120px;
+            height: fit-content;
+        }
+
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 2rem;
+        }
+
+        .invoice-table th,
+        .invoice-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #D7DAE0;
+            font-size: 0.9rem;
+            text-align: left;
+        }
+
+        .invoice-table th {
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            color: #5E6470;
+        }
+
+        .invoice-table td:last-child,
+        .invoice-table th:last-child {
+            text-align: right;
+        }
+
+        .invoice-totals {
+            margin-top: 2rem;
+            max-width: 300px;
+            margin-left: auto;
+        }
+
+        .totals-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .totals-row.total {
+            font-weight: 700;
+        }
+
+        .invoice-notes {
+            margin-top: 2rem;
+        }
+
+        .invoice-notes h4 {
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .invoice-footer {
+            margin-top: 3rem;
+            border-top: 1px solid #D7DAE0;
+            padding-top: 1rem;
+        }
+
+        .business-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+        }
+
+        .business-info p {
+            margin: 0;
+        }
+
+        .btn-add {
+           padding: 8px 16px;
+          font-weight: 500;
+          font-size: 14px;
+          background-color: var(--tblr-primary);
+          border: none;
+          color: var(--tblr-light);
+          border-radius: 4px;
+        }
+
+        .btn-add:hover {
+          background-color: #0246a5;
+          color: var(--tblr-light);
+        }
     </style>
 @endsection
 
 @section('content')
 
     <section class="container-fluid header">
-        <h2 class="title text-capitalize fw-bolder mb-5">
-            Dashboard
+        <h2 class="title text-capitalize fw-bolder mb-5 ">
+            Dashboard<a href="{{route('order')}}" id="create-order-btn" class="btn btn-add btn-sm float-end"><i class="la la-plus mx-2"></i> New Order</a>
         </h2>
         <div class="row flex-row mb-3">
-            <div class="col-12 col-lg-4">
+            <div class="col-6 col-lg-4">
                 <h2 class="title">Recurring Orders</h2>
                 @if($orderWithNextRecurringDue)
                 <div class="card dashboard text-center">
@@ -204,6 +349,9 @@
                                                     </td>
                                                     <td>
                                                         <button class="btn btn-sm btn-primary btn-view btn-submission" data-order-id="{{ $order->id }}">View
+                                                        </button>
+                                                        <button class="btn btn-sm btn-primary btn-submission view-invoice" data-id="{{ $order->id }}">
+                                                            <i class="las la-file-invoice fs-2"></i>
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -343,5 +491,36 @@
                 });
             }
 
+
+            $(document).on('click', '.view-invoice', function () {
+                const orderId = $(this).data('id');
+
+                $.ajax({
+                    url: `/customer/invoice/${orderId}`,
+                    type: 'GET',
+                    success: function (response) {
+                        $('#invoice-modal-body').html(response.html);
+                        $('#invoiceModal').modal('show');
+                    },
+                    error: function (xhr) {
+                        alert('Failed to load invoice. Please try again.');
+                    }
+                });
+            });
+
     </script>
+
 @endsection
+<div class="modal fade" id="invoiceModal" tabindex="-1" role="dialog" aria-labelledby="invoiceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Invoice</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="invoice-modal-body">
+                    <!-- Invoice content will be injected here -->
+                </div>
+            </div>
+        </div>
+    </div>

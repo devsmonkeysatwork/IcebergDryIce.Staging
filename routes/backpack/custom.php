@@ -34,6 +34,7 @@ Route::group([
     Route::put('/profile', [CustomerProfileController::class, 'updateProfile'])->name('customer.profile.update');
     Route::put('/change-password', [CustomerProfileController::class, 'updatePassword'])->name('customer.password.change');
     Route::post('/recurring-orders/{recurringOrder}/cancel', [\App\Http\Controllers\RecurringOrderController::class, 'cancelRecurringOrder'])->name('recurring-orders.cancel');
+    Route::get('/invoice/{id}', [CustomerDashboardController::class, 'orderInvoice'])->name('customer.invoice');
 });
 
 Route::middleware('auth')->group(function () {

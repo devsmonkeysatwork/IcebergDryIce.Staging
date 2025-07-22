@@ -34,7 +34,16 @@
           <li class="nav-item"><a class="nav-link text-white" href="{{ url('/blasting_services') }}">Services</a></li>
           <li class="nav-item"><a class="nav-link text-white" href="{{ url('/contact') }}">Contact</a></li>
         </ul>
-        <a class="nav-link admin text-white" href="{{ backpack_url('dashboard') }}">Welcome {{ auth()->user()->name }}!</a>
+        <a class="nav-link admin text-white" href="{{ backpack_url('dashboard') }}">Welcome
+            @if (auth()->guard('web')->check())
+                {{ auth()->guard('web')->user()->name }}
+            @elseif (auth()->guard('customer')->check())
+                {{ auth()->guard('customer')->user()->name }}
+            @else
+                Guest
+            @endif
+            !
+        </a>
       </div>
     </div>
   </nav>
