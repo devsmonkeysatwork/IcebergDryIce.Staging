@@ -165,14 +165,14 @@
           <tbody>
             @foreach($recurringOrders as $order)
             <tr data-href="{{ url('admin/orders/' . $order->id . '/show') }}">
-              <td>{{ $order->id }}</td>
-              <td>{{ $order->customer_name }}</td>
-              <!-- <td>{{ $order->address }}</td> -->
-              <td>{{ $order->delivery_date }}</td>
-              <!-- <td>{{ $order->amount_of_ice }} lbs</td> -->
-              <!-- <td>{{ $order->amount_of_boxes }}</td> -->
+              <td>{{ $order->order_id }}</td>
+              <td>{{ $order->order->customer_name }}</td>
+              <!-- <td>{{ $order->order->address }}</td> -->
+              <td>{{ $order->scheduled_delivery_date }}</td>
+              <!-- <td>{{ $order->order->amount_of_ice }} lbs</td> -->
+              <!-- <td>{{ $order->order->amount_of_boxes }}</td> -->
               <td class="status">{{ $order->status }}</td>
-              <td>${{ $order->total_cost }}</td>
+              <td>${{ $order->order->total_cost }}</td>
             </tr>
             @endforeach
           </tbody>

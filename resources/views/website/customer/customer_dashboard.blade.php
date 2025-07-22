@@ -287,7 +287,7 @@
                             Renewal on {{ \Carbon\Carbon::parse($orderWithNextRecurringDue->recurringOrders->first()->scheduled_delivery_date)->format('F jS') }}
                         </p>
                         <div class="flex">
-                            <button class="btn btn-primary btn-submission">View</button>
+                            <button class="btn btn-primary btn-view btn-submission" data-recurring="1" data-order-id="{{ $orderWithNextRecurringDue->recurringOrders->first()->order_id }}">View</button>
                             <button class="btn bg-transparent border-0 text-danger cancel-renewal-btn" id="cancel-btn-{{ $orderWithNextRecurringDue->recurringOrders->first()->id }}"
                                     onclick="cancelRecurring({{ $orderWithNextRecurringDue->recurringOrders->first()->id }})">
                                 Cancel Renewal
@@ -425,6 +425,7 @@
             document.querySelectorAll('.btn-view').forEach(function (btn) {
                 btn.addEventListener('click', function () {
                     const orderId = this.dataset.orderId;
+                    const recurring = this.dataset.recurring??0;
                     console.log('Clicked View for Order ID:', orderId);
 
                     // Hide orders list and show details container
@@ -438,7 +439,7 @@
                     window.scrollTo({ top: 0, behavior: 'smooth' });
 
                     // Fetch order details
-                    fetch(`/customer/order-details/${orderId}`)
+                    fetch(`/customer/order-details/${orderId}?recurring=${recurring}`)
                         .then(response => {
                             if (!response.ok) {
                                 throw new Error('Network response was not ok');

@@ -50,7 +50,11 @@
 
                             <div class="form-group col-md-4">
                                 <label>Delivery Date</label>
-                                <input type="text" class="form-control" value="{{ \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') }}" readonly>
+                                @if($recurring)
+                                    <input type="text" class="form-control" value="{{ \Carbon\Carbon::parse($order->recurringOrders->first()->scheduled_delivery_date)->format('Y-m-d') }}" readonly>
+                                @else
+                                    <input type="text" class="form-control" value="{{ \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') }}" readonly>
+                                @endif
                             </div>
 
                             <div class="form-group col-md-4">

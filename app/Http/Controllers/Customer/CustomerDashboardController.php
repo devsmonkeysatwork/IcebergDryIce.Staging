@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -69,20 +70,48 @@ class CustomerDashboardController extends Controller
         return view('website.customer.my_orders', compact('orders', 'isPaginated'));
     }
 
-    public function orderDetails($id)
+    public function orderDetails($id, Request $request)
     {
-        $order = Order::with(['items.product'])->findOrFail($id);
-        $status = null;
-        if ($order->novex_order_id) {
-            $cacheKey = 'order_status_' . $order->novex_order_id;
-            $status = Cache::remember($cacheKey, now()->addHours(3), function () use ($order) {
-                return $this->getOrderStatus($order->novex_order_id);
-            });
+        $recurring = intval($request->query('recurring'));
+        if($recurring){
+            $order = Order::where('recurring', Order::RECURRING)
+                ->where('id', $id)
+                ->whereHas('recurringOrders', function ($query) {
+                    $query->where('status', 'open')
+                        ->where('scheduled_delivery_date', '>', now());
+                })
+                ->with(['recurringOrders' => function ($query) {
+                    $query->where('status', 'open')
+                        ->where('scheduled_delivery_date', '>', now())
+                        ->orderBy('scheduled_delivery_date');
+                }])
+                ->get()
+                ->sortBy(function ($order) {
+                    return $order->recurringOrders->first()?->scheduled_delivery_date;
+                })
+                ->first();
+            $status = null;
+            if ($order->recurringOrders?->first()->novex_order_id) {
+                $cacheKey = 'order_status_' . $order->recurringOrders?->first()->novex_order_id;
+                $status = Cache::remember($cacheKey, now()->addHours(3), function () use ($order) {
+                    return $this->getOrderStatus($order->recurringOrders?->first()->novex_order_id);
+                });
+            }
+        }else{
+            $order = Order::with(['items.product'])->findOrFail($id);
+            $status = null;
+            if ($order->novex_order_id) {
+                $cacheKey = 'order_status_' . $order->novex_order_id;
+                $status = Cache::remember($cacheKey, now()->addHours(3), function () use ($order) {
+                    return $this->getOrderStatus($order->novex_order_id);
+                });
+            }
         }
+
         if ($order->customer_id !== auth()->guard('customer')->id()) {
             abort(403);
         }
-        return view('website.customer.partials.order_details', compact('order','status'));
+        return view('website.customer.partials.order_details', compact('order','status','recurring'));
     }
     public function orderInvoice($id)
     {
