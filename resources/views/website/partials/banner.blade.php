@@ -61,6 +61,8 @@
                     @elseif ($customer)
                         <li><a href="{{ url('/order') }}">{{ __('place_order') }}</a></li>
                         <li><a href="{{ url('/dryice_uses') }}">{{ __('usage_info') }}</a></li>
+                        <li><a href="{{ route('customer.dashboard') }}">{{ __('my_dashboard') }}</a></li>
+                        <li><a href="{{ route('customer.orders') }}">{{ __('my_orders') }}</a></li>
                     @endif
                 </ul>
             </li>

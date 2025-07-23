@@ -16,5 +16,7 @@
     "place_order": "Place Order",
     "usage_info": "Usage Info",
     "login": "Login",
-    "contact": "Contact"
+    "contact": "Contact",
+    "my_dashboard": "My Dashboard",
+    "my_orders": "My Orders"
 }
