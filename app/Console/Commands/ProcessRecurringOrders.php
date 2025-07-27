@@ -20,7 +20,7 @@ class ProcessRecurringOrders extends Command
         $today = Carbon::now();
         $todayWeekday = $today->dayOfWeek;
 
-        $recurringOrders = Order::where('recurring', Order::RECURRING)->get();
+        $recurringOrders = Order::where('recurring', Order::RECURRING)->where('status',Order::VALID)->get();
 //        Log::info($todayWeekday);
 //        Log::info(count($recurringOrders));
         foreach ($recurringOrders as $order) {

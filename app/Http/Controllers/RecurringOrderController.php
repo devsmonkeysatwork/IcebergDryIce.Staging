@@ -23,10 +23,14 @@ class RecurringOrderController extends Controller
         ]);
     }
 
-    public function cancelRecurringOrder($recurringOrderId)
+    public function cancelRecurringOrder($recurringOrderId, Request $request)
     {
         $recurringOrder = RecurringOrder::findOrFail($recurringOrderId);
-
+        $action = $request->get('action');
+        if($action == 'discontinue'){
+            $order = Order::findOrFail($recurringOrder->order_id);
+            $order->update(['status' => Order::CANCELLED]);
+        }
         $recurringOrder->update(['status' => 'cancelled']);
 
         return response()->json(['message' => 'Recurring order cancelled successfully']);

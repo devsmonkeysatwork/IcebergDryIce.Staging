@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Requests\ManualPaymentRequest;
 use App\Mail\OrderPlacedMail;
+use App\Models\RecurringOrder;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\Order;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
@@ -78,16 +80,35 @@ class ManualPaymentCrudController extends CrudController
 
         $request = $this->crud->validateRequest();
         $data = $request->all();
-        $order = Order::find($data['order_number']);
+        $order_type = $request->input('order_type');
+        if($order_type == 'simple'){
+            $order = Order::find($data['order_number']);
 
-        if ($order->total_cost != $data['amount']) {
-            \Alert::error('The payment amount does not match the order total.')->flash();
-            return redirect()->back()->withInput();
+            if ($order->total_cost != $data['amount']) {
+                \Alert::error('The payment amount does not match the order total.')->flash();
+                return redirect()->back()->withInput();
+            }
+            $item = $this->crud->create($data);
+            $order->payment_status = 1;
+            $order->status = Order::COMPLETED;
+            $order->save();
+        }else{
+            $id = intval(str_replace("R", "", $data['order_number']));
+            $recurringOrder = RecurringOrder::whereId($id)->with('order')->first();
+            if ($recurringOrder->order->total_cost != $data['amount']) {
+                \Alert::error('The payment amount does not match the order total.')->flash();
+                return redirect()->back()->withInput();
+            }
+            $data['recurring_order_id'] = $recurringOrder->id;
+            $item = $this->crud->create($data);
+            $recurringOrder->recurring_payment_status = 1;
+            $recurringOrder->status = RecurringOrder::COMPLETED;
+            $recurringOrder->save();
         }
-        $item = $this->crud->create($data);
-        $order->payment_status = 1;
-        $order->save();
-        Mail::to($order->email ?? $data['email'])->send(new OrderPlacedMail($order));
+
+
+
+        Mail::to($recurringOrder->order->email ?? $data['email'])->send(new OrderPlacedMail($recurringOrder->order));
 
         \Alert::success('Manual payment created and order updated.')->flash();
 
@@ -145,12 +166,42 @@ class ManualPaymentCrudController extends CrudController
     public function ajaxSearch(\Illuminate\Http\Request $request)
     {
         $search = $request->input('q');
+        $order_type = $request->input('order_type');
+        $results = [];
+        if($order_type == 'simple'){
+            $results = Order::query()
+                ->where('status',Order::VALID)
+                ->where('id', 'like', "%{$search}%")
+                ->orWhere('customer_name', 'like', "%{$search}%")
+                ->limit(20)
+                ->get();
+        }else{
+            $completedRecurringOrders = Order::query()
+                ->where('status', Order::COMPLETED)
+                ->where('recurring', Order::RECURRING)
+                ->where(function($query) use ($search) {
+                    $query->where('id', 'like', "%{$search}%")
+                        ->orWhere('customer_name', 'like', "%{$search}%");
+                })
+                ->with(['recurringOrders' => function($query) {
+                    $query->where('status', RecurringOrder::OPEN)
+                        ->whereNull('recurring_payment_status');
+                }])
+                ->limit(20)
+                ->get();
+            foreach ($completedRecurringOrders as $order) {
+                foreach ($order->recurringOrders as $recurringOrder) {
+                    $results[] = [
+                        'id' => 'R' . $recurringOrder->id,
+                        'text' => '#'.$recurringOrder->order_id.'-R#'.$recurringOrder->id.' - '.$order->customer_name.'-'.Carbon::parse($recurringOrder->scheduled_delivery_date)->format('Y-m-d'),
+                        'customer_name' => $order->customer_name,
+                        'email' => $order->email,
+                        'total_cost' => $order->total_cost
+                    ];
+                }
+            }
+        }
 
-        $results = Order::query()
-            ->where('id', 'like', "%{$search}%")
-            ->orWhere('customer_name', 'like', "%{$search}%")
-            ->limit(20)
-            ->get(['id', 'customer_name']);
 
         return response()->json($results);
     }

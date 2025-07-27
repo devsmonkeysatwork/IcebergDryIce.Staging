@@ -26,6 +26,7 @@ class CustomerDashboardController extends Controller
 
         // Get the order which has the next recurring due
         $orderWithNextRecurringDue = Order::where('recurring', Order::RECURRING)
+            ->where('status',Order::VALID)
             ->where('customer_id', $customerId)
             ->whereHas('recurringOrders', function ($query) {
                 $query->where('status', 'open')

@@ -13,6 +13,10 @@ class Order extends Model
     use HasFactory;
     const RECURRING = 'recurring';
     const NON_RECURRING = 'non-recurring';
+    const COMPLETED = 'completed';
+    const VALID = 'valid';
+    const SKIP = 'skip';
+    const CANCELLED = 'cancelled';
 
     protected $fillable = [
         'customer_id',

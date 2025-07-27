@@ -152,10 +152,9 @@
                                                     <td>{{ \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') }}</td>
                                                     <td>
                                                         <span class="badge
-                                                            @if($order->status == 'completed') badge-success
-                                                            @elseif($order->status == 'pending') badge-warning
-                                                            @elseif($order->status == 'cancelled') badge-danger
-                                                            @else badge-secondary
+                                                            @if($order->status == \App\Models\Order::COMPLETED) bg-success
+                                                            @elseif($order->status == \App\Models\Order::VALID) bg-success
+                                                            @elseif($order->status == \App\Models\Order::CANCELLED) bg-warning
                                                             @endif">
                                                             {{ ucfirst($order->status) }}
                                                         </span>

@@ -17,7 +17,8 @@ class ManualPayment extends Model
         'email',
         'order_number',
         'description',
-        'amount'
+        'amount',
+        'recurring_order_id'
     ];
 
 }

@@ -8,15 +8,32 @@
             <form action="{{ route('manual-payments.store') }}" method="POST" class="card p-5">
                 @csrf
                 <div class="row">
+                    <div class="col-8 px-4 my-3">
+                        <h3 class="form-group-heading m-0"><i class="la la-cart-plus me-2"></i> Order</h3>
+                        <div class="form-group">
+                            <label for="order-number">Order #</label>
+                            <select id="order-number" name="order_number" class="form-control" style="width: 100%" required></select>
+                        </div>
+                    </div>
+                    <div class="col-4 px-4 my-3">
+                        <h3 class="form-group-heading m-0"><i class="la la-cart-plus me-2"></i> Order</h3>
+                        <div class="form-group">
+                            <label for="order-type">type</label>
+                            <select id="order-type" name="order_type" class="form-control" style="width: 100%">
+                                <option value="simple">Simple</option>
+                                <option value="recurring">Recurring</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="col-6 px-4">
                         <h3 class="form-group-heading m-0"><i class="la la-user-circle me-2"></i> Contact</h3>
                         <div class="form-group">
                             <label for="contact-name">Name</label>
-                            <input type="text" class="form-control" id="contact-name" name="contact_name" placeholder="Contact Name" required>
+                            <input type="text" class="form-control" id="contact-name" name="contact_name" placeholder="Contact Name" required readonly>
                         </div>
                         <div class="form-group">
                             <label for="contact-email">Email</label>
-                            <input type="email" class="form-control" id="contact-email" name="email"  placeholder="Email" required>
+                            <input type="email" class="form-control" id="contact-email" name="email"  placeholder="Email" required readonly>
                         </div>
                     </div>
 
@@ -24,25 +41,17 @@
                         <h3 class="form-group-heading m-0"><i class="la la-credit-card me-2"></i> Payment</h3>
                         <div class="form-group">
                             <label for="description">Description</label>
-                            <input type="text" class="form-control" id="description" name="description"  placeholder="Description" required>
+                            <input type="text" class="form-control" id="description" name="description"  placeholder="Description">
                         </div>
                         <div class="form-group">
                             <label for="amount">Amount</label>
-                            <input type="text" class="form-control" id="amount" name="amount" placeholder="Amount - example 15.75" required>
-                        </div>
-                    </div>
-
-                    <div class="col-6 px-4 my-3">
-                        <h3 class="form-group-heading m-0"><i class="la la-cart-plus me-2"></i> Order</h3>
-                        <div class="form-group">
-                            <label for="order-number">Order #</label>
-                            <select id="order-number" name="order_number" class="form-control" style="width: 100%" required></select>
+                            <input type="text" class="form-control" id="amount" name="amount" placeholder="Amount - example 15.75" required readonly>
                         </div>
                     </div>
 
                 </div>
                 <div class="form-group px-3">
-                    <button type="submit" class="btn btn-primary btn-submission">Review</button>
+                    <button type="submit" class="btn btn-primary btn-submission">Add Manual Payment</button>
                     <button type="reset" class="btn btn-secondary btn-submission mx-2">Clear</button>
                 </div>
             </form>
@@ -120,20 +129,33 @@
                     delay: 250,
                     data: function(params) {
                         return {
-                            q: params.term // search term
+                            q: params.term, // search term
+                            order_type: $('#order-type').val()
                         };
                     },
                     processResults: function (data) {
                         return {
                             results: data.map(order => ({
                                 id: order.id,
-                                text: `#${order.id} - ${order.customer_name}`
+                                text: $('#order-type').val() == 'simple' ? `#${order.id} - ${order.customer_name}` :order.text ,
+                                customer_name: order.customer_name,
+                                customer_email: order.email,
+                                total_cost: order.total_cost
                             }))
                         };
                     },
                     cache: true
                 },
                 minimumInputLength: 1
+            });
+
+            $('#order-number').on('select2:select', function(e) {
+                const data = e.params.data;
+
+                // Set contact name and email fields
+                $('#contact-name').val(data.customer_name);
+                $('#contact-email').val(data.customer_email);
+                $('#amount').val(data.total_cost);
             });
         });
     </script>

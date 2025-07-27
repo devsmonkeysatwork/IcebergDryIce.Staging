@@ -318,7 +318,7 @@
 
                     <div class="card">
                         <div class="row">
-                            <div class="col-md-12 px-4">
+                            <div class="col-md-12 p-4">
                                 <h3 class="form-group-heading m-0 mb-4">
                                     <i class="la la-shopping-cart me-2"></i> Last orders
                                 </h3>
@@ -344,9 +344,13 @@
                                                     <td>{{ $order->pickup_delivery }}</td>
                                                     <td>${{ number_format($order->total_cost, 2) }}</td>
                                                     <td>
-                                                        <span class="badge
+                                                        <span class="text-uppercase badge
                                                             @if($order->payment_status == 1) bg-success @elseif($order->payment_status == 0) bg-danger @else badge-secondary @endif">
                                                             {{ $order->payment_status? 'PAID' : 'UNPAID' }}
+                                                        </span>
+                                                        <span class="text-uppercase badge
+                                                            @if($order->status == \App\Models\Order::VALID) bg-success @elseif($order->status == 0) bg-danger @else badge-secondary @endif">
+                                                            {{ $order->status}}
                                                         </span>
                                                     </td>
                                                     <td>
@@ -415,6 +419,7 @@
         </div>
 
     </section>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             console.log('Page loaded. Binding click events...');
@@ -468,34 +473,45 @@
         });
 
         function cancelRecurring(recurringOrderId) {
-                if (!confirm('Are you sure you want to cancel this recurring order?')) {
-                    return;
+            Swal.fire({
+                title: 'Manage Recurring Order',
+                text: 'Would you like to cancel just this instance or discontinue the entire recurring order?',
+                icon: 'warning',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: 'Cancel This Instance',
+                denyButtonText: 'Discontinue Entire Order',
+                cancelButtonText: 'Close'
+            }).then((result) => {
+                if (result.isConfirmed || result.isDenied) {
+                    const action = result.isConfirmed ? 'cancel_instance' : 'discontinue';
+                    const button = document.getElementById(`cancel-btn-${recurringOrderId}`);
+                    button.disabled = true;
+                    button.innerHTML = 'Processing...';
+
+                    $.ajax({
+                        url: `/customer/recurring-orders/${recurringOrderId}/cancel`,
+                        type: 'POST',
+                        data: { action: action },
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+                            Swal.fire('Success', response.message || 'Action completed successfully.', 'success')
+                                .then(() => location.reload());
+                        },
+                        error: function(xhr) {
+                            Swal.fire('Error', 'There was a problem processing your request. Please try again.', 'error');
+                            button.disabled = false;
+                            button.innerHTML = 'Cancel Renewal';
+                        }
+                    });
                 }
-
-                const button = document.getElementById(`cancel-btn-${recurringOrderId}`);
-                button.disabled = true;
-                button.innerHTML = 'Cancelling...';
-
-                $.ajax({
-                    url: `/customer/recurring-orders/${recurringOrderId}/cancel`,
-                    type: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    },
-                    success: function(response) {
-                        alert('Recurring order cancelled successfully');
-                        location.reload(); // Reload to update the view
-                    },
-                    error: function(xhr) {
-                        alert('Error cancelling recurring order. Please try again.');
-                        button.disabled = false;
-                        button.innerHTML = 'Cancel Renewal';
-                    }
-                });
-            }
+            });
+        }
 
 
-            $(document).on('click', '.view-invoice', function () {
+        $(document).on('click', '.view-invoice', function () {
                 const orderId = $(this).data('id');
 
                 $.ajax({

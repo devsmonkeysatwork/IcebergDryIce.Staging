@@ -19,19 +19,41 @@
             <form action="{{ route('payments.update', ['id' => $entry->id]) }}" method="POST" class="card p-5">
                 @csrf
                 <div class="row">
+                    <div class="col-8 px-4 my-3">
+                        <h3 class="form-group-heading m-0"><i class="la la-cart-plus me-2"></i> Order</h3>
+                        <div class="form-group">
+                            <label for="order-number">Order #</label>
+                            <select id="order-number" name="order_number" class="form-control" style="width: 100%" required>
+                                <option value="{{ $entry->order_number }}"
+                                    {{ old('order_number') == $entry->order_number ? 'selected' : '' }}>
+                                    {{ $entry->order_number }}
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-4 px-4 my-3">
+                        <h3 class="form-group-heading m-0"><i class="la la-cart-plus me-2"></i> Order</h3>
+                        <div class="form-group">
+                            <label for="order-type">type</label>
+                            <select id="order-type" name="order_type" class="form-control" style="width: 100%">
+                                <option value="simple">Simple</option>
+                                <option value="recurring" {{$entry->recurring_order_id?'selected':''}}>Recurring</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="col-6 px-4">
                         <h3 class="form-group-heading m-0"><i class="la la-user-circle me-2"></i> Contact</h3>
                         <div class="form-group">
                             <label for="contact-name">Name</label>
                             <input type="text" class="form-control" id="contact-name" name="contact_name"
                                    value="{{ old('contact_name', $entry->contact_name ?? '') }}"
-                                   placeholder="Contact Name" required>
+                                   placeholder="Contact Name" required readonly>
                         </div>
                         <div class="form-group">
                             <label for="contact-email">Email</label>
                             <input type="email" class="form-control" id="contact-email" name="email"
                                    value="{{ old('email', $entry->email ?? '') }}"
-                                   placeholder="Email" required>
+                                   placeholder="Email" required readonly>
                         </div>
                     </div>
 
@@ -41,32 +63,19 @@
                             <label for="description">Description</label>
                             <input type="text" class="form-control" id="description" name="description"
                                    value="{{ old('description', $entry->description ?? '') }}"
-                                   placeholder="Description" required>
+                                   placeholder="Description">
                         </div>
                         <div class="form-group">
                             <label for="amount">Amount</label>
                             <input type="number" class="form-control" id="amount" name="amount"
                                    value="{{ old('amount', $entry->amount ?? 0) }}"
-                                   placeholder="Amount - example 15.75" required>
-                        </div>
-                    </div>
-
-                    <div class="col-6 px-4 my-3">
-                        <h3 class="form-group-heading m-0"><i class="la la-cart-plus me-2"></i> Order</h3>
-                        <div class="form-group">
-                            <label for="order-number">Order #</label>
-                            <select id="order-number" name="order_number" class="form-control" style="width: 100%" required>
-                                    <option value="{{ $entry->order_number }}"
-                                        {{ old('order_number') == $entry->order_number ? 'selected' : '' }}>
-                                        {{ $entry->order_number }}
-                                    </option>
-                            </select>
+                                   placeholder="Amount - example 15.75" required readonly>
                         </div>
                     </div>
 
                 </div>
                 <div class="form-group px-3">
-                    <button type="submit" class="btn btn-primary btn-submission">Update</button>
+                    <button type="submit" class="btn btn-primary btn-submission">Update Manual Payment</button>
                     <button type="button" class="btn btn-secondary btn-submission mx-2" onclick="window.location.href='/admin/manual-payments'">
                         Close
                     </button>
@@ -154,14 +163,15 @@
                     delay: 250,
                     data: function(params) {
                         return {
-                            q: params.term // search term
+                            q: params.term, // search term
+                            order_type: $('#order-type').val()
                         };
                     },
                     processResults: function (data) {
                         return {
                             results: data.map(order => ({
                                 id: order.id,
-                                text: `#${order.id} - ${order.customer_name}`
+                                text: $('#order-type').val() == 'simple' ? `#${order.id} - ${order.customer_name}` :order.text ,
                             }))
                         };
                     },

@@ -241,3 +241,6 @@ td.status {
     max-width: 1328px;
   }
 }
+.w-100{
+    width: 100% !important;
+}

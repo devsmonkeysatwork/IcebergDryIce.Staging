@@ -58,7 +58,7 @@
                     <tr>
                         <td>Province:</td>
                         <td>
-                            <select class="textbox_data" name="province" required>
+                            <select class="textbox_data w-100" name="province" required>
                                 <option value="">-- Select Province --</option>
                                 <option value="BC" {{ old('province') == 'BC' ? 'selected' : '' }}>British Columbia (BC)</option>
                                 <option value="AB" {{ old('province') == 'AB' ? 'selected' : '' }}>Alberta (AB)</option>
