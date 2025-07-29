@@ -42,17 +42,17 @@
 
                     <tr>
                         <td>Address:</td>
-                        <td><input class="textbox_data" type="text" name="address" value="{{ old('address') }}" required></td>
+                        <td><input class="textbox_data" type="text" name="address" value="{{ old('address') }}" pattern="^[a-zA-Z0-9\s\-\#\.\/]+$" title="Address can only contain letters, numbers, spaces, hyphens, hash symbols, periods, and forward slashes" required></td>
                     </tr>
 
                     <tr>
                         <td>City:</td>
-                        <td><input class="textbox_data" type="text" name="city" value="{{ old('city') }}" required></td>
+                        <td><input class="textbox_data" type="text" name="city" value="{{ old('city') }}" pattern="^[a-zA-Z\s\-\.]+$" title="City can only contain letters, spaces, hyphens, and periods" required></td>
                     </tr>
 
                     <tr>
                         <td>Postal Code:</td>
-                        <td><input class="textbox_data" type="text" name="postal_code" value="{{ old('postal_code') }}" required></td>
+                        <td><input class="textbox_data" type="text" name="postal_code" value="{{ old('postal_code') }}" pattern="^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$" title="Please enter a valid Canadian postal code (e.g., K1A 0A6)" required></td>
                     </tr>
 
                     <tr>

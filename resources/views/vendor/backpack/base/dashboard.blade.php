@@ -23,8 +23,8 @@
         </div>
         <div class="card-body">
           <h2 class="title">${{ number_format($totalSalesOnline, 2) }}</h2>
-            <p style="color: rgba(141, 141, 141, 1);">via CC or Online orders</p>
-          <p class="card-text stat"><span>27.9% Up</span> from last year</p>
+{{--            <p style="color: rgba(141, 141, 141, 1);">via CC or Online orders</p>--}}
+          <p class="card-text stat"><span>{{$onlineChange}}% Up</span> from last year</p>
         </div>
       </div>
     </div>
@@ -35,8 +35,8 @@
         </div>
         <div class="card-body">
           <h2 class="title">${{ number_format($totalSalesManual, 2) }}</h2>
-            <p style="color: rgba(141, 141, 141, 1);">via Manual Payments</p>
-            <p class="card-text stat"><span>26.6% Up</span> from last year</p>
+{{--            <p style="color: rgba(141, 141, 141, 1);">via Manual Payments</p>--}}
+            <p class="card-text stat"><span>{{$manualChange}}% Up</span> from last year</p>
         </div>
       </div>
     </div>
@@ -47,7 +47,7 @@
         </div>
         <div class="card-body">
           <h2 class="title">{{ number_format($dryIceUnitSold, 2) }} lbs</h2>
-          <p class="card-text stat"><span>27.0% Up</span> from last year</p>
+          <p class="card-text stat"><span>{{$dryIceChange}}% Up</span> from last year</p>
         </div>
       </div>
     </div>
@@ -58,7 +58,7 @@
         </div>
         <div class="card-body">
           <h2 class="title">{{ $styrofoamBoxUnitSold }} boxes</h2>
-          <p class="card-text stat"><span>17.4% Up</span> from last year</p>
+          <p class="card-text stat"><span>{{$styrofoamChange}}% Up</span> from last year</p>
         </div>
       </div>
     </div>
@@ -90,10 +90,12 @@
               <td>{{ $order->id }}</td>
               <td>{{ $order->customer_name }}</td>
               <!-- <td>{{ $order->address }}</td> -->
-              <td>{{ $order->delivery_date }}</td>
+              <td>{{ \Illuminate\Support\Carbon::parse($order->delivery_date)->format('Y-m-d') }}</td>
               <!-- <td>{{ $order->amount_of_ice }} lbs</td> -->
               <!-- <td>{{ $order->amount_of_boxes }}</td> -->
-              <td class="status">{{ $order->status }}</td>
+              <td>
+                  <p class="status p-3">{{ $order->status }}</p>
+              </td>
               <td>${{ $order->total_cost }}</td>
               <td>{{ $order->origin }}</td>
             </tr>
@@ -126,7 +128,7 @@
             <tr>
 {{--              <td>{{ $order->id }}</td>--}}
               <td>{{ $order->customer_name }}</td>
-              <td>{{ $order->delivery_date }}</td>
+              <td>{{ \Illuminate\Support\Carbon::parse($order->delivery_date)->format('Y-m-d') }}</td>
               <td>{{ $order->amount_of_ice }} lbs</td>
               <td>{{ $order->amount_of_boxes }}</td>
               <td>{{ $order->address }}</td>
@@ -169,12 +171,14 @@
               <td>{{ $order->order_id }}</td>
               <td>{{ $order->order->customer_name }}</td>
               <!-- <td>{{ $order->order->address }}</td> -->
-              <td>{{ $order->scheduled_delivery_date }}</td>
+              <td>{{ \Carbon\Carbon::parse($order->scheduled_delivery_date)->format('Y-m-d') }}</td>
               <!-- <td>{{ $order->order->amount_of_ice }} lbs</td> -->
               <!-- <td>{{ $order->order->amount_of_boxes }}</td> -->
-              <td class="status">{{ $order->status }}</td>
+              <td>
+                <p class="status p-3">{{ $order->status }}</p>
+              </td>
               <td>${{ $order->order->total_cost }}</td>
-              <td><button class="btn btn-primary" onclick="loadRecurringOrderDetails(1,'{{$order->order_id}}','{{$order->id}}')">View</button></td>
+              <td><button class="btn btn-primary btn-view" onclick="loadRecurringOrderDetails(1,'{{$order->order_id}}','{{$order->id}}')">View</button></td>
             </tr>
             @endforeach
           </tbody>

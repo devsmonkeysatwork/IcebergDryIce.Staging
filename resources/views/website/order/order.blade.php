@@ -1207,12 +1207,12 @@
                     body: JSON.stringify(quotePayload)
                 });
 
-                console.log('CSRF Token found:', csrfToken ? 'Yes' : 'No');
-                console.log('Quote response status:', quoteResponse.status);
-                console.log('Quote response headers:', quoteResponse.headers);
+                // console.log('CSRF Token found:', csrfToken ? 'Yes' : 'No');
+                // console.log('Quote response status:', quoteResponse.status);
+                // console.log('Quote response headers:', quoteResponse.headers);
 
                 const responseText = await quoteResponse.text();
-                console.log('Quote response text:', responseText);
+                // console.log('Quote response text:', responseText);
 
                 if (!quoteResponse.ok) {
                     throw new Error(`Quote API returned ${quoteResponse.status}: ${responseText}`);
@@ -1279,7 +1279,7 @@
             })
                 .then(response => response.json())
                 .then(data => {
-                    console.log('Response data:', data);
+                    // console.log('Response data:', data);
 
                     if (data.success) {
                         // Clear saved data on success

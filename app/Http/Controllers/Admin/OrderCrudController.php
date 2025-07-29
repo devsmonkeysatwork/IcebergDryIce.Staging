@@ -444,24 +444,24 @@ class OrderCrudController extends CrudController
                     'total_price' => $totalPrice,
                 ]);
 
-                if ($product && $product->id == 1) {
-                    if ($product->current_stock == 0.0 || $product->current_stock < $amount) {
-                        DB::rollBack();
-                        return response()->json([
-                            'success' => false,
-                            'message' => $product->product_name . ' is out of stock',
-                        ]);
-                    }
-                    $product->decrement('current_stock', $amount);
-
-                    StockMovement::create([
-                        'product_id' => $product->id,
-                        'order_id' => $order->id,
-                        'change_type' => 'out',
-                        'quantity' => $amount,
-                        'description' => 'Order sale (Order ID: ' . $order->id . ')',
-                    ]);
-                }
+//                if ($product && $product->id == 1) {
+//                    if ($product->current_stock == 0.0 || $product->current_stock < $amount) {
+//                        DB::rollBack();
+//                        return response()->json([
+//                            'success' => false,
+//                            'message' => $product->product_name . ' is out of stock',
+//                        ]);
+//                    }
+//                    $product->decrement('current_stock', $amount);
+//
+//                    StockMovement::create([
+//                        'product_id' => $product->id,
+//                        'order_id' => $order->id,
+//                        'change_type' => 'out',
+//                        'quantity' => $amount,
+//                        'description' => 'Order sale (Order ID: ' . $order->id . ')',
+//                    ]);
+//                }
             }
 
             // Step 4: Send confirmation email
