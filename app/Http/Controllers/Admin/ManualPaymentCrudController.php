@@ -38,6 +38,19 @@ class ManualPaymentCrudController extends CrudController
         CRUD::setCreateView('vendor.backpack.base.manual_payments');
     }
 
+
+    public function index()
+    {
+        $this->crud->hasAccessOrFail('list');
+
+        $payments = \App\Models\ManualPayment::all();
+
+        return view('vendor.backpack.crud.manualPayments-list', [
+            'payments' => $payments,
+        ]);
+    }
+
+
     /**
      * Define what happens when the List operation is loaded.
      *
@@ -49,7 +62,7 @@ class ManualPaymentCrudController extends CrudController
         CRUD::setFromDb();
         $this->crud->removeAllButtonsFromStack('line');
         $this->crud->addButtonFromView('line', 'view_button', 'view-button', 'beginning');
-
+//        dd(\App\Models\ManualPayment::all());
         /**
          * Columns can be defined using the fluent syntax:
          * - CRUD::column('price')->type('number');
