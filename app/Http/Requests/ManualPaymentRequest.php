@@ -25,6 +25,7 @@ class ManualPaymentRequest extends FormRequest
             'contact_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'order_number' => 'required|string|max:255',
+            'recurring_order_id' => 'required|string|max:255',
             'description' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0',
         ];

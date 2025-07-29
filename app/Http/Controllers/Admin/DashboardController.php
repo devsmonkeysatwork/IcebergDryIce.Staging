@@ -111,20 +111,22 @@ class DashboardController extends Controller
             });
         $lastOrders = $orders->concat($recurringOrdersData)
             ->sortByDesc('delivery_date')
-            ->take(10)
+            ->take(5)
             ->values();
 
         $ccOrders = $orders->concat($recurringOrdersData)
             ->where('origin', 'online')
             ->sortByDesc('delivery_date')
-            ->take(4)
+            ->take(5)
             ->values();
-//        dd($recurringOrdersData,$ccOrders);
-        $recurringOrders = RecurringOrder::where('status', 'open')
+
+
+
+        $recurringOrders = RecurringOrder::where('status', RecurringOrder::OPEN)
             ->where('scheduled_delivery_date', '>', now())
             ->whereHas('order', function ($query) {
                 $query->where('recurring', 'recurring')
-                    ->where('status', 'valid');
+                    ->whereIn('status', [Order::VALID,Order::COMPLETED]);
             })
             ->with(['order'])
             ->orderBy('scheduled_delivery_date')

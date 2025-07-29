@@ -12,6 +12,8 @@ class ManualPayment extends Model
     use CrudTrait;
     use HasFactory;
 
+    protected $table = 'manual_payments';
+
     protected $fillable = [
         'contact_name',
         'email',

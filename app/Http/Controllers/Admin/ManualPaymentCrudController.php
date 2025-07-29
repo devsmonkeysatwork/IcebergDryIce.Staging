@@ -92,6 +92,7 @@ class ManualPaymentCrudController extends CrudController
             $order->payment_status = 1;
             $order->status = Order::COMPLETED;
             $order->save();
+            Mail::to($order->email ?? $data['email'])->send(new OrderPlacedMail($order));
         }else{
             $id = intval(str_replace("R", "", $data['order_number']));
             $recurringOrder = RecurringOrder::whereId($id)->with('order')->first();
@@ -104,11 +105,8 @@ class ManualPaymentCrudController extends CrudController
             $recurringOrder->recurring_payment_status = 1;
             $recurringOrder->status = RecurringOrder::COMPLETED;
             $recurringOrder->save();
+            Mail::to($recurringOrder->order->email ?? $data['email'])->send(new OrderPlacedMail($recurringOrder->order));
         }
-
-
-
-        Mail::to($recurringOrder->order->email ?? $data['email'])->send(new OrderPlacedMail($recurringOrder->order));
 
         \Alert::success('Manual payment created and order updated.')->flash();
 
