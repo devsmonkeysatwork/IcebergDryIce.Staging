@@ -75,8 +75,51 @@ class DashboardController extends Controller
         $styrofoamChange = $lastYearStyrofoam > 0 ? ((intval($styrofoamBoxUnitSold) - $lastYearStyrofoam) / $lastYearStyrofoam) * 100 : 0;
 
         // Fetch data for tables
-        $lastOrders = Order::latest()->take(10)->get();
-        $ccOrders = Order::where('origin', 'online')->latest()->take(4)->get();
+        // Fetch data for tables
+        $orders = Order::select('id', 'customer_name', 'delivery_date', 'status', 'total_cost','address', 'origin','amount_of_boxes','amount_of_ice')
+            ->get()
+            ->map(function($order) {
+                return [
+                    'id' => $order->id,
+                    'customer_name' => $order->customer_name,
+                    'delivery_date' => $order->delivery_date,
+                    'status' => $order->status,
+                    'amount_of_ice' => $order->amount_of_ice,
+                    'amount_of_boxes' => $order->amount_of_boxes,
+                    'total_cost' => $order->total_cost,
+                    'origin' => $order->origin,
+                    'address' => $order->address,
+                    'type' => 'order'
+                ];
+            });
+
+        $recurringOrdersData = RecurringOrder::with('order')
+            ->get()
+            ->map(function($recurring) {
+                return [
+                    'id' => $recurring->order->id,
+                    'customer_name' => $recurring->order->customer_name,
+                    'delivery_date' => $recurring->scheduled_delivery_date,
+                    'status' => $recurring->status,
+                    'amount_of_ice' => $recurring->order->amount_of_ice,
+                    'amount_of_boxes' => $recurring->order->amount_of_boxes,
+                    'total_cost' => $recurring->order->total_cost,
+                    'origin' => $recurring->order->origin,
+                    'address' => $recurring->order->address,
+                    'type' => 'recurring'
+                ];
+            });
+        $lastOrders = $orders->concat($recurringOrdersData)
+            ->sortByDesc('delivery_date')
+            ->take(10)
+            ->values();
+
+        $ccOrders = $orders->concat($recurringOrdersData)
+            ->where('origin', 'online')
+            ->sortByDesc('delivery_date')
+            ->take(4)
+            ->values();
+//        dd($recurringOrdersData,$ccOrders);
         $recurringOrders = RecurringOrder::where('status', 'open')
             ->where('scheduled_delivery_date', '>', now())
             ->whereHas('order', function ($query) {
@@ -88,6 +131,7 @@ class DashboardController extends Controller
             ->latest()
             ->take(4)
             ->get();
+
 
         return view('vendor.backpack.base.dashboard', compact(
             'totalSalesOnline',

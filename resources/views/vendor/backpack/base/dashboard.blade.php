@@ -86,18 +86,15 @@
           </thead>
           <tbody>
             @foreach($lastOrders as $order)
-            <tr data-href="{{ url('admin/orders/' . $order->id . '/show') }}">
-              <td>{{ $order->id }}</td>
-              <td>{{ $order->customer_name }}</td>
-              <!-- <td>{{ $order->address }}</td> -->
-              <td>{{ \Illuminate\Support\Carbon::parse($order->delivery_date)->format('Y-m-d') }}</td>
-              <!-- <td>{{ $order->amount_of_ice }} lbs</td> -->
-              <!-- <td>{{ $order->amount_of_boxes }}</td> -->
+            <tr data-href="{{ url('admin/orders/' . $order['id'] . '/show') }}">
+              <td>{{ $order['id'] }}</td>
+              <td>{{ $order['customer_name'] }}</td>
+              <td>{{ \Illuminate\Support\Carbon::parse($order['delivery_date'])->format("Y-m-d") }}</td>
               <td>
-                  <p class="status p-3">{{ $order->status }}</p>
+                  <p class="status p-3">{{ $order['status'] }}</p>
               </td>
-              <td>${{ $order->total_cost }}</td>
-              <td>{{ $order->origin }}</td>
+              <td>${{ $order['total_cost'] }}</td>
+              <td>{{ $order['origin'] }}</td>
             </tr>
             @endforeach
           </tbody>
@@ -124,19 +121,17 @@
           </thead>
           <tbody>
             @foreach($ccOrders as $order)
-{{-- data-href="{{ url('admin/orders/' . $order->id . '/show') }}"  --}}
             <tr>
-{{--              <td>{{ $order->id }}</td>--}}
-              <td>{{ $order->customer_name }}</td>
-              <td>{{ \Illuminate\Support\Carbon::parse($order->delivery_date)->format('Y-m-d') }}</td>
-              <td>{{ $order->amount_of_ice }} lbs</td>
-              <td>{{ $order->amount_of_boxes }}</td>
-              <td>{{ $order->address }}</td>
+              <td>{{ $order['customer_name']}}</td>
+              <td>{{ \Illuminate\Support\Carbon::parse($order['delivery_date'])->format('Y-m-d')}}</td>
+              <td>{{ $order['amount_of_ice']}} lbs</td>
+              <td>{{ $order['amount_of_boxes']}}</td>
+              <td>{{ $order['address']}}</td>
                 <td>
                     @php
-                        $dateTime = \Carbon\Carbon::parse($order->delivery_date);
+                        $dateTime = \Carbon\Carbon::parse($order['delivery_date']);
                     @endphp
-                    <button class="btn btn-primary btn-view" data-order-id="{{ $order->id }}">
+                    <button class="btn btn-primary btn-view" data-order-id="{{ $order['id'] }}">
                         View
                     </button>
                 </td>
@@ -854,7 +849,7 @@
             // Update the cost summary section
             document.querySelector('.cost-summary-ice').innerHTML =
                 `<p class="m-0">Dry Ice (${iceAmount} lbs @ $${pricePerLb.toFixed(2)}/lb):</p>
-     <strong>$${iceCost.toFixed(2)}</strong>`;
+            <strong>$${iceCost.toFixed(2)}</strong>`;
 
             document.querySelector('.cost-summary-box').innerHTML =
                 `Styrofoam Box (${boxAmount} @ $${pricePerBox.toFixed(2)}/box):<strong>$${boxCost.toFixed(2)}</strong>`;
