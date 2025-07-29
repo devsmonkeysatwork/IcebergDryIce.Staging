@@ -15,6 +15,46 @@ class DashboardController extends Controller
         $totalSalesManual = Order::where('origin', 'manual')->sum('total_cost');
         $dryIceUnitSold = Order::sum('amount_of_ice');
         $styrofoamBoxUnitSold = Order::sum('amount_of_boxes');
+        // Add recurring orders with completed status
+        $recurringOnlineSales = RecurringOrder::where('status', 'completed')
+            ->whereHas('order', function($query) {
+                $query->where('origin', 'online');
+            })
+            ->with('order')
+            ->get()
+            ->sum(function($recurring) {
+                return $recurring->order->total_cost;
+            });
+
+        $recurringManualSales = RecurringOrder::where('status', 'completed')
+            ->whereHas('order', function($query) {
+                $query->where('origin', 'manual');
+            })
+            ->with('order')
+            ->get()
+            ->sum(function($recurring) {
+                return $recurring->order->total_cost;
+            });
+
+        $recurringDryIce = RecurringOrder::where('status', 'completed')
+            ->with('order')
+            ->get()
+            ->sum(function($recurring) {
+                return $recurring->order->amount_of_ice;
+            });
+
+        $recurringStyrofoam = RecurringOrder::where('status', 'completed')
+            ->with('order')
+            ->get()
+            ->sum(function($recurring) {
+                return $recurring->order->amount_of_boxes;
+            });
+
+        // Add recurring to totals
+        $totalSalesOnline += $recurringOnlineSales;
+        $totalSalesManual += $recurringManualSales;
+        $dryIceUnitSold += $recurringDryIce;
+        $styrofoamBoxUnitSold += $recurringStyrofoam;
 
         // Last year data for stats
         $lastYearOnline = Order::where('origin', 'online')

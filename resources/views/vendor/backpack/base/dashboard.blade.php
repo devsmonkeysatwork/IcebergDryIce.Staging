@@ -178,7 +178,7 @@
                 <p class="status p-3">{{ $order->status }}</p>
               </td>
               <td>${{ $order->order->total_cost }}</td>
-              <td><button class="btn btn-primary btn-view" onclick="loadRecurringOrderDetails(1,'{{$order->order_id}}','{{$order->id}}')">View</button></td>
+              <td><button class="btn btn-primary rounded-5 px-3" onclick="loadRecurringOrderDetails(1,'{{$order->order_id}}','{{$order->id}}')">View</button></td>
             </tr>
             @endforeach
           </tbody>
