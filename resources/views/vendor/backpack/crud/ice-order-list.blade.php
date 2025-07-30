@@ -12,7 +12,7 @@
     <div class="row" bp-section="crud-operation-list">
         <div class="col-md-12 pt-4">
             <a href="{{ route('ice-orders.create') }}" class="btn btn-add btn-primary">
-                <i class="la la-plus mx-2"></i> Add Manual Payment
+                <i class="la la-plus mx-2"></i> Add Ice Order
             </a>
 
             <table class="table table-bordered">
