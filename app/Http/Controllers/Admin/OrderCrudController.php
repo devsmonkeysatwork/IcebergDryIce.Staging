@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Services\ClosestSupplierService;
+use Illuminate\Support\Facades\Validator;
 
 
 class OrderCrudController extends CrudController
@@ -217,8 +218,7 @@ class OrderCrudController extends CrudController
 
     public function ajaxCreate(Request $request)
     {
-        // Validation
-        $validated = $request->validate([
+        $rules = [
             'customer_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'phone' => 'required|string|max:20',
@@ -227,24 +227,46 @@ class OrderCrudController extends CrudController
             'recurring' => 'string|in:recurring,non-recurring',
             'origin' => 'nullable|string|max:100',
             'location_name' => 'nullable|string|max:255',
-            'address' => 'nullable|string|max:255',
-            'unit' => 'nullable|string|max:50',
-            'city' => 'nullable|string|max:100',
-            'postal_code' => 'string|max:20',
-            'province' => 'string|max:50',
-            'country' => 'string|max:100',
             'delivery_date' => 'nullable',
             'delivery_cost' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'status' => 'required|string|in:valid,cancelled,skip',
             'pickup_delivery' => 'required|string|in:pickup,delivery',
-            'supplier_id' => 'nullable|numeric|min:0'
-        ]);
+            'supplier_id' => 'nullable|numeric|min:0',
+            'hazmat' => 'nullable|numeric|min:0',
+        ];
+
+        // Conditional address fields
+        if ($request->pickup_delivery === 'delivery') {
+            $rules = array_merge($rules, [
+                'address' => 'required|string|max:255',
+                'unit' => 'nullable|string|max:50',
+                'city' => 'required|string|max:100',
+                'postal_code' => 'required|string|max:20',
+                'province' => 'required|string|max:50',
+                'country' => 'required|string|max:100',
+            ]);
+        }
+
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $validated = $validator->validated();
 
         try {
             DB::beginTransaction();
             // Handle customer lookup or creation
-            $customer = $this->handleCustomerData($request);
+            if($request->pickup_delivery === 'delivery'){
+                $customer = $this->handleCustomerData($request);
+            }else{
+                $customer = Customer::whereEmail($request->email)->first();
+            }
 
             // Calculate costs server-side
             $iceCost = ($validated['amount_of_ice'] ?? 0) * 1.95;
@@ -643,45 +665,64 @@ class OrderCrudController extends CrudController
             $order = Order::findOrFail($id);
 
             // Validate the request data
-            $validatedData = $request->validate([
+            $rules = [
                 'customer_name' => 'required|string|max:255',
                 'email' => 'required|email|max:255',
-                'phone' => 'nullable|string|max:20',
+                'phone' => 'required|string|max:20',
                 'amount_of_ice' => 'nullable|numeric|min:0',
                 'amount_of_boxes' => 'nullable|numeric|min:0',
-                'recurring' => 'nullable|string|in:recurring,non-recurring',
+                'recurring' => 'string|in:recurring,non-recurring',
                 'origin' => 'nullable|string|max:100',
                 'location_name' => 'nullable|string|max:255',
-                'address' => 'string|max:255',
-                'unit' =>  'nullable|string|max:50',
-                'city' => 'string|max:100',
-                'postal_code' => 'string|max:20',
-                'province' => 'nullable|string|max:50',
-                'country' => 'nullable|string|max:100',
-                'delivery_date' => 'nullable|date',
+                'delivery_date' => 'nullable',
+                'delivery_cost' => 'nullable|numeric|min:0',
                 'notes' => 'nullable|string',
-                'delivery_cost' => 'nullable|numeric',
                 'status' => 'required|string|in:valid,cancelled,skip',
-                'pickup_delivery' => 'required|string|in:pickup,delivery'
-            ]);
+                'pickup_delivery' => 'required|string|in:pickup,delivery',
+                'supplier_id' => 'nullable|numeric|min:0',
+                'hazmat' => 'nullable|numeric|min:0',
+            ];
+
+            // Conditional address fields
+            if ($request->pickup_delivery === 'delivery') {
+                $rules = array_merge($rules, [
+                    'address' => 'required|string|max:255',
+                    'unit' => 'nullable|string|max:50',
+                    'city' => 'required|string|max:100',
+                    'postal_code' => 'required|string|max:20',
+                    'province' => 'required|string|max:50',
+                    'country' => 'required|string|max:100',
+                ]);
+            }
+
+            $validator = Validator::make($request->all(), $rules);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $validatedData = $validator->validated();
 
             DB::beginTransaction();
 
             // Handle customer creation/update
-            if (isset($validatedData['email']) && isset($validatedData['customer_name'])) {
-                $customer = Customer::updateOrCreate(
-                    ['email' => $validatedData['email']],
-                    [
-                        'name' => $validatedData['customer_name'],
-                        'phone' => $validatedData['phone'] ?? null,
-                        'address' => $validatedData['address'] ?? null,
-                        'city' => $validatedData['city'] ?? null,
-                        'postal_code' => $validatedData['postal_code'] ?? null,
-                        'province' => $validatedData['province'] ?? null,
-                        'country' => $validatedData['country'] ?? null
-                    ]
-                );
-            }
+//            if (isset($validatedData['email']) && isset($validatedData['customer_name'])) {
+//                $customer = Customer::updateOrCreate(
+//                    ['email' => $validatedData['email']],
+//                    [
+//                        'name' => $validatedData['customer_name'],
+//                        'phone' => $validatedData['phone'] ?? null,
+//                        'address' => $validatedData['address'] ?? null,
+//                        'city' => $validatedData['city'] ?? null,
+//                        'postal_code' => $validatedData['postal_code'] ?? null,
+//                        'province' => $validatedData['province'] ?? null,
+//                        'country' => $validatedData['country'] ?? null
+//                    ]
+//                );
+//            }
 
             // Calculate costs server-side
 
@@ -983,6 +1024,7 @@ class OrderCrudController extends CrudController
             'sub_total' => 0,
             'tax' => 0,
             'total_cost' => 0,
+            'hazmat' => 12,
             'novex_pushed' => false
         ];
 

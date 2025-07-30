@@ -834,17 +834,19 @@
             const boxAmount = parseFloat(document.getElementById('modal-box-amount').value) || 0;
             const pickupDelivery = document.getElementById('modal-pickup-or-delivery').value;
             const deliveryCost = document.getElementById('modal-delivery-cost').value;
+            const hazmatCost = document.getElementById('modal-hazmat-cost').value;
 
             const pricePerLb = 1.95;
             const pricePerBox = 30.00;
             const deliveryFee = pickupDelivery === 'delivery' ? parseFloat(deliveryCost) : 0.00; // Fix this line
+            const hazmatFee = parseFloat(hazmatCost);
 
             const iceCost = iceAmount * pricePerLb;
             const boxCost = boxAmount * pricePerBox;
             const subTotal = iceCost + boxCost;
             const taxRate = 0.15;
             const tax = subTotal * taxRate;
-            const total = subTotal + tax + deliveryFee;
+            const total = subTotal + tax + deliveryFee + hazmatFee;
 
             // Update the cost summary section
             document.querySelector('.cost-summary-ice').innerHTML =
@@ -857,6 +859,9 @@
             document.querySelector('.cost-summary-delivery').innerHTML =
                 `Pickup/Delivery:<strong>$${deliveryFee.toFixed(2)}</strong>`;
 
+            document.querySelector('.cost-summary-hazmat').innerHTML =
+                `Hazmat:<strong>$${hazmatFee.toFixed(2)}</strong>`;
+
             document.querySelector('.cost-summary-subtotal').innerHTML =
                 `Sub-Total:<strong>$${subTotal.toFixed(2)}</strong>`;
 
@@ -865,6 +870,16 @@
 
             document.querySelector('.cost-summary-total').innerHTML =
                 `TOTAL:<strong>$${total.toFixed(2)}</strong>`;
+
+            toggleAddressFields();
+        }
+        function toggleAddressFields() {
+            const deliveryType = document.getElementById('modal-pickup-or-delivery').value;
+            const addressFields = document.querySelectorAll('.address-field');
+
+            addressFields.forEach(field => {
+                field.style.display = deliveryType === 'pickup' ? 'none' : 'block';
+            });
         }
 
         function addCostCalculationListeners() {
@@ -895,26 +910,30 @@
 
         // Form validation
         function validateForm() {
+            const pickupOrDelivery = document.getElementById('modal-pickup-or-delivery').value;
+
             const requiredFields = [
-                { id: 'modal-customer-name', label: 'Customer Name' },
-                { id: 'modal-customer-email', label: 'Customer Email' },
-                { id: 'modal-customer-phone', label: 'Customer Phone' },
-                { id: 'modal-ice-amount', label: 'Amount of Ice' },
-                { id: 'modal-recurring', label: 'Recurring Option' },
-                { id: 'modal-location-name', label: 'Location Name' },
-                { id: 'modal-address', label: 'Address' },
-                { id: 'modal-city', label: 'City' },
-                { id: 'modal-postal', label: 'Postal Code' },
-                { id: 'modal-province', label: 'Province' },
-                { id: 'modal-delivery-date', label: 'Delivery Date' },
-                { id: 'modal-pickup-or-delivery', label: 'Pickup or Delivery' }
+                {id: 'modal-customer-name', label: 'Customer Name'},
+                {id: 'modal-customer-email', label: 'Customer Email'},
+                {id: 'modal-customer-phone', label: 'Customer Phone'},
+                {id: 'modal-ice-amount', label: 'Amount of Ice'},
+                {id: 'modal-recurring', label: 'Recurring Option'},
+                {id: 'modal-location-name', label: 'Location Name'},
+                {id: 'modal-address', label: 'Address', dependsOnDelivery: true},
+                {id: 'modal-city', label: 'City', dependsOnDelivery: true},
+                {id: 'modal-postal', label: 'Postal Code', dependsOnDelivery: true},
+                {id: 'modal-province', label: 'Province', dependsOnDelivery: true},
+                {id: 'modal-delivery-date', label: 'Delivery Date'},
+                {id: 'modal-pickup-or-delivery', label: 'Pickup or Delivery'}
             ];
 
             let isValid = true;
             let firstInvalidField = null;
             let missingFields = [];
 
-            requiredFields.forEach(({ id, label }) => {
+            requiredFields.forEach(({id, label, dependsOnDelivery}) => {
+                if (dependsOnDelivery && pickupOrDelivery === 'pickup') return; // skip validation
+
                 const field = document.getElementById(id);
                 field.classList.remove('is-invalid');
 
@@ -931,7 +950,6 @@
                     missingFields.push(label);
                 }
 
-                // Special validation for ice amount > 0
                 if (id === 'modal-ice-amount' && parseFloat(fieldValue) <= 0) {
                     field.classList.add('is-invalid');
                     isValid = false;
@@ -945,7 +963,6 @@
             // Email format validation
             const emailField = document.getElementById('modal-customer-email');
             let emailValue = emailField.value;
-
             if ($('#modal-customer-email').hasClass('select2-hidden-accessible')) {
                 emailValue = $('#modal-customer-email').val();
             }
@@ -1183,11 +1200,12 @@
             if (amount !== null) {
                 const dryIceText = document.querySelector('.cost-summary-ice strong').textContent.replace('$', '') || 0;
                 const boxText = document.querySelector('.cost-summary-box strong').textContent.replace('$', '') || 0;
+                const hazmatText = document.querySelector('.cost-summary-hazmat strong').textContent.replace('$', '') || 0;
                 const delivery = amount;
 
                 const subtotal = parseFloat(dryIceText) + parseFloat(boxText);
                 const tax = subtotal * 0.15;
-                const total = subtotal + tax + delivery;
+                const total = subtotal + tax + delivery + parseFloat(hazmatText);
 
                 document.querySelector('.cost-summary-subtotal strong').textContent = `$${subtotal.toFixed(2)}`;
                 document.querySelector('.cost-summary-tax strong').textContent = `$${tax.toFixed(2)}`;

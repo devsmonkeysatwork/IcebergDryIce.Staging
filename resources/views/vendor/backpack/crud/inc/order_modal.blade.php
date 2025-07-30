@@ -44,12 +44,12 @@
 
             <div class="mb-2">
                 <label class="form-label">Amount of Ice (lbs) <span class="text-danger">*</span></label>
-                <input id="modal-ice-amount" class="form-control" name="amount_of_ice" type="number" min="0" step="0.1" value="{{ $defaultValues['ice_amount'] }}" required>
+                <input id="modal-ice-amount" class="form-control" name="amount_of_ice" type="number" min="0" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" step="0.1" value="{{ $defaultValues['ice_amount'] }}" required>
             </div>
 
             <div class="mb-2">
                 <label class="form-label">Amount of Boxes</label>
-                <input id="modal-box-amount" class="form-control" name="amount_of_boxes" type="number" min="0" step="1" value="{{ $defaultValues['box_amount'] }}">
+                <input id="modal-box-amount" class="form-control" name="amount_of_boxes" type="number" min="0" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" step="1" value="{{ $defaultValues['box_amount'] }}">
             </div>
 
             <div class="mb-2">
@@ -72,7 +72,7 @@
             </div>
 
             <div class="row mb-2">
-                <div class="col-8">
+                <div class="col-8 address-field">
                     <label class="form-label">Address <span class="text-danger">*</span></label>
                     <input id="modal-address" class="form-control" name="address" value="{{ $defaultValues['address'] }}" required>
                 </div>
@@ -83,15 +83,15 @@
             </div>
 
             <div class="row mb-2">
-                <div class="col-md-3">
+                <div class="col-md-3 address-field">
                     <label class="form-label">City <span class="text-danger">*</span></label>
                     <input id="modal-city" type="text" name="city" class="form-control" value="{{ $defaultValues['city'] }}" required>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-3 address-field">
                     <label class="form-label">Postal <span class="text-danger">*</span></label>
                     <input id="modal-postal" type="text" name="postal_code" class="form-control" value="{{ $defaultValues['postal_code'] }}" required>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-3 address-field">
                     <label class="form-label">Province <span class="text-danger">*</span></label>
                     <select id="modal-province" name="province" class="form-select" required>
                         <option value="">Select...</option>
@@ -99,7 +99,7 @@
                         <option value="AB" {{ $defaultValues['province'] === 'AB' ? 'selected' : '' }}>AB</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-3 address-field">
                     <label class="form-label">Country</label>
                     <input id="modal-country" name="country" class="form-control" value="{{ $defaultValues['country'] }}" readonly>
                 </div>
@@ -167,6 +167,15 @@
                         </span>
                     </p>
                     <input id="modal-delivery-cost" name="delivery_cost" type="hidden" value="{{ $defaultValues['delivery_cost']??0 }}">
+                </div>
+                <div class="m-1">
+                    <p class="m-0 d-flex justify-content-between align-items-center cost-summary-hazmat">
+                        hazmat:
+                        <span class="d-flex align-items-center">
+                            <strong class="me-2">${{ number_format($defaultValues['hazmat'], 2) }}</strong>
+                        </span>
+                    </p>
+                    <input id="modal-hazmat-cost" name="hazmat" type="hidden" value="{{ $defaultValues['hazmat']??0 }}">
                 </div>
                 <hr>
                 <div class=" m-1">
