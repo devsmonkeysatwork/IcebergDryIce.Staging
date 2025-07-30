@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Requests\IceOrderRequest;
+use App\Models\IceOrder;
 use App\Models\Product;
 use App\Models\StockMovement;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
@@ -29,7 +30,14 @@ class IceOrdersCrudController extends CrudController
     CRUD::setEntityNameStrings('ice order', 'ice orders');
     CRUD::setCreateView('vendor.backpack.crud.ice-order-create');
   }
+    public function index()
+    {
+        $iceOrders = IceOrder::all(); // Or use pagination: ->paginate(15)
 
+        return view('vendor.backpack.crud.ice-order-list', [
+            'iceOrders' => $iceOrders,
+        ]);
+    }
   protected function setupListOperation()
   {
     CRUD::column('date');
