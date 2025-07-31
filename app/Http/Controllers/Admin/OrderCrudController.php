@@ -272,6 +272,7 @@ class OrderCrudController extends CrudController
             $iceCost = ($validated['amount_of_ice'] ?? 0) * 1.95;
             $boxCost = ($validated['amount_of_boxes'] ?? 0) * 30.00;
             $delivery_cost = $validated['delivery_cost'];
+            $hazmat_cost = $validated['hazmat'];
 //            $deliveryFee = ($validated['pickup_delivery'] === 'delivery') ? NULL : 0.00;
             $subtotal = $iceCost + $boxCost;
             $tax = $subtotal * 0.15;
@@ -280,7 +281,7 @@ class OrderCrudController extends CrudController
             // Add calculated fields
             $validated['sub_total'] = $subtotal;
             $validated['tax'] = $tax;
-            $validated['total_cost'] = $subtotal + $tax + floatval($delivery_cost);
+            $validated['total_cost'] = $subtotal + $tax + floatval($delivery_cost)+ floatval($hazmat_cost);
 //            $validated['delivery_cost'] = $deliveryFee;
             $validated['customer_id'] = $customer->id;
             $validated['origin'] = 'manual';
@@ -409,7 +410,6 @@ class OrderCrudController extends CrudController
         try {
             // Step 1: Handle customer
             $customer = $this->handleCustomerData($request);
-
             // Step 2: Create the order
             $order = Order::create([
                 'customer_id' => $customer->id,
@@ -426,7 +426,7 @@ class OrderCrudController extends CrudController
                 'postal_code' => $validated['postal_code'],
                 'province' => $validated['province'],
                 'country' => $validated['country'] ?? 'Canada',
-                'delivery_date' => $validated['delivery_date'],
+                'delivery_date' => Carbon::parse($validated['delivery_date'])->setTimeFrom(Carbon::now())->format('Y-m-d H:i:s'),
                 'notes' => $validated['notes'],
                 'status' => $validated['status'] ?? 'valid',
                 'pickup_delivery' => $validated['pickup_delivery'],
@@ -438,7 +438,6 @@ class OrderCrudController extends CrudController
                 'origin' => 'online',
                 'hazmat' => $validated['hazmat'],
             ]);
-
             // Step 3: Process items
             foreach ($validated['items'] as $item) {
                 $amount = $item['amount_of_items'];
@@ -729,13 +728,14 @@ class OrderCrudController extends CrudController
             $iceCost = ($validatedData['amount_of_ice'] ?? 0) * 1.95;
             $boxCost = ($validatedData['amount_of_boxes'] ?? 0) * 30.00;
             $delivery_cost = $validatedData['delivery_cost'];
+            $hazmat_cost = $validatedData['hazmat'];
             $subtotal = $iceCost + $boxCost;
             $tax = $subtotal * 0.15;
 
             // Add calculated fields
             $validatedData['sub_total'] = $subtotal;
             $validatedData['tax'] = $tax;
-            $validatedData['total_cost'] = $subtotal + $tax + floatval($delivery_cost);
+            $validatedData['total_cost'] = $subtotal + $tax + floatval($delivery_cost) + floatval($hazmat_cost);
 
             // ICE
             $product = Product::find(1);

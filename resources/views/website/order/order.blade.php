@@ -1,9 +1,14 @@
 @extends('website.layouts.main')
-
 <script>
-    window.isLoggedIn = @json(Auth::guard('customer')->check());
-    window.customerData = @json(Auth::guard('customer')->user());
+    window.isLoggedIn = @json(Auth::guard('web')->check() || Auth::guard('customer')->check());
+
+    window.customerData = @json(
+        Auth::guard('web')->check()
+            ? Auth::guard('web')->user()
+            : (Auth::guard('customer')->check() ? Auth::guard('customer')->user() : null)
+    );
 </script>
+
 
 
 @section('content')
@@ -1188,13 +1193,8 @@
                     weight: formData.iceAmount
                 };
 
-                console.log('Quote payload being sent:', quotePayload);
-
-
+                // console.log('Quote payload being sent:', quotePayload);
                 const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-
-
-                console.log('CSRF:', csrfToken);
 
 
                 const quoteResponse = await fetch('/get-delivery-quote', {
@@ -1227,7 +1227,7 @@
                 }
 
                 if (quoteData.success && quoteData.total) {
-                    console.log('Quote successful for review, total:', quoteData.total);
+                    // console.log('Quote successful for review, total:', quoteData.total);
                     return parseFloat(quoteData.total);
                 } else {
                     throw new Error(quoteData.error || 'Quote failed');
