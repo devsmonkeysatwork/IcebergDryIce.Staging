@@ -185,15 +185,6 @@
                     </p>
                     <input id="modal-sub-total" name="sub_total" type="hidden" value="{{ $defaultValues['sub_total'] }}">
                 </div>
-                @if($defaultValues['origin'] == 'online')
-                    <div class="m-1">
-                        <p class="m-0 d-flex justify-content-between align-items-center cost-summary-tax">
-                            Hazmat Fee:
-                            <strong>${{ number_format($defaultValues['hazmat'], 2) }}</strong>
-                        </p>
-                        <input id="modal-tax" name="tax" type="hidden" value="{{ $defaultValues['tax'] }}">
-                    </div>
-                @endif
                 <div class="m-1">
                     <p class="m-0 d-flex justify-content-between align-items-center cost-summary-tax">
                         Tax (15%):
