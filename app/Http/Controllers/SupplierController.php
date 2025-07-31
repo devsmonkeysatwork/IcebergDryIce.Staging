@@ -34,7 +34,7 @@ class SupplierController extends Controller
         );
 
         if (!$closest) {
-            return response()->json(['message' => 'No supplier found'], 404);
+            return response()->json(['message' => 'No supplier found'], 200);
         }
 
         return response()->json([
@@ -89,19 +89,20 @@ class SupplierController extends Controller
                 $delivery
             );
 
-            if ($quoteAmount === -1) {
+            if (isset($quoteAmount['error'])) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Unable to calculate delivery quote at this time'
-                ], 400);
+                    'error' => 'Unable to calculate delivery quote at this time',
+                    'data' => $quoteAmount['error'],
+                ], 200);
             }
 
             return response()->json([
                 'success' => true,
                 'quote' => [
-                    'total' => round($quoteAmount, 2)
+                    'total' => round($quoteAmount['amount'], 2)
                 ],
-                'total' => round($quoteAmount, 2),
+                'total' => round($quoteAmount['amount'], 2),
                 'supplier' => [
                     'id' => $supplierLocation->id,
                     'name' => $supplierLocation->name,
@@ -198,14 +199,14 @@ class SupplierController extends Controller
                 // Add 25% markup
                 $totalAmount += ($totalAmount * 0.25);
 
-                return $totalAmount;
+                return ['amount' => $totalAmount];
             } else {
                 Log::error('Novex API error', [
                     'status' => $response->status(),
                     'response' => $response->body(),
                     'request' => $orderDetails
                 ]);
-                return -1;
+                return $response->json();
             }
         } catch (\Exception $e) {
             Log::error('Novex API exception: ' . $e->getMessage(), [

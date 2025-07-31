@@ -1219,8 +1219,23 @@
         }
 
         function tryGetDeliveryQuote() {
-            // Get form values
-            const formData = {
+            const formData = getFormData();
+
+            if (!validateRequiredFields(formData)) {
+                updateDeliveryCostSummary(null);
+                return;
+            }
+
+            showLoadingState();
+
+            getClosestSupplier(formData)
+                .then(supplier => getDeliveryQuote(supplier, formData))
+                .then(handleQuoteResponse)
+                .catch(handleError);
+        }
+
+        function getFormData() {
+            return {
                 address: getInput('modal-address'),
                 city: getInput('modal-city'),
                 province: getInput('modal-province'),
@@ -1232,108 +1247,124 @@
                 locationName: getInput('modal-location-name'),
                 unit: getInput('modal-unit') || ''
             };
+        }
 
-            // Check required address fields for delivery calculation
-            const requiredAddressFields = [formData.address, formData.city, formData.province, formData.postal];
-            if (!requiredAddressFields.every(val => val && val.trim())) {
+        function validateRequiredFields(formData) {
+            const requiredFields = [formData.address, formData.city, formData.province, formData.postal];
+            const isValid = requiredFields.every(val => val && val.trim());
+
+            if (!isValid) {
                 console.log('Missing required address fields for delivery calculation');
-                updateDeliveryCostSummary(null);
-                return;
             }
 
-            // Show loading
+            return isValid;
+        }
+
+        function showLoadingState() {
             const deliveryCostElement = document.querySelector('.cost-summary-delivery strong');
             if (deliveryCostElement) {
                 deliveryCostElement.textContent = 'Calculating...';
             }
+        }
 
-            console.log('Starting delivery quote request...');
+        function getClosestSupplier(formData) {
+            const url = `/test-closest-supplier?street=${encodeURIComponent(formData.address)}&city=${encodeURIComponent(formData.city)}&province=${encodeURIComponent(formData.province)}`;
 
-            // Get closest supplier first
-            fetch(`/test-closest-supplier?street=${encodeURIComponent(formData.address)}&city=${encodeURIComponent(formData.city)}&province=${encodeURIComponent(formData.province)}`)
+            return fetch(url)
                 .then(response => {
-                    console.log('Supplier response status:', response.status);
                     if (!response.ok) {
                         throw new Error(`Supplier API returned ${response.status}`);
                     }
                     return response.json();
                 })
                 .then(data => {
-                    // Extract supplier from response
                     if (!data.closest_supplier || !data.closest_supplier.id) {
                         throw new Error('No supplier found in response');
                     }
 
                     const supplier = data.closest_supplier;
-                    if($('#supplier_id').length){
+
+                    if($('#supplier_id').length) {
                         $('#supplier_id').val(supplier.id);
                     }
-                    // Get delivery quote
-                    const quotePayload = {
-                        supplier_id: supplier.id,
-                        delivery: {
-                            name: formData.locationName.trim() || 'N/A',
-                            street: formData.address.trim(),
-                            unit: formData.unit.trim() || '', // Ensure it's always a string
-                            city: formData.city.trim(),
-                            province: formData.province.trim(),
-                            postal_code: formData.postal.trim(),
-                            contact: formData.name.trim() || 'N/A',
-                            phone: formData.phone.trim() || 'N/A',
-                            email: formData.email.trim() || 'N/A'
-                        },
-                        weight: formData.iceAmount
-                    };
 
-                    console.log('Quote payload:', quotePayload);
-
-                    return fetch('/get-delivery-quote', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify(quotePayload)
-                    });
-                })
-                .then(response => {
-                    console.log('Quote response status:', response.status);
-
-                    // Add response text logging for debugging
-                    return response.text().then(text => {
-                        console.log('Quote response text:', text);
-
-                        if (!response.ok) {
-                            throw new Error(`Quote API returned ${response.status}: ${text}`);
-                        }
-
-                        try {
-                            return JSON.parse(text);
-                        } catch (e) {
-                            console.error('Failed to parse JSON:', e);
-                            throw new Error('Invalid JSON response from quote API');
-                        }
-                    });
-                })
-                .then(data => {
-                    console.log('Quote data received:', data);
-
-                    if (data.success && data.total) {
-                        console.log('Quote successful, total:', data.total);
-                        updateDeliveryCostSummary(data.total);
-                        showSuccess(deliveryCostElement);
-                    } else {
-                        console.error('Quote unsuccessful:', data);
-                        throw new Error(data.error || 'Quote failed');
-                    }
-                })
-                .catch(error => {
-                    console.error('Full error details:', error);
-                    console.error('Error message:', error.message);
-                    updateDeliveryCostSummary(null); // Set to null on error
-                    showError(deliveryCostElement);
+                    return supplier;
                 });
+        }
+
+        function getDeliveryQuote(supplier, formData) {
+            const quotePayload = {
+                supplier_id: supplier.id,
+                delivery: {
+                    name: formData.locationName.trim() || 'N/A',
+                    street: formData.address.trim(),
+                    unit: formData.unit.trim() || '',
+                    city: formData.city.trim(),
+                    province: formData.province.trim(),
+                    postal_code: formData.postal.trim(),
+                    contact: formData.name.trim() || 'N/A',
+                    phone: formData.phone.trim() || 'N/A',
+                    email: formData.email.trim() || 'N/A'
+                },
+                weight: formData.iceAmount
+            };
+
+            return fetch('/get-delivery-quote', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(quotePayload)
+            }).then(response => response.json());
+        }
+
+        function handleQuoteResponse(data) {
+            const deliveryCostElement = document.querySelector('.cost-summary-delivery strong');
+
+            if (data.success && data.total) {
+                console.log('Quote successful, total:', data.total);
+                updateDeliveryCostSummary(data.total);
+                showSuccess(deliveryCostElement);
+            } else {
+                const errorMessages = extractErrorMessages(data);
+                throw new Error(errorMessages);
+            }
+        }
+
+        function extractErrorMessages(data) {
+            if (!data?.data?.problems) {
+                return 'Quote failed';
+            }
+            const problems = data.data.problems;
+            const extractMessages = (problems) => {
+                let messages = [];
+                problems.forEach(problem => {
+                    if (problem.message) messages.push(problem.message);
+                    if (problem.problems) {
+                        messages = messages.concat(extractMessages(problem.problems));
+                    }
+                });
+                return messages;
+            };
+
+            return extractMessages(data.data.problems).join('\n');
+        }
+
+        function handleError(error) {
+            console.error('Delivery quote error:', error);
+
+            const deliveryCostElement = document.querySelector('.cost-summary-delivery strong');
+            updateDeliveryCostSummary(null);
+            showError(deliveryCostElement);
+
+            Swal.fire({
+                icon: 'error',
+                title: 'Delivery Quote Error',
+                text: error.message || 'Failed to get delivery quote',
+                confirmButtonText: 'OK'
+            });
         }
 
         function showSuccess(element) {
