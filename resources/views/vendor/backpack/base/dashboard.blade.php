@@ -560,6 +560,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <!-- SweetAlert2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{config('services.google.api_key')}}&libraries=places"></script>
 <script>
     // Replace the existing JavaScript section in your blade template with this:
 
@@ -1218,10 +1219,11 @@
             }
         }
 
-        function tryGetDeliveryQuote() {
+        async function tryGetDeliveryQuote() {
             const formData = getFormData();
 
-            if (!validateRequiredFields(formData)) {
+            let addressVerified = await validateAddressFields(formData);
+            if (!addressVerified || !validateRequiredFields(formData)) {
                 updateDeliveryCostSummary(null);
                 return;
             }
@@ -1381,7 +1383,38 @@
             }
         }
 
+        async function validateAddressFields(formData) {
+            const apiKey = "{{config('services.google.address_api_key')}}";
+            const response = await fetch(`https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    address: {
+                        regionCode: "CA", // For Canada
+                        addressLines: [formData.address],
+                        locality: formData.city,
+                        administrativeArea: formData.province,
+                        postalCode: formData.postal
+                    }
+                })
+            });
 
+            const result = await response.json();
+            if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {
+                Swal.fire({
+                    title: 'Address Validation',
+                    html: `Address could not be confirmed. Please provide proper address. <br>Street Address, City, Province, Postal`,
+                    icon: 'warning',
+                    showCancelButton: false,
+                    confirmButtonColor: '#d33',
+                });
+                return false;
+            } else {
+                return true;
+            }
+        }
 
         document.addEventListener('change', function(e) {
             if (e.target.classList.contains('btn-view')) {
