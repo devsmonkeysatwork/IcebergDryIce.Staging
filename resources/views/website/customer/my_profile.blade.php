@@ -35,7 +35,7 @@
                     @endif
 
                     {{-- Profile Information Form --}}
-                    <form method="post" class="card" action="{{ route('customer.profile.update') }}">
+                    <form method="post" class="card" id="customer_details_form" action="{{ route('customer.profile.update') }}">
                         @csrf
                         @method('PUT')
 
@@ -98,7 +98,7 @@
                                 </div>
 
                                 <div class="mt-4">
-                                    <button class="btn-primary btn-submission btn" type="submit">
+                                    <button class="btn-primary btn-submission btn" id="update-info-btn" type="submit">
                                         <i class="la la-save me-2"></i> Update Profile
                                     </button>
                                     <a href="{{ route('customer.orders') }}" class="btn btn-secondary btn-submission mx-2">
@@ -280,12 +280,60 @@
             }
         </style>
 
-    @endsection
 
-    @section('scripts')
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
         <script>
+
+            async function validateAddress(addressObj) {
+                const apiKey = "{{config('services.google.address_api_key')}}";
+                const response = await fetch(`https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        address: {
+                            regionCode: "CA", // For Canada
+                            addressLines: [addressObj.address],
+                            locality: addressObj.city,
+                            administrativeArea: addressObj.province,
+                            postalCode: addressObj.postal
+                        }
+                    })
+                });
+
+                const data = await response.json();
+                return data;
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelector(".btn-submission").addEventListener("click", async function (e) {
+                    e.preventDefault();
+                    const address = document.getElementById("address").value.trim();
+                    const city = document.getElementById("city").value.trim();
+                    const province = document.getElementById("province").value.trim();
+                    const postal = document.getElementById("postal_code").value.trim();
+
+                    const result = await validateAddress({ address, city, province, postal });
+                    console.log(result);
+                    // Check if address is invalid
+                    if (result.result.verdict.possibleNextAction === "FIX") {
+                        const suggestions = result.result.address.formattedAddress;
+
+                        Swal.fire({
+                            title: 'Address Validation',
+                            html: `Address could not be confirmed. Please provide proper address. <br>Street Address, City, Province, Postal`,
+                            icon: 'warning',
+                            showCancelButton: false,
+                            confirmButtonColor: '#d33',
+                        });
+                    } else {
+                        document.querySelector("#customer_details_form").submit();
+                    }
+                });
+            });
+
             function clearPasswordForm() {
                 document.getElementById('current_password').value = '';
                 document.getElementById('new_password').value = '';

@@ -1185,7 +1185,7 @@
                 });
 
                 const result = await response.json();
-                if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {
+                if (result.result.verdict.possibleNextAction === "FIX") {
                     Swal.fire({
                         title: 'Address Validation',
                         html: `Address could not be confirmed. Please provide proper address. <br>Street Address, City, Province, Postal`,

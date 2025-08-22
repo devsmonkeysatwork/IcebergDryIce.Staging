@@ -841,7 +841,7 @@
                     });
 
                     // Check if address is invalid according to Google API
-                    if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {
+                    if (result.result.verdict.possibleNextAction === "FIX") {
                         error_msg = 'Address could not be confirmed by validation service. Please verify your address details.';
 
                         // Show SweetAlert warning

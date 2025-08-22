@@ -181,6 +181,7 @@
         const data = await response.json();
         return data;
     }
+
     document.addEventListener('DOMContentLoaded', function() {
         document.querySelector(".btn-submission").addEventListener("click", async function (e) {
             e.preventDefault();
@@ -192,7 +193,7 @@
             const result = await validateAddress({ address, city, province, postal });
             console.log(result);
             // Check if address is invalid
-            if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {
+            if (result.result.verdict.possibleNextAction === "FIX") {
                 const suggestions = result.result.address.formattedAddress;
 
                 Swal.fire({
