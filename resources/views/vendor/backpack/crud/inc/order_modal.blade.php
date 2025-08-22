@@ -43,7 +43,7 @@
             </div>
 
             <div class="mb-2">
-                <label class="form-label">Amount of Ice (lbs) <span class="text-danger">*</span></label>
+                <label class="form-label">Amount of Ice (lbs)</label>
                 <input id="modal-ice-amount" class="form-control" name="amount_of_ice" type="number" min="0" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" step="0.1" value="{{ $defaultValues['ice_amount'] }}" required>
             </div>
 

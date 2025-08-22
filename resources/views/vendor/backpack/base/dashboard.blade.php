@@ -917,7 +917,6 @@
                 {id: 'modal-customer-name', label: 'Customer Name'},
                 {id: 'modal-customer-email', label: 'Customer Email'},
                 {id: 'modal-customer-phone', label: 'Customer Phone'},
-                {id: 'modal-ice-amount', label: 'Amount of Ice'},
                 {id: 'modal-recurring', label: 'Recurring Option'},
                 {id: 'modal-location-name', label: 'Location Name'},
                 {id: 'modal-address', label: 'Address', dependsOnDelivery: true},
@@ -1508,29 +1507,7 @@
 
 
 
-    // Initialize Select2 for customer search
-    $(document).ready(function() {
-        $('#customer_id').select2({
-            placeholder: 'Search by Customer ID or Name',
-            minimumInputLength: 1,
-            ajax: {
-                url: '{{ route("ajax.customers") }}',
-                dataType: 'json',
-                delay: 250,
-                data: function (params) {
-                    return {
-                        q: params.term
-                    };
-                },
-                processResults: function (data) {
-                    return {
-                        results: data
-                    };
-                },
-                cache: true
-            }
-        });
-    });
+
 
 
 

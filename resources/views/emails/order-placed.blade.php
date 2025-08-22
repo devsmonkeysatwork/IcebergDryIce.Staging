@@ -241,6 +241,14 @@
                                         </tr>
                                         <tr>
                                             <td style="font-family: Inter;font-weight: 700;font-size: 10px;line-height: 18px;letter-spacing: 0%;color: #1A1C21;">
+                                                Hazmat fee
+                                            </td>
+                                            <td style="font-family: Inter;font-weight: 700;font-size: 10px;line-height: 18px;letter-spacing: 0%;color: #1A1C21;text-align: right;">
+                                                ${{ number_format($order->hazmat, 2) }}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-family: Inter;font-weight: 700;font-size: 10px;line-height: 18px;letter-spacing: 0%;color: #1A1C21;">
                                                 Total
                                             </td>
                                             <td style="font-family: Inter;font-weight: 700;font-size: 10px;line-height: 18px;letter-spacing: 0%;color: #1A1C21;text-align: right;">

@@ -508,13 +508,12 @@
 
                 // Show loading state
                 document.getElementById('modal-content-container').innerHTML = `
-        <div class="modal-body text-center">
-            <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-2">Loading...</p>
-        </div>
-    `;
+                <div class="modal-body text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading...</p>
+                </div>`;
 
                 // Show the modal immediately with loading state
                 const modal = new bootstrap.Modal(summaryModal);
@@ -624,7 +623,7 @@
 
                 const pricePerLb = 1.95;
                 const pricePerBox = 30.00;
-                const deliveryFee = pickupDelivery === 'delivery' ? parseFloat(deliveryCost) : 0.00;
+                const deliveryFee = pickupDelivery === 'delivery' ? parseFloat(deliveryCost) : 0.00; // Fix this line
                 const hazmatFee = parseFloat(hazmatCost);
 
                 const iceCost = iceAmount * pricePerLb;
@@ -632,12 +631,12 @@
                 const subTotal = iceCost + boxCost;
                 const taxRate = 0.15;
                 const tax = subTotal * taxRate;
-                const total = subTotal + tax + deliveryFee + parseInt(hazmatFee);
+                const total = subTotal + tax + deliveryFee + hazmatFee;
 
                 // Update the cost summary section
                 document.querySelector('.cost-summary-ice').innerHTML =
                     `<p class="m-0">Dry Ice (${iceAmount} lbs @ $${pricePerLb.toFixed(2)}/lb):</p>
-     <strong>$${iceCost.toFixed(2)}</strong>`;
+            <strong>$${iceCost.toFixed(2)}</strong>`;
 
                 document.querySelector('.cost-summary-box').innerHTML =
                     `Styrofoam Box (${boxAmount} @ $${pricePerBox.toFixed(2)}/box):<strong>$${boxCost.toFixed(2)}</strong>`;
@@ -656,6 +655,7 @@
 
                 document.querySelector('.cost-summary-total').innerHTML =
                     `TOTAL:<strong>$${total.toFixed(2)}</strong>`;
+
                 toggleAddressFields();
             }
             function toggleAddressFields() {
@@ -701,7 +701,6 @@
                     {id: 'modal-customer-name', label: 'Customer Name'},
                     {id: 'modal-customer-email', label: 'Customer Email'},
                     {id: 'modal-customer-phone', label: 'Customer Phone'},
-                    {id: 'modal-ice-amount', label: 'Amount of Ice'},
                     {id: 'modal-recurring', label: 'Recurring Option'},
                     {id: 'modal-location-name', label: 'Location Name'},
                     {id: 'modal-address', label: 'Address', dependsOnDelivery: true},
@@ -960,7 +959,6 @@
                     }
                 });
             });
-
             let closestSupplier = null;
 
             // const deliveryOption = document.getElementById('modal-pickup-or-delivery');
@@ -1004,10 +1002,11 @@
                 }
             }
 
-            function tryGetDeliveryQuote() {
+            async function tryGetDeliveryQuote() {
                 const formData = getFormData();
 
-                if (!validateRequiredFields(formData)) {
+                let addressVerified = await validateAddressFields(formData);
+                if (!addressVerified || !validateRequiredFields(formData)) {
                     updateDeliveryCostSummary(null);
                     return;
                 }
@@ -1167,7 +1166,38 @@
                 }
             }
 
+            async function validateAddressFields(formData) {
+                const apiKey = "{{config('services.google.address_api_key')}}";
+                const response = await fetch(`https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        address: {
+                            regionCode: "CA", // For Canada
+                            addressLines: [formData.address],
+                            locality: formData.city,
+                            administrativeArea: formData.province,
+                            postalCode: formData.postal
+                        }
+                    })
+                });
 
+                const result = await response.json();
+                if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {
+                    Swal.fire({
+                        title: 'Address Validation',
+                        html: `Address could not be confirmed. Please provide proper address. <br>Street Address, City, Province, Postal`,
+                        icon: 'warning',
+                        showCancelButton: false,
+                        confirmButtonColor: '#d33',
+                    });
+                    return false;
+                } else {
+                    return true;
+                }
+            }
 
             document.addEventListener('change', function(e) {
                 if (e.target.classList.contains('btn-view')) {
@@ -1256,6 +1286,54 @@
                         pushButton.textContent = 'Push Order';
                     }
                 });
+        }
+
+
+
+
+        function loadRecurringOrderDetails(action=0, orderId,recurring_id) {
+            const url = `/admin/orders/modal/${orderId}/edit?recurring=`+action+`&recurring_id=`+recurring_id;
+
+            // Show loading state
+            document.getElementById('modal-content-container').innerHTML = `
+                <div class="modal-body text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading...</p>
+                </div>`;
+
+            // Show the modal immediately with loading state
+            $("#orderSummaryModal").modal('show');
+
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html'
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    document.getElementById('modal-content-container').innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error loading modal content:', error);
+                    document.getElementById('modal-content-container').innerHTML = `
+                    <div class="modal-body text-center">
+                        <i class="la la-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+                        <h5 class="mt-3">Error Loading Content</h5>
+                    </div>`;
+                });
+        }
+
+        function hideOrderDetails(){
+            $("#orderSummaryModal").modal('hide');
         }
 
 

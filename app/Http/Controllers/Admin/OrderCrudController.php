@@ -290,13 +290,13 @@ class OrderCrudController extends CrudController
             $order = Order::create($validated);
             if($iceCost){
                 $product = Product::find(1);
-                if ($product->current_stock == 0.0 || $product->current_stock < $validated['amount_of_ice']) {
-                    DB::rollBack();
-                    return response()->json([
-                        'success' => false,
-                        'message' => $product->product_name . ' is out of stock',
-                    ]);
-                }
+//                if ($product->current_stock == 0.0 || $product->current_stock < $validated['amount_of_ice']) {
+//                    DB::rollBack();
+//                    return response()->json([
+//                        'success' => false,
+//                        'message' => $product->product_name . ' is out of stock',
+//                    ]);
+//                }
                 $order->items()->create([
                     'order_id' => $order->id,
                     'product_id' => 1,
@@ -304,15 +304,15 @@ class OrderCrudController extends CrudController
                     'unit_price' => $product->price,
                     'total_price' => $iceCost,
                 ]);
-                $product->decrement('current_stock', $validated['amount_of_ice']);
+//                $product->decrement('current_stock', $validated['amount_of_ice']);
 
-                StockMovement::create([
-                    'product_id' => $product->id,
-                    'order_id' => $order->id,
-                    'change_type' => 'out',
-                    'quantity' => $validated['amount_of_ice'],
-                    'description' => 'Order sale (Order ID: ' . $order->id . ')',
-                ]);
+//                StockMovement::create([
+//                    'product_id' => $product->id,
+//                    'order_id' => $order->id,
+//                    'change_type' => 'out',
+//                    'quantity' => $validated['amount_of_ice'],
+//                    'description' => 'Order sale (Order ID: ' . $order->id . ')',
+//                ]);
             }
             if($boxCost){
                 $product2 = Product::find(2);
@@ -357,6 +357,7 @@ class OrderCrudController extends CrudController
     /**
      * Handle AJAX submission from review form
      */
+
     public function ajaxCreateFromReview(Request $request)
     {
         // Filter out items with null or zero amounts before validation
@@ -503,10 +504,6 @@ class OrderCrudController extends CrudController
         } catch (\Exception $e) {
             DB::rollBack();
 
-            \Log::error('Online order creation failed: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
-            \Log::error('Request data: ', $request->all());
-            \Log::error('Validated data: ', $validated ?? 'Validation failed');
 
             return response()->json([
                 'success' => false,

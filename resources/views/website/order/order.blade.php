@@ -677,8 +677,10 @@
                 if (customer.province) document.getElementById('province').value = customer.province;
             }
         }
-        // Tab switching function
-        function showTab(tabName) {
+
+
+        // Modified Tab switching function
+        async function showTab(tabName) {
             // Save current form data before switching
             saveFormData();
 
@@ -708,13 +710,55 @@
                     populateCustomerData();
                 }
 
-                // If showing review tab, populate it
+                // If showing review tab, validate first then populate conditionally
                 if (tabName === 'review') {
-                    populateReview();
+                    try {
+                        // Run all validations including async address check
+                        const validationPassed = await runLocationValidations();
+
+                        if (validationPassed) {
+                            populateReview();
+                        } else {
+                            // Validation failed, switch back to location tab and show customer data
+                            await showTab('location'); // Switch back to location tab
+                            populateCustomerData();
+                            return; // Exit early
+                        }
+                    } catch (error) {
+                        console.error('Validation error:', error);
+                        // If validation fails due to error, switch back to location
+                        await showTab('location');
+                        populateCustomerData();
+                        return; // Exit early
+                    }
                 }
             } else {
                 console.error('Tab elements not found:', tabName);
             }
+        }
+
+        // Helper function to run location validations
+        async function runLocationValidations() {
+            var checkDate = check_date();
+            var companyError = check_company_name();
+            var contactError = check_contact();
+            var phoneError = check_phone();
+            var emailError = check_email();
+            var deliveryError = check_delivery();
+            var addressError = await check_address(); // Async address validation
+
+            // Return true if no errors, false if any errors exist
+            return !(checkDate || addressError || companyError || contactError || phoneError || emailError || deliveryError);
+        }
+
+        // Modified nextFromLocation function (simplified)
+        async function nextFromLocation() {
+            const validationPassed = await runLocationValidations();
+
+            if (validationPassed) {
+                await showTab('review');
+            }
+            // If validation fails, errors are already displayed by individual check functions
         }
 
 
@@ -740,8 +784,95 @@
             }
         }
 
-        function nextFromLocation() {
-            var addressError = check_address();
+
+        async function validateAddress(addressObj) {
+            const apiKey = "{{config('services.google.address_api_key')}}";
+            const response = await fetch(`https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    address: {
+                        regionCode: "CA", // For Canada
+                        addressLines: [addressObj.address],
+                        locality: addressObj.city,
+                        administrativeArea: addressObj.province,
+                        postalCode: addressObj.postal
+                    }
+                })
+            });
+
+            const data = await response.json();
+            return data;
+        }
+
+        // Enhanced check_address function - combines existing logic with API validation
+        async function check_address() {
+            var address = document.getElementById('address').value;
+            var city = document.getElementById('city').value;
+            var prov = document.getElementById('province').value;
+            var postal = document.getElementById('postal').value;
+            var error_msg = '';
+
+            // Your existing basic validation
+            if (address === '' || city === '' || prov === '' || postal === '')
+                error_msg = 'Please enter all address information.';
+
+            if (postal != '') {
+                var no_spaces_postal = postal.replace(/ /g, '');
+                no_spaces_postal = no_spaces_postal.toUpperCase();
+                document.getElementById('postal').value = no_spaces_postal;
+                postal = no_spaces_postal;
+                var regex = new RegExp(/^[ABCEGHJKLMNPRSTVXY]\d[ABCEGHJKLMNPRSTVWXYZ]( )?\d[ABCEGHJKLMNPRSTVWXYZ]\d$/i);
+                if (!regex.test(postal))
+                    error_msg += '<br>Postal code must be in the form A1A1A1.';
+            }
+
+            // If basic validation passes, proceed with API validation
+            if (error_msg === '') {
+                try {
+                    // Call the Google Address Validation API
+                    const result = await validateAddress({
+                        address: address.trim(),
+                        city: city.trim(),
+                        province: prov.trim(),
+                        postal: postal.trim()
+                    });
+
+                    // Check if address is invalid according to Google API
+                    if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {
+                        error_msg = 'Address could not be confirmed by validation service. Please verify your address details.';
+
+                        // Show SweetAlert warning
+                        Swal.fire({
+                            title: 'Address Validation',
+                            html: `Address could not be confirmed. Please provide proper address. <br>Street Address, City, Province, Postal`,
+                            icon: 'warning',
+                            showCancelButton: false,
+                            confirmButtonColor: '#d33',
+                        });
+                    }
+
+                } catch (error) {
+                    console.error('Address validation API error:', error);
+                    // Don't block submission if API fails, just log the error
+                    // You can choose to show an error or proceed without API validation
+                    console.warn('Address validation service temporarily unavailable, proceeding with basic validation only.');
+                }
+            }
+
+            // Set the message based on validation results
+            if (error_msg === '')
+                set_msg('address_notes', '<center><b>VALID</b></center>', false);
+            else
+                set_msg('address_notes', error_msg, true);
+
+            return error_msg;
+        }
+
+        // Modified nextFromLocation function to handle async address check
+        async function nextFromLocation() {
             var checkDate = check_date();
             var companyError = check_company_name();
             var contactError = check_contact();
@@ -749,33 +880,15 @@
             var emailError = check_email();
             var deliveryError = check_delivery();
 
+            // Add the async address validation check
+            var addressError = await check_address();
+
             if (!(checkDate || addressError || companyError || contactError || phoneError || emailError || deliveryError)) {
                 showTab('review');
             }
         }
 
-        // // Order calculation functions
-        // function calc_weight() {
-        //     set_msg('weight_notes', '<center><b>VALID</b></center>', false);
-        //     var weight = document.getElementById('weight').value;
-        //     if (isNaN(weight) || weight < minimum_pounds) {
-        //         set_msg('weight_notes', 'Minimum order weight is 10 pounds.', true);
-        //         return false;
-        //     }
-        //     document.getElementById('weight_cost').value = (weight * cost_per_pound).toFixed(2);
-        //     return true;
-        // }
-        //
-        // function calc_boxes() {
-        //     set_msg('box_notes', '<center><b>VALID</b></center>', false);
-        //     var boxes = document.getElementById('box').value;
-        //     if (isNaN(boxes)) {
-        //         set_msg('box_notes', 'Boxes must be a number.', true);
-        //         return false;
-        //     }
-        //     document.getElementById('box_cost').value = (boxes * cost_per_box).toFixed(2);
-        //     return true;
-        // }
+
 
         // Location validation functions
         function check_date() {
@@ -829,33 +942,33 @@
             return error_msg;
         }
 
-        function check_address() {
-            var address = document.getElementById('address').value;
-            var city = document.getElementById('city').value;
-            var prov = document.getElementById('province').value;
-            var postal = document.getElementById('postal').value;
-            var error_msg = '';
-
-            if (address === '' || city === '' || prov === '' || postal === '')
-                error_msg = 'Please enter all address information.';
-
-            if (postal != '') {
-                var no_spaces_postal = postal.replace(/ /g, '');
-                no_spaces_postal = no_spaces_postal.toUpperCase();
-                document.getElementById('postal').value = no_spaces_postal;
-                postal = no_spaces_postal;
-                var regex = new RegExp(/^[ABCEGHJKLMNPRSTVXY]\d[ABCEGHJKLMNPRSTVWXYZ]( )?\d[ABCEGHJKLMNPRSTVWXYZ]\d$/i);
-                if (!regex.test(postal))
-                    error_msg += '<br>Postal code must be in the form A1A1A1.';
-            }
-
-            if (error_msg === '')
-                set_msg('address_notes', '<center><b>VALID</b></center>', false);
-            else
-                set_msg('address_notes', error_msg, true);
-
-            return error_msg;
-        }
+        // function check_address() {
+        //     var address = document.getElementById('address').value;
+        //     var city = document.getElementById('city').value;
+        //     var prov = document.getElementById('province').value;
+        //     var postal = document.getElementById('postal').value;
+        //     var error_msg = '';
+        //
+        //     if (address === '' || city === '' || prov === '' || postal === '')
+        //         error_msg = 'Please enter all address information.';
+        //
+        //     if (postal != '') {
+        //         var no_spaces_postal = postal.replace(/ /g, '');
+        //         no_spaces_postal = no_spaces_postal.toUpperCase();
+        //         document.getElementById('postal').value = no_spaces_postal;
+        //         postal = no_spaces_postal;
+        //         var regex = new RegExp(/^[ABCEGHJKLMNPRSTVXY]\d[ABCEGHJKLMNPRSTVWXYZ]( )?\d[ABCEGHJKLMNPRSTVWXYZ]\d$/i);
+        //         if (!regex.test(postal))
+        //             error_msg += '<br>Postal code must be in the form A1A1A1.';
+        //     }
+        //
+        //     if (error_msg === '')
+        //         set_msg('address_notes', '<center><b>VALID</b></center>', false);
+        //     else
+        //         set_msg('address_notes', error_msg, true);
+        //
+        //     return error_msg;
+        // }
 
         function check_company_name() {
             var error_msg = '';

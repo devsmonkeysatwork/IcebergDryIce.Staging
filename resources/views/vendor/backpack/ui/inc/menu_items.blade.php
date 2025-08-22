@@ -18,7 +18,7 @@
 <x-backpack::menu-dropdown title="Lists" icon="la la-list">
 {{--  <x-backpack::menu-dropdown-item title="Postal Codes" icon="la la-map" :link="backpack_url('postal-codes')" />--}}
   <!-- <x-backpack::menu-dropdown-item title="One-off Orders" icon="la la-shopping-cart" :link="backpack_url('one-off-orders')" /> -->
-  <x-backpack::menu-dropdown-item title="Ice Orders" icon="la la-snowflake" :link="backpack_url('ice-orders')" />
+{{--  <x-backpack::menu-dropdown-item title="Ice Orders" icon="la la-snowflake" :link="backpack_url('ice-orders')" />--}}
   <x-backpack::menu-dropdown-item title="Products" icon="la la-product-hunt" :link="backpack_url('product')" />
   <x-backpack::menu-dropdown-item title="Variables" icon="la la-cogs" :link="backpack_url('variables')" />
   <x-backpack::menu-dropdown-item title="Customers" icon="la la-users" :link="backpack_url('customers')" />
@@ -27,7 +27,7 @@
 
 <x-backpack::menu-dropdown title="Reports" icon="la la-chart-bar">
   <x-backpack::menu-dropdown-item title="Inventory" icon="la la-warehouse" :link="backpack_url('inventory')" />
-  <x-backpack::menu-dropdown-item title="Warehouse Sales" icon="la la-dollar-sign" :link="backpack_url('warehouse-sales')" />
+{{--  <x-backpack::menu-dropdown-item title="Warehouse Sales" icon="la la-dollar-sign" :link="backpack_url('warehouse-sales')" />--}}
 </x-backpack::menu-dropdown>
 
 <x-backpack::menu-dropdown title="Others" icon="la la-ellipsis-h">
