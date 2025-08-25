@@ -216,7 +216,7 @@
             const result = await validateAddress({ address, city, province, postal });
             console.log(result);
             // Check if address is invalid
-            if (result.result.verdict.possibleNextAction === "FIX") {
+            if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {
                 const suggestions = result.result.address.formattedAddress;
 
                 Swal.fire({

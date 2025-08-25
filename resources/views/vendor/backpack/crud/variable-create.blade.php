@@ -64,7 +64,7 @@
                     <div class="px-4 mt-2">
                         <button class="btn-primary btn-submission btn" type="submit">Add</button>
                     </div>
-                    
+
                 </form>
             </div>
         </div>

@@ -24,7 +24,12 @@
         <div class="card-body">
           <h2 class="title">${{ number_format($totalSalesOnline, 2) }}</h2>
 {{--            <p style="color: rgba(141, 141, 141, 1);">via CC or Online orders</p>--}}
-          <p class="card-text stat"><span>{{$onlineChange}}% Up</span> from last year</p>
+            <p class="card-text stat">
+                <span class="{{ $onlineChange >= 0 ? 'text-success' : 'text-danger' }}">
+                    {{ abs($onlineChange) }}% {{ $onlineChange >= 0 ? 'Up' : 'Down' }}
+                </span>
+                from last year
+            </p>
         </div>
       </div>
     </div>
@@ -36,7 +41,12 @@
         <div class="card-body">
           <h2 class="title">${{ number_format($totalSalesManual, 2) }}</h2>
 {{--            <p style="color: rgba(141, 141, 141, 1);">via Manual Payments</p>--}}
-            <p class="card-text stat"><span>{{$manualChange}}% Up</span> from last year</p>
+            <p class="card-text stat">
+                <span class="{{ $manualChange >= 0 ? 'text-success' : 'text-danger' }}">
+                    {{ abs($manualChange) }}% {{ $manualChange >= 0 ? 'Up' : 'Down' }}
+                </span>
+                from last year
+            </p>
         </div>
       </div>
     </div>
@@ -47,7 +57,12 @@
         </div>
         <div class="card-body">
           <h2 class="title">{{ number_format($dryIceUnitSold, 2) }} lbs</h2>
-          <p class="card-text stat"><span>{{$dryIceChange}}% Up</span> from last year</p>
+            <p class="card-text stat">
+                <span class="{{ $dryIceChange >= 0 ? 'text-success' : 'text-danger' }}">
+                    {{ abs($dryIceChange) }}% {{ $dryIceChange >= 0 ? 'Up' : 'Down' }}
+                </span>
+                from last year
+            </p>
         </div>
       </div>
     </div>
@@ -58,7 +73,12 @@
         </div>
         <div class="card-body">
           <h2 class="title">{{ $styrofoamBoxUnitSold }} boxes</h2>
-          <p class="card-text stat"><span>{{$styrofoamChange}}% Up</span> from last year</p>
+            <p class="card-text stat">
+                <span class="{{ $styrofoamChange >= 0 ? 'text-success' : 'text-danger' }}">
+                    {{ abs($styrofoamChange) }}% {{ $styrofoamChange >= 0 ? 'Up' : 'Down' }}
+                </span>
+                from last year
+            </p>
         </div>
       </div>
     </div>
@@ -1401,7 +1421,7 @@
             });
 
             const result = await response.json();
-            if (result.result.verdict.possibleNextAction === "FIX") {
+            if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {
                 Swal.fire({
                     title: 'Address Validation',
                     html: `Address could not be confirmed. Please provide proper address. <br>Street Address, City, Province, Postal`,

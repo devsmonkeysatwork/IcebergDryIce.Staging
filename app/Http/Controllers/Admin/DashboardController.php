@@ -10,69 +10,199 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // Fetch data for cards
-        $totalSalesOnline = Order::where('origin', 'online')->sum('total_cost');
-        $totalSalesManual = Order::where('origin', 'manual')->sum('total_cost');
-        $dryIceUnitSold = Order::sum('amount_of_ice');
-        $styrofoamBoxUnitSold = Order::sum('amount_of_boxes');
-        // Add recurring orders with completed status
+//        // Fetch data for cards
+//        $totalSalesOnline = Order::where('origin', 'online')->sum('total_cost');
+//        $totalSalesManual = Order::where('origin', 'manual')->sum('total_cost');
+//        $dryIceUnitSold = Order::sum('amount_of_ice');
+//        $styrofoamBoxUnitSold = Order::sum('amount_of_boxes');
+//        // Add recurring orders with completed status
+//        $recurringOnlineSales = RecurringOrder::where('status', 'completed')
+//            ->whereHas('order', function($query) {
+//                $query->where('origin', 'online');
+//            })
+//            ->with('order')
+//            ->get()
+//            ->sum(function($recurring) {
+//                return $recurring->order->total_cost;
+//            });
+//
+//        $recurringManualSales = RecurringOrder::where('status', 'completed')
+//            ->whereHas('order', function($query) {
+//                $query->where('origin', 'manual');
+//            })
+//            ->with('order')
+//            ->get()
+//            ->sum(function($recurring) {
+//                return $recurring->order->total_cost;
+//            });
+//
+//        $recurringDryIce = RecurringOrder::where('status', 'completed')
+//            ->with('order')
+//            ->get()
+//            ->sum(function($recurring) {
+//                return $recurring->order->amount_of_ice;
+//            });
+//
+//        $recurringStyrofoam = RecurringOrder::where('status', 'completed')
+//            ->with('order')
+//            ->get()
+//            ->sum(function($recurring) {
+//                return $recurring->order->amount_of_boxes;
+//            });
+//
+//        // Add recurring to totals
+//        $totalSalesOnline += $recurringOnlineSales;
+//        $totalSalesManual += $recurringManualSales;
+//        $dryIceUnitSold += $recurringDryIce;
+//        $styrofoamBoxUnitSold += $recurringStyrofoam;
+//
+//        // Last year data for stats
+//        $lastYearOnline = Order::where('origin', 'online')
+//            ->whereYear('created_at', now()->year - 1)
+//            ->sum('total_cost');
+//        $lastYearManual = Order::where('origin', 'manual')
+//            ->whereYear('created_at', now()->year - 1)
+//            ->sum('total_cost');
+//        $lastYearDryIce = Order::whereYear('created_at', now()->year - 1)
+//            ->sum('amount_of_ice');
+//        $lastYearStyrofoam = Order::whereYear('created_at', now()->year - 1)
+//            ->sum('amount_of_boxes');
+//
+//        // Calculate percentage changes
+//        $onlineChange = $lastYearOnline > 0
+//            ? round(((intval($totalSalesOnline) - $lastYearOnline) / $lastYearOnline) * 100, 2)
+//            : 0;
+//
+//        $manualChange = $lastYearManual > 0
+//            ? round(((intval($totalSalesManual) - $lastYearManual) / $lastYearManual) * 100, 2)
+//            : 0;
+//
+//        $dryIceChange = $lastYearDryIce > 0
+//            ? round(((intval($dryIceUnitSold) - $lastYearDryIce) / $lastYearDryIce) * 100, 2)
+//            : 0;
+//
+//        $styrofoamChange = $lastYearStyrofoam > 0
+//            ? round(((intval($styrofoamBoxUnitSold) - $lastYearStyrofoam) / $lastYearStyrofoam) * 100, 2)
+//            : 0;
+
+        $currentYear = now()->year;
+        $lastYear = $currentYear - 1;
+
+// ------------------ CURRENT YEAR TOTALS (YTD) ------------------ //
+        $totalSalesOnline = Order::where('origin', 'online')
+            ->whereYear('created_at', $currentYear)
+            ->sum('total_cost');
+
+        $totalSalesManual = Order::where('origin', 'manual')
+            ->whereYear('created_at', $currentYear)
+            ->sum('total_cost');
+
+        $dryIceUnitSold = Order::whereYear('created_at', $currentYear)
+            ->sum('amount_of_ice');
+
+        $styrofoamBoxUnitSold = Order::whereYear('created_at', $currentYear)
+            ->sum('amount_of_boxes');
+
+// Recurring orders (completed only, current year YTD)
         $recurringOnlineSales = RecurringOrder::where('status', 'completed')
-            ->whereHas('order', function($query) {
-                $query->where('origin', 'online');
-            })
+            ->whereHas('order', fn($q) => $q->where('origin', 'online')
+                ->whereYear('created_at', $currentYear))
             ->with('order')
             ->get()
-            ->sum(function($recurring) {
-                return $recurring->order->total_cost;
-            });
+            ->sum(fn($recurring) => $recurring->order->total_cost);
 
         $recurringManualSales = RecurringOrder::where('status', 'completed')
-            ->whereHas('order', function($query) {
-                $query->where('origin', 'manual');
-            })
+            ->whereHas('order', fn($q) => $q->where('origin', 'manual')
+                ->whereYear('created_at', $currentYear))
             ->with('order')
             ->get()
-            ->sum(function($recurring) {
-                return $recurring->order->total_cost;
-            });
+            ->sum(fn($recurring) => $recurring->order->total_cost);
 
         $recurringDryIce = RecurringOrder::where('status', 'completed')
+            ->whereHas('order', fn($q) => $q->whereYear('created_at', $currentYear))
             ->with('order')
             ->get()
-            ->sum(function($recurring) {
-                return $recurring->order->amount_of_ice;
-            });
+            ->sum(fn($recurring) => $recurring->order->amount_of_ice);
 
         $recurringStyrofoam = RecurringOrder::where('status', 'completed')
+            ->whereHas('order', fn($q) => $q->whereYear('created_at', $currentYear))
             ->with('order')
             ->get()
-            ->sum(function($recurring) {
-                return $recurring->order->amount_of_boxes;
-            });
+            ->sum(fn($recurring) => $recurring->order->amount_of_boxes);
 
-        // Add recurring to totals
+// Add recurring to current totals
         $totalSalesOnline += $recurringOnlineSales;
         $totalSalesManual += $recurringManualSales;
         $dryIceUnitSold += $recurringDryIce;
         $styrofoamBoxUnitSold += $recurringStyrofoam;
 
-        // Last year data for stats
+
+// ------------------ LAST YEAR TOTALS (FULL YEAR) ------------------ //
         $lastYearOnline = Order::where('origin', 'online')
-            ->whereYear('created_at', now()->year - 1)
+            ->whereYear('created_at', $lastYear)
             ->sum('total_cost');
+
         $lastYearManual = Order::where('origin', 'manual')
-            ->whereYear('created_at', now()->year - 1)
+            ->whereYear('created_at', $lastYear)
             ->sum('total_cost');
-        $lastYearDryIce = Order::whereYear('created_at', now()->year - 1)
+
+        $lastYearDryIce = Order::whereYear('created_at', $lastYear)
             ->sum('amount_of_ice');
-        $lastYearStyrofoam = Order::whereYear('created_at', now()->year - 1)
+
+        $lastYearStyrofoam = Order::whereYear('created_at', $lastYear)
             ->sum('amount_of_boxes');
 
-        // Calculate percentage changes
-        $onlineChange = $lastYearOnline > 0 ? ((intval($totalSalesOnline) - $lastYearOnline) / $lastYearOnline) * 100 : 0;
-        $manualChange = $lastYearManual > 0 ? ((intval($totalSalesManual) - $lastYearManual) / $lastYearManual) * 100 : 0;
-        $dryIceChange = $lastYearDryIce > 0 ? ((intval($dryIceUnitSold) - $lastYearDryIce) / $lastYearDryIce) * 100 : 0;
-        $styrofoamChange = $lastYearStyrofoam > 0 ? ((intval($styrofoamBoxUnitSold) - $lastYearStyrofoam) / $lastYearStyrofoam) * 100 : 0;
+// Recurring (completed only, last year FULL YEAR)
+        $lastYearRecurringOnline = RecurringOrder::where('status', 'completed')
+            ->whereHas('order', fn($q) => $q->where('origin', 'online')
+                ->whereYear('created_at', $lastYear))
+            ->with('order')
+            ->get()
+            ->sum(fn($recurring) => $recurring->order->total_cost);
+
+        $lastYearRecurringManual = RecurringOrder::where('status', 'completed')
+            ->whereHas('order', fn($q) => $q->where('origin', 'manual')
+                ->whereYear('created_at', $lastYear))
+            ->with('order')
+            ->get()
+            ->sum(fn($recurring) => $recurring->order->total_cost);
+
+        $lastYearRecurringDryIce = RecurringOrder::where('status', 'completed')
+            ->whereHas('order', fn($q) => $q->whereYear('created_at', $lastYear))
+            ->with('order')
+            ->get()
+            ->sum(fn($recurring) => $recurring->order->amount_of_ice);
+
+        $lastYearRecurringStyrofoam = RecurringOrder::where('status', 'completed')
+            ->whereHas('order', fn($q) => $q->whereYear('created_at', $lastYear))
+            ->with('order')
+            ->get()
+            ->sum(fn($recurring) => $recurring->order->amount_of_boxes);
+
+// Add recurring to last year totals
+        $lastYearOnline += $lastYearRecurringOnline;
+        $lastYearManual += $lastYearRecurringManual;
+        $lastYearDryIce += $lastYearRecurringDryIce;
+        $lastYearStyrofoam += $lastYearRecurringStyrofoam;
+
+
+// ------------------ PERCENTAGE CHANGE ------------------ //
+        $onlineChange = $lastYearOnline > 0
+            ? round((($totalSalesOnline - $lastYearOnline) / $lastYearOnline) * 100, 2)
+            : 0;
+
+        $manualChange = $lastYearManual > 0
+            ? round((($totalSalesManual - $lastYearManual) / $lastYearManual) * 100, 2)
+            : 0;
+
+        $dryIceChange = $lastYearDryIce > 0
+            ? round((($dryIceUnitSold - $lastYearDryIce) / $lastYearDryIce) * 100, 2)
+            : 0;
+
+        $styrofoamChange = $lastYearStyrofoam > 0
+            ? round((($styrofoamBoxUnitSold - $lastYearStyrofoam) / $lastYearStyrofoam) * 100, 2)
+            : 0;
+
 
         // Fetch data for tables
         // Fetch data for tables
@@ -146,7 +276,8 @@ class DashboardController extends Controller
             'styrofoamChange',
             'lastOrders',
             'ccOrders',
-            'recurringOrders'
+            'recurringOrders',
+            'lastYearOnline'
         ));
     }
 }
