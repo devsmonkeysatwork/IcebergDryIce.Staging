@@ -745,20 +745,25 @@
             var phoneError = check_phone();
             var emailError = check_email();
             var deliveryError = check_delivery();
-            var addressError = await check_address(); // Async address validation
+
+            // Only run address validation if all other fields are valid (empty string means valid)
+            var addressError = '';
+            if (checkDate === '' && companyError === '' && contactError === '' && phoneError === '' && emailError === '' && deliveryError === '') {
+                addressError = await check_address(); // Async address validation
+            } else {
+                // Clear any previous address validation message since we're not checking it
+                set_msg('address_notes', '', false);
+            }
 
             // Return true if no errors, false if any errors exist
-            return !(checkDate || addressError || companyError || contactError || phoneError || emailError || deliveryError);
+            return (checkDate === '' && addressError === '' && companyError === '' && contactError === '' && phoneError === '' && emailError === '' && deliveryError === '');
         }
 
         // Modified nextFromLocation function (simplified)
         async function nextFromLocation() {
-            const validationPassed = await runLocationValidations();
 
-            if (validationPassed) {
                 await showTab('review');
-            }
-            // If validation fails, errors are already displayed by individual check functions
+
         }
 
 
@@ -807,6 +812,27 @@
             return data;
         }
 
+        // Modified nextFromLocation function to handle async address check
+        async function nextFromLocation() {
+            var checkDate = check_date();
+            var companyError = check_company_name();
+            var contactError = check_contact();
+            var phoneError = check_phone();
+            var emailError = check_email();
+            var deliveryError = check_delivery();
+
+
+
+            if (checkDate === '' && companyError === '' && contactError === '' && phoneError === '' && emailError === '' && deliveryError === '') {
+                addressError = await check_address();
+            }
+
+            // Only proceed if all validations pass (empty string means no error)
+            if (checkDate === '' && addressError === '' && companyError === '' && contactError === '' && phoneError === '' && emailError === '' && deliveryError === '') {
+                showTab('review');
+            }
+        }
+
         // Enhanced check_address function - combines existing logic with API validation
         async function check_address() {
             var address = document.getElementById('address').value;
@@ -814,6 +840,10 @@
             var prov = document.getElementById('province').value;
             var postal = document.getElementById('postal').value;
             var error_msg = '';
+
+            // Only run address validation if all other validations pass AND delivery type is "delivery"
+
+            var deliveryType = document.getElementById('delivery_type').value;
 
             // Your existing basic validation
             if (address === '' || city === '' || prov === '' || postal === '')
@@ -830,7 +860,7 @@
             }
 
             // If basic validation passes, proceed with API validation
-            if (error_msg === '') {
+            if (error_msg === '' && deliveryType === 'delivery') {
                 try {
                     // Call the Google Address Validation API
                     const result = await validateAddress({
@@ -857,7 +887,6 @@
                 } catch (error) {
                     console.error('Address validation API error:', error);
                     // Don't block submission if API fails, just log the error
-                    // You can choose to show an error or proceed without API validation
                     console.warn('Address validation service temporarily unavailable, proceeding with basic validation only.');
                 }
             }
@@ -871,22 +900,7 @@
             return error_msg;
         }
 
-        // Modified nextFromLocation function to handle async address check
-        async function nextFromLocation() {
-            var checkDate = check_date();
-            var companyError = check_company_name();
-            var contactError = check_contact();
-            var phoneError = check_phone();
-            var emailError = check_email();
-            var deliveryError = check_delivery();
 
-            // Add the async address validation check
-            var addressError = await check_address();
-
-            if (!(checkDate || addressError || companyError || contactError || phoneError || emailError || deliveryError)) {
-                showTab('review');
-            }
-        }
 
 
 
@@ -933,12 +947,19 @@
         }
 
         function check_delivery() {
-            error_msg = '';
+            var error_msg = '';
             var delivery = document.getElementById('delivery_type').value;
-            if (delivery === ''){
-                error_msg = 'Please Select a valid option';
+
+            if (delivery === '') {
+                error_msg = 'Please select a valid option.<br>';
+            }
+
+            if (error_msg === '') {
+                set_msg('delivery_notes', '<center><b>VALID</b></center>', false);
+            } else {
                 set_msg('delivery_notes', error_msg, true);
             }
+
             return error_msg;
         }
 
