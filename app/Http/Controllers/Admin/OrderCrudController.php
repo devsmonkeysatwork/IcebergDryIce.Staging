@@ -262,10 +262,12 @@ class OrderCrudController extends CrudController
         try {
             DB::beginTransaction();
             // Handle customer lookup or creation
-            if($request->pickup_delivery === 'delivery'){
+            $existing_customer = Customer::where('email', $request->email)->first();
+
+            if ($request->pickup_delivery === 'delivery' || !$existing_customer) {
                 $customer = $this->handleCustomerData($request);
-            }else{
-                $customer = Customer::whereEmail($request->email)->first();
+            } else {
+                $customer = $existing_customer;
             }
 
             // Calculate costs server-side
@@ -410,7 +412,21 @@ class OrderCrudController extends CrudController
 
         try {
             // Step 1: Handle customer
-            $customer = $this->handleCustomerData($request);
+//            $customer = $this->handleCustomerData($request);
+            $customer = null;
+            if ($request->input('pickup_delivery') === 'delivery') {
+                // Check if customer already exists first
+                $existingCustomer = Customer::where('email', $request->input('email'))
+                    ->first();
+
+                if (!$existingCustomer) {
+                    // Step 1: Handle customer - only create new customer
+                    $customer = $this->handleCustomerData($request);
+                } else {
+                    // Use existing customer without updating address
+                    $customer = $existingCustomer;
+                }
+            }
             // Step 2: Create the order
             $order = Order::create([
                 'customer_id' => $customer->id,
