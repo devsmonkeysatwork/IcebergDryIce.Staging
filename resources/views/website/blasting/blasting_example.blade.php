@@ -15,7 +15,7 @@
                 <td width="250px">Blaster</td>
                 <td width="170px">T2</td>
                 <td rowspan="6" valign="top">
-                    <iframe frameborder="1" width="360" height="280" src="https://www.youtube.com/v/SsERsxIGJaA" allowfullscreen></iframe>
+                    <iframe frameborder="1" width="360" height="280" src="https://www.youtube.com/embed/SsERsxIGJaA" allowfullscreen></iframe>
                 </td>
             </tr>
             <tr><td>Nozzle</td><td>Fan</td></tr>
@@ -38,7 +38,7 @@
                 <td>Blaster</td>
                 <td>Phoenix</td>
                 <td rowspan="6" valign="top">
-                    <iframe frameborder="1" width="360" height="280" src="https://www.youtube.com/v/fRpXI8cveng" allowfullscreen></iframe>
+                    <iframe frameborder="1" width="360" height="280" src="https://www.youtube.com/embed/fRpXI8cveng" allowfullscreen></iframe>
                 </td>
             </tr>
             <tr><td>Nozzle</td><td>High Aggression</td></tr>
@@ -60,7 +60,7 @@
                 <td>Blaster</td>
                 <td>ColdJet 100</td>
                 <td rowspan="6" valign="top">
-                    <iframe frameborder="1" width="360" height="280" src="https://www.youtube.com/v/pFdiPPn2DRk" allowfullscreen></iframe>
+                    <iframe frameborder="1" width="360" height="280" src="https://www.youtube.com/embed/pFdiPPn2DRk" allowfullscreen></iframe>
                 </td>
             </tr>
             <tr><td>Nozzle</td><td>Aggression</td></tr>
@@ -82,7 +82,7 @@
                 <td>Blaster</td>
                 <td>T2</td>
                 <td rowspan="6" valign="top">
-                    <iframe frameborder="1" width="360" height="280" src="https://www.youtube.com/v/haGfpgfZ0hI" allowfullscreen></iframe>
+                    <iframe frameborder="1" width="360" height="280" src="https://www.youtube.com/embed/haGfpgfZ0hI" allowfullscreen></iframe>
                 </td>
             </tr>
             <tr><td>Nozzle</td><td>Fan</td></tr>
@@ -104,7 +104,7 @@
                 <td>Blaster</td>
                 <td>ColdJet 100</td>
                 <td rowspan="6" valign="top">
-                    <iframe frameborder="1" width="360" height="280" src="https://www.youtube.com/v/Y6bhfv2UBWg" allowfullscreen></iframe>
+                    <iframe frameborder="1" width="360" height="280" src="https://www.youtube.com/embed/Y6bhfv2UBWg" allowfullscreen></iframe>
                 </td>
             </tr>
             <tr><td>Nozzle</td><td>Fan</td></tr>
@@ -126,7 +126,7 @@
                 <td>Blaster</td>
                 <td>ColdJet 100</td>
                 <td rowspan="6" valign="top">
-                    <iframe frameborder="1" width="360" height="280" src="https://www.youtube.com/v/DjH6vQHfhjM" allowfullscreen></iframe>
+                    <iframe frameborder="1" width="360" height="280" src="https://www.youtube.com/embed/DjH6vQHfhjM" allowfullscreen></iframe>
                 </td>
             </tr>
             <tr><td>Nozzle</td><td>Fan</td></tr>
