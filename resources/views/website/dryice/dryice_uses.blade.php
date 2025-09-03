@@ -146,7 +146,7 @@
                 </div>
                 <div class="col-md-6">
                     <div class="ratio ratio-16x9">
-                        <iframe src="https://www.youtube.com/v/BtLPBotIjWs" allowfullscreen></iframe>
+                        <iframe src="https://www.youtube.com/embed/BtLPBotIjWs" allowfullscreen></iframe>
                     </div>
                 </div>
             </div>
@@ -162,13 +162,13 @@
                 <div class="col-md-6">
                     <h4>Hot Water : 0-1 Minutes</h4>
                     <div class="ratio ratio-16x9">
-                        <iframe src="https://www.youtube.com/v/Q_sSohj3KmQ" allowfullscreen></iframe>
+                        <iframe src="https://www.youtube.com/embed/Q_sSohj3KmQ" allowfullscreen></iframe>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <h4>Hot Water : 5-6 Minutes</h4>
                     <div class="ratio ratio-16x9">
-                        <iframe src="https://www.youtube.com/v/3mgKbsDhOMY" allowfullscreen></iframe>
+                        <iframe src="https://www.youtube.com/embed/3mgKbsDhOMY" allowfullscreen></iframe>
                     </div>
                 </div>
             </div>
@@ -177,13 +177,13 @@
                 <div class="col-md-6">
                     <h4>Hot Water : 10-11 Minutes</h4>
                     <div class="ratio ratio-16x9">
-                        <iframe src="https://www.youtube.com/v/mmtCbhN1OqA" allowfullscreen></iframe>
+                        <iframe src="https://www.youtube.com/embed/mmtCbhN1OqA" allowfullscreen></iframe>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <h4>Hot Water : 15-16 Minutes</h4>
                     <div class="ratio ratio-16x9">
-                        <iframe src="https://www.youtube.com/v/BPIxzTs0Dk0" allowfullscreen></iframe>
+                        <iframe src="https://www.youtube.com/embed/BPIxzTs0Dk0" allowfullscreen></iframe>
                     </div>
                 </div>
             </div>
@@ -192,13 +192,13 @@
                 <div class="col-md-6">
                     <h4>Hot Water : 20-21 Minutes</h4>
                     <div class="ratio ratio-16x9">
-                        <iframe src="https://www.youtube.com/v/fZ9YYsuZdJQ" allowfullscreen></iframe>
+                        <iframe src="https://www.youtube.com/embed/fZ9YYsuZdJQ" allowfullscreen></iframe>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <h4><span class="text-primary">Cold</span> Water : 0-1 Minutes</h4>
                     <div class="ratio ratio-16x9">
-                        <iframe src="https://www.youtube.com/v/CMaHg9ytw90" allowfullscreen></iframe>
+                        <iframe src="https://www.youtube.com/embed/CMaHg9ytw90" allowfullscreen></iframe>
                     </div>
                 </div>
             </div>
