@@ -9,6 +9,7 @@ class RecurringOrder extends Model
     const OPEN = 'open';
     const COMPLETED = 'completed';
     const CANCELLED = 'cancelled';
+
     protected $fillable = [
         'order_id',
         'scheduled_delivery_date',
@@ -19,6 +20,12 @@ class RecurringOrder extends Model
     protected $casts = [
         'scheduled_delivery_date' => 'date',
     ];
+
+
+    public function invoice()
+    {
+        return $this->morphOne(Invoice::class, 'invoiceable');
+    }
 
     public function order()
     {

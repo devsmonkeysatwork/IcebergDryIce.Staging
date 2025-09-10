@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\ProductCrudController;
 use App\Http\Controllers\Admin\VariablesCrudController;
 use App\Http\Controllers\Admin\CustomersCrudController;
 use App\Http\Controllers\Admin\ManualPaymentCrudController;
+use App\Http\Controllers\Admin\ReportsController;
 use App\Http\Controllers\Customer\CustomerDashboardController;
 use App\Http\Controllers\Customer\CustomerProfileController;
 
@@ -20,6 +21,10 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::get('admin/reports', [ReportsController::class, 'index'])
+    ->middleware(['web', 'admin']) // important!
+    ->name('reports');
 
 use App\Http\Middleware\CustomerMiddleware;
 
@@ -112,10 +117,15 @@ Route::group([
         ->middleware(['web', 'admin']) // important!
         ->name('manual-payments.store');
 
+
+
+
+
     Route::crud('emails', 'EmailCrudController');
     Route::get('emails', function () {
         return view('vendor.backpack.base.emails');
     })->name('emails');
+
     Route::crud('product', 'ProductCrudController');
 });
 

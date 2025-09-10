@@ -55,9 +55,8 @@
             <div class="mb-2">
                 <label class="form-label">Recurring <span class="text-danger">*</span></label>
                 <select id="modal-recurring" name="recurring" class="form-select">
-                    <option value="">Select...</option>
-                    <option value="recurring" {{ $defaultValues['recurring'] === 'recurring' ? 'selected' : '' }}>Yes</option>
                     <option value="non-recurring" {{ $defaultValues['recurring'] === 'non-recurring' ? 'selected' : '' }}>No</option>
+                    <option value="recurring" {{ $defaultValues['recurring'] === 'recurring' ? 'selected' : '' }}>Yes</option>
                 </select>
             </div>
         </div>
@@ -67,8 +66,8 @@
             <h5><i class="la la-truck"></i> Delivery</h5>
 
             <div class="mb-2">
-                <label class="form-label">Location Name<span class="text-danger">*</span></label>
-                <input id="modal-location-name" type="text" name="location_name" class="form-control" value="{{ $defaultValues['location_name'] }}" required>
+                <label class="form-label">Location Name</label>
+                <input id="modal-location-name" type="text" name="location_name" class="form-control" value="{{ $defaultValues['location_name'] }}">
             </div>
 
             <div class="row mb-2">

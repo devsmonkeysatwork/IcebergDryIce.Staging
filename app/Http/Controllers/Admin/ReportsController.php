@@ -6,10 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\RecurringOrder;
 
-class DashboardController extends Controller
+class ReportsController extends Controller
 {
     public function index()
     {
+
 
         $currentYear = now()->year;
         $lastYear = $currentYear - 1;
@@ -132,7 +133,7 @@ class DashboardController extends Controller
 
         // Fetch data for tables
         // Fetch data for tables
-        $orders = Order::select('id', 'customer_name', 'delivery_date', 'recurring', 'status', 'total_cost','address', 'origin','amount_of_boxes','amount_of_ice')
+        $orders = Order::select('id', 'customer_name', 'delivery_date', 'status', 'total_cost','address', 'origin','amount_of_boxes','amount_of_ice')
             ->get()
             ->map(function($order) {
                 return [
@@ -165,17 +166,15 @@ class DashboardController extends Controller
                     'type' => 'recurring'
                 ];
             });
-
-        $manualOrders = $orders->concat($recurringOrdersData)
-            ->where('origin', 'manual')
+        $lastOrders = $orders->concat($recurringOrdersData)
             ->sortByDesc('delivery_date')
-            ->take(15)
+            ->take(5)
             ->values();
 
-        $onlineOrders = $orders->concat($recurringOrdersData)
+        $ccOrders = $orders->concat($recurringOrdersData)
             ->where('origin', 'online')
-            ->sortByDesc('id')
-            ->take(15)
+            ->sortByDesc('delivery_date')
+            ->take(5)
             ->values();
 
 
@@ -189,39 +188,11 @@ class DashboardController extends Controller
             ->with(['order'])
             ->orderBy('scheduled_delivery_date')
             ->latest()
-            ->take(15)
+            ->take(4)
             ->get();
 
-        $oneTimeOrders = Order::where('recurring', 'non-recurring')
-            ->orderBy('id', 'desc')
-            ->take(15)
-            ->get();
 
-        $recurringFromOrders = Order::where('recurring', 'recurring')
-            ->whereIn('status', [Order::VALID, Order::COMPLETED])
-            ->orderBy('id', 'desc')
-            ->take(5)
-            ->get();
-
-// Get 10 latest from RecurringOrder table
-        $recurringFromRecurringTable = RecurringOrder::where('status', RecurringOrder::OPEN)
-            ->where('scheduled_delivery_date', '>', now())
-            ->whereHas('order', function ($query) {
-                $query->where('recurring', 'recurring')
-                    ->whereIn('status', [Order::VALID]);
-            })
-            ->with(['order']) // Load the related order data
-            ->orderBy('id', 'desc') // Order by RecurringOrder.id (unique ID)
-            ->take(10)
-            ->get();
-
-        $allRecurringOrders = collect()
-            ->merge($recurringFromOrders)
-            ->merge($recurringFromRecurringTable)
-            ->sortByDesc('id');
-
-
-        return view('vendor.backpack.base.dashboard', compact(
+        return view('vendor.backpack.base.reports', compact(
             'totalSalesOnline',
             'totalSalesManual',
             'dryIceUnitSold',
@@ -230,11 +201,9 @@ class DashboardController extends Controller
             'manualChange',
             'dryIceChange',
             'styrofoamChange',
-            'manualOrders',
-            'onlineOrders',
+            'lastOrders',
+            'ccOrders',
             'recurringOrders',
-            'oneTimeOrders',
-            'allRecurringOrders',
             'lastYearOnline'
         ));
     }

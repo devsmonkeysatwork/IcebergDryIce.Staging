@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Services\ClosestSupplierService;
+use App\Services\InvoiceService;
 use Illuminate\Support\Facades\Validator;
 
 
@@ -227,6 +228,12 @@ class OrderCrudController extends CrudController
             'recurring' => 'string|in:recurring,non-recurring',
             'origin' => 'nullable|string|max:100',
             'location_name' => 'nullable|string|max:255',
+            'address' => 'required|string|max:255',
+            'unit' => 'nullable|string|max:50',
+            'city' => 'required|string|max:100',
+            'postal_code' => 'required|string|max:20',
+            'province' => 'required|string|max:50',
+            'country' => 'required|string|max:100',
             'delivery_date' => 'nullable',
             'delivery_cost' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
@@ -236,17 +243,7 @@ class OrderCrudController extends CrudController
             'hazmat' => 'nullable|numeric|min:0',
         ];
 
-        // Conditional address fields
-        if ($request->pickup_delivery === 'delivery') {
-            $rules = array_merge($rules, [
-                'address' => 'required|string|max:255',
-                'unit' => 'nullable|string|max:50',
-                'city' => 'required|string|max:100',
-                'postal_code' => 'required|string|max:20',
-                'province' => 'required|string|max:50',
-                'country' => 'required|string|max:100',
-            ]);
-        }
+
 
         $validator = Validator::make($request->all(), $rules);
 
@@ -264,7 +261,9 @@ class OrderCrudController extends CrudController
             // Handle customer lookup or creation
             $existing_customer = Customer::where('email', $request->email)->first();
 
-            if ($request->pickup_delivery === 'delivery' || !$existing_customer) {
+            // $request->pickup_delivery === 'delivery' || 'pickup' &&
+
+            if (!$existing_customer) {
                 $customer = $this->handleCustomerData($request);
             } else {
                 $customer = $existing_customer;
@@ -292,13 +291,6 @@ class OrderCrudController extends CrudController
             $order = Order::create($validated);
             if($iceCost){
                 $product = Product::find(1);
-//                if ($product->current_stock == 0.0 || $product->current_stock < $validated['amount_of_ice']) {
-//                    DB::rollBack();
-//                    return response()->json([
-//                        'success' => false,
-//                        'message' => $product->product_name . ' is out of stock',
-//                    ]);
-//                }
                 $order->items()->create([
                     'order_id' => $order->id,
                     'product_id' => 1,
@@ -306,25 +298,9 @@ class OrderCrudController extends CrudController
                     'unit_price' => $product->price,
                     'total_price' => $iceCost,
                 ]);
-//                $product->decrement('current_stock', $validated['amount_of_ice']);
-
-//                StockMovement::create([
-//                    'product_id' => $product->id,
-//                    'order_id' => $order->id,
-//                    'change_type' => 'out',
-//                    'quantity' => $validated['amount_of_ice'],
-//                    'description' => 'Order sale (Order ID: ' . $order->id . ')',
-//                ]);
             }
             if($boxCost){
                 $product2 = Product::find(2);
-//                if ($product2->current_stock == 0.0) {
-//                    DB::rollBack();
-//                    return response()->json([
-//                        'success' => false,
-//                        'message' => $product2->product_name . ' is out of stock',
-//                    ]);
-//                }
                 $order->items()->create([
                     'order_id' => $order->id,
                     'product_id' => 2,
@@ -332,17 +308,12 @@ class OrderCrudController extends CrudController
                     'unit_price' => $product2->price,
                     'total_price' => $boxCost,
                 ]);
-//                $product2->decrement('current_stock', $validated['amount_of_ice']);
 
-//                StockMovement::create([
-//                    'product_id' => $product2->id,
-//                    'order_id' => $order->id,
-//                    'change_type' => 'out',
-//                    'quantity' => $validated['amount_of_ice'],
-//                    'description' => 'Order sale (Order ID: ' . $order->id . ')',
-//                ]);
             }
             DB::commit();
+            $invoiceService = new InvoiceService();
+            $originalInvoice = $invoiceService->createInvoiceForOrder($order);
+
             Mail::to($order->email)->send(new OrderPlacedMail($order));
 
             return response()->json([
@@ -408,14 +379,19 @@ class OrderCrudController extends CrudController
             'items.*.total_price' => 'nullable|numeric|min:0',
         ]);
 
+
+
         DB::beginTransaction();
 
         try {
             // Step 1: Handle customer
 //            $customer = $this->handleCustomerData($request);
             $customer = null;
-            if ($request->input('pickup_delivery') === 'delivery') {
+
+
+            if ($request->input('pickup_delivery') === 'delivery' || 'pickup') {
                 // Check if customer already exists first
+
                 $existingCustomer = Customer::where('email', $request->input('email'))
                     ->first();
 

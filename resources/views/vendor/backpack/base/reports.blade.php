@@ -3,232 +3,214 @@
 @section('header')
 <section class="container-fluid header">
   <h2 class="title text-capitalize">
-    Dashboard
+    Reports
   </h2>
-    <small>
-        <a href="{{ url('admin/manual-payments/create') }}" class="btn btn-add btn-sm mx-3 btn-manual"><i class="la la-wallet mx-2"></i> Manual Payment</a>
+{{--    <small>--}}
+{{--        <a href="{{ url('admin/manual-payments/create') }}" class="btn btn-add btn-sm mx-3 btn-manual"><i class="la la-wallet mx-2"></i> Manual Payment</a>--}}
 
-        <button id="create-order-btn" data-bs-toggle="modal" data-bs-target="#orderSummaryModal" class="btn btn-add btn-sm"><i class="la la-plus mx-2"></i> New Order</button>
-  </small>
+{{--        <button id="create-order-btn" data-bs-toggle="modal" data-bs-target="#orderSummaryModal" class="btn btn-add btn-sm"><i class="la la-plus mx-2"></i> New Order</button>--}}
+{{--  </small>--}}
 </section>
 @endsection
 
 @section('content')
 <div class="container-fluid">
-
-    <div class="row">
-{{--        <div class="col-md-6">--}}
-{{--            <div class="table">--}}
-{{--                <div class="table-header">--}}
-{{--                    Online Orders--}}
-{{--                </div>--}}
-{{--                <div class="table-responsive-wrapper">--}}
-{{--                    <table>--}}
-{{--                        <thead>--}}
-{{--                        <tr>--}}
-{{--                            <th>#</th>--}}
-{{--                            <th>Customer</th>--}}
-{{--                            <th>Delivery Date</th>--}}
-{{--                            <th>Status</th>--}}
-{{--                            <th>Total</th>--}}
-{{--                            <th>Action</th>--}}
-{{--                        </tr>--}}
-{{--                        </thead>--}}
-{{--                        <tbody>--}}
-{{--                        @foreach($onlineOrders as $order)--}}
-{{--                            <tr>--}}
-{{--                                <td>{{ $order['id'] }}</td>--}}
-{{--                                <td>{{ $order['customer_name'] }}</td>--}}
-{{--                                <td>{{ \Illuminate\Support\Carbon::parse($order['delivery_date'])->format("Y-m-d") }}</td>--}}
-{{--                                <td>--}}
-{{--                                    <span class="badge @if($order['status'] == 'COMPLETED') bg-success--}}
-{{--                                                    @elseif($order['status'] == 'VALID') bg-success--}}
-{{--                                                    @elseif($order['status'] == 'CANCELLED') bg-warning--}}
-{{--                                                    @elseif($order['status'] == 'SKIP') bg-warning--}}
-{{--                                                    @endif">{{ $order['status'] }}</span>--}}
-{{--                                </td>--}}
-{{--                                <td>${{ $order['total_cost'] }}</td>--}}
-{{--                                <td>--}}
-{{--                                    @php--}}
-{{--                                        $dateTime = \Carbon\Carbon::parse($order['delivery_date']);--}}
-{{--                                    @endphp--}}
-{{--                                    <button class="btn btn-primary btn-view" data-order-id="{{ $order['id'] }}">--}}
-{{--                                        View--}}
-{{--                                    </button>--}}
-{{--                                </td>--}}
-{{--                            </tr>--}}
-{{--                        @endforeach--}}
-{{--                        </tbody>--}}
-{{--                    </table>--}}
-{{--                </div>--}}
-{{--            </div>--}}
-{{--        </div>--}}
-
-{{--        <div class="col-md-6">--}}
-{{--            <div class="table mb-3">--}}
-{{--                <div class="table-header">--}}
-{{--                    Manual Orders--}}
-{{--                </div>--}}
-{{--                <div class="table-responsive-wrapper">--}}
-{{--                    <table>--}}
-{{--                        <thead>--}}
-{{--                        <tr>--}}
-{{--                            <th>#</th>--}}
-{{--                            <th>Customer</th>--}}
-{{--                            <th>Delivery</th>--}}
-{{--                            <th>Status</th>--}}
-{{--                            <th>Total</th>--}}
-{{--                            <th>Action</th>--}}
-{{--                        </tr>--}}
-{{--                        </thead>--}}
-{{--                        <tbody>--}}
-{{--                        @foreach($manualOrders as $order)--}}
-{{--                            <tr>--}}
-{{--                                <td>{{ $order['id'] }}</td>--}}
-{{--                                <td>{{ $order['customer_name'] }}</td>--}}
-{{--                                <td>{{ \Illuminate\Support\Carbon::parse($order['delivery_date'])->format("Y-m-d") }}</td>--}}
-{{--                                <td>--}}
-{{--                                    <span class="badge @if($order['status'] == 'COMPLETED') bg-success--}}
-{{--                                                    @elseif($order['status'] == 'VALID') bg-success--}}
-{{--                                                    @elseif($order['status'] == 'CANCELLED') bg-warning--}}
-{{--                                                    @elseif($order['status'] == 'SKIP') bg-warning--}}
-{{--                                                    @endif">{{ $order['status'] }}</span>--}}
-{{--                                </td>--}}
-{{--                                <td>${{ $order['total_cost'] }}</td>--}}
-{{--                                <td>--}}
-{{--                                    @php--}}
-{{--                                        $dateTime = \Carbon\Carbon::parse($order['delivery_date']);--}}
-{{--                                    @endphp--}}
-{{--                                    <button class="btn btn-primary btn-view" data-order-id="{{ $order['id'] }}">--}}
-{{--                                        View--}}
-{{--                                    </button>--}}
-{{--                                </td>--}}
-{{--                            </tr>--}}
-{{--                        @endforeach--}}
-{{--                        </tbody>--}}
-{{--                    </table>--}}
-{{--                </div>--}}
-{{--            </div>--}}
-{{--        </div>--}}
-
-            <div class="col-md-6">
-                <div class="table">
-                    <div class="table-header">
-                        One Time Orders
-                    </div>
-                    <div class="table-responsive-wrapper">
-                        <table>
-                            <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Customer</th>
-                                <th>Delivery Date</th>
-                                <th>Status</th>
-                                <th>Total</th>
-                                <th></th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @foreach($oneTimeOrders as $order)
-                                <tr>
-                                    <td>{{ $order->id }}</td>
-                                    <td>{{ $order->customer_name }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($order->scheduled_delivery_date)->format('Y-m-d') }}</td>
-                                    <td>
-                                        <span class="badge @if($order['status'] == 'COMPLETED') bg-success
-                                                    @elseif($order['status'] == 'VALID') bg-success
-                                                    @elseif($order['status'] == 'CANCELLED') bg-warning
-                                                    @elseif($order['status'] == 'SKIP') bg-warning
-                                                    @endif">{{ $order['status'] }}</span>
-                                    </td>
-                                    <td>${{ $order->total_cost }}</td>
-                                    <td><button class="btn btn-primary btn-view" data-order-id="{{ $order['id'] }})">View</button></td>
-                                </tr>
-                            @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="col-md-6">
-                <div class="table">
-                    <div class="table-header">
-                        Recurring Orders
-                    </div>
-                    <div class="table-responsive-wrapper">
-                        <table>
-                            <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Customer</th>
-                                <th>Delivery Date</th>
-                                <th>Status</th>
-                                <th>Total</th>
-                                <th></th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @foreach($allRecurringOrders as $order)
-                                <tr>
-                                    <td>
-                                        {{-- Handle both Order and RecurringOrder --}}
-                                        {{ $order instanceof \App\Models\RecurringOrder ? $order->order_id . ' - ' . $order->id : $order->id }}                                    </td>
-                                    <td>
-                                        {{-- Handle customer name from both sources --}}
-                                        {{ $order instanceof \App\Models\RecurringOrder ? $order->order->customer_name : $order->customer_name }}
-                                    </td>
-                                    <td>
-                                        {{-- Handle delivery date from both sources --}}
-                                        {{ $order instanceof \App\Models\RecurringOrder
-                                            ? \Carbon\Carbon::parse($order->scheduled_delivery_date)->format('Y-m-d')
-                                            : \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') }}
-                                    </td>
-                                    <td>
-                                        <span class="badge @if($order['status'] == 'COMPLETED') bg-success
-                                                    @elseif($order['status'] == 'VALID') bg-success
-                                                    @elseif($order['status'] == 'CANCELLED') bg-warning
-                                                    @elseif($order['status'] == 'SKIP') bg-warning
-                                                    @endif">{{ $order['status'] }}</span>
-                                    </td>
-                                    <td>
-                                        {{-- Handle total cost from both sources --}}
-                                        ${{ $order instanceof \App\Models\RecurringOrder ? $order->order->total_cost : $order->total_cost }}
-                                    </td>
-                                    <td>
-                                        @if($order instanceof \App\Models\RecurringOrder)
-                                            <button class="btn btn-primary rounded-5 px-3"
-                                                    onclick="loadRecurringOrderDetails(1,'{{ $order->order_id }}','{{ $order->id }}')">
-                                                View
-                                            </button>
-                                        @else
-                                            <button class="btn btn-primary btn-view" data-order-id="{{ $order->id }}">
-                                                View
-                                            </button>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-            </div>
-
+  <div class="row flex-row mb-3">
+    <div class="col-md-3">
+      <div class="card dashboard text-center">
+        <div class="card-header">
+          Total Online Sales
         </div>
-    </div>
-
-<!-- Modal -->
-<div class="modal fade" id="orderSummaryModal" tabindex="-1" aria-labelledby="orderSummaryLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content" id="modal-content-container">
-
-
+        <div class="card-body">
+          <h2 class="title">${{ number_format($totalSalesOnline, 2) }}</h2>
+{{--            <p style="color: rgba(141, 141, 141, 1);">via CC or Online orders</p>--}}
+            <p class="card-text stat">
+                <span class="{{ $onlineChange >= 0 ? 'text-success' : 'text-danger' }}">
+                    {{ abs($onlineChange) }}% {{ $onlineChange >= 0 ? 'Up' : 'Down' }}
+                </span>
+                from last year
+            </p>
         </div>
+      </div>
     </div>
-</div><!-- Bootstrap Modal -->
+    <div class="col-md-3">
+      <div class="card dashboard text-center">
+        <div class="card-header">
+          Total Manual Sales
+        </div>
+        <div class="card-body">
+          <h2 class="title">${{ number_format($totalSalesManual, 2) }}</h2>
+{{--            <p style="color: rgba(141, 141, 141, 1);">via Manual Payments</p>--}}
+            <p class="card-text stat">
+                <span class="{{ $manualChange >= 0 ? 'text-success' : 'text-danger' }}">
+                    {{ abs($manualChange) }}% {{ $manualChange >= 0 ? 'Up' : 'Down' }}
+                </span>
+                from last year
+            </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card dashboard text-center">
+        <div class="card-header">
+          Dry Ice Units Sold
+        </div>
+        <div class="card-body">
+          <h2 class="title">{{ number_format($dryIceUnitSold, 2) }} lbs</h2>
+            <p class="card-text stat">
+                <span class="{{ $dryIceChange >= 0 ? 'text-success' : 'text-danger' }}">
+                    {{ abs($dryIceChange) }}% {{ $dryIceChange >= 0 ? 'Up' : 'Down' }}
+                </span>
+                from last year
+            </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card dashboard text-center">
+        <div class="card-header">
+          Styrofoam Boxes Units Sold
+        </div>
+        <div class="card-body">
+          <h2 class="title">{{ $styrofoamBoxUnitSold }} boxes</h2>
+            <p class="card-text stat">
+                <span class="{{ $styrofoamChange >= 0 ? 'text-success' : 'text-danger' }}">
+                    {{ abs($styrofoamChange) }}% {{ $styrofoamChange >= 0 ? 'Up' : 'Down' }}
+                </span>
+                from last year
+            </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{{--  <div class="row">--}}
+{{--    <div class="col-md-6">--}}
+{{--      <div class="table">--}}
+{{--        <div class="table-header">--}}
+{{--          Last Orders--}}
+{{--        </div>--}}
+{{--        <table>--}}
+{{--          <thead>--}}
+{{--            <tr>--}}
+{{--              <th>Order #</th>--}}
+{{--              <th>Customer</th>--}}
+{{--              <!-- <th>Address</th> -->--}}
+{{--              <th>Delivery Date</th>--}}
+{{--              <!-- <th>Ice</th> -->--}}
+{{--              <!-- <th>Box</th> -->--}}
+{{--              <th>Status</th>--}}
+{{--              <th>Total</th>--}}
+{{--              <th>Origin</th>--}}
+{{--            </tr>--}}
+{{--          </thead>--}}
+{{--          <tbody>--}}
+{{--            @foreach($lastOrders as $order)--}}
+{{--            <tr data-href="{{ url('admin/orders/' . $order['id'] . '/show') }}">--}}
+{{--              <td>{{ $order['id'] }}</td>--}}
+{{--              <td>{{ $order['customer_name'] }}</td>--}}
+{{--              <td>{{ \Illuminate\Support\Carbon::parse($order['delivery_date'])->format("Y-m-d") }}</td>--}}
+{{--              <td>--}}
+{{--                  <p class="status p-3">{{ $order['status'] }}</p>--}}
+{{--              </td>--}}
+{{--              <td>${{ $order['total_cost'] }}</td>--}}
+{{--              <td>{{ $order['origin'] }}</td>--}}
+{{--            </tr>--}}
+{{--            @endforeach--}}
+{{--          </tbody>--}}
+{{--        </table>--}}
+{{--      </div>--}}
+{{--    </div>--}}
+
+{{--    <div class="col-md-6">--}}
+{{--      <div class="table mb-3">--}}
+{{--        <div class="table-header">--}}
+{{--            CC orders--}}
+{{--        </div>--}}
+{{--        <table>--}}
+{{--          <thead>--}}
+{{--            <tr>--}}
+{{--              <th>Order #</th>--}}
+{{--              <th>Customer</th>--}}
+{{--              <th>Delivery Date</th>--}}
+{{--              <th>Ice</th>--}}
+{{--              <th>Box</th>--}}
+{{--              <th>Address</th>--}}
+{{--              <th>Action</th>--}}
+{{--            </tr>--}}
+{{--          </thead>--}}
+{{--          <tbody>--}}
+{{--            @foreach($ccOrders as $order)--}}
+{{--            <tr>--}}
+{{--              <td>{{ $order['customer_name']}}</td>--}}
+{{--              <td>{{ \Illuminate\Support\Carbon::parse($order['delivery_date'])->format('Y-m-d')}}</td>--}}
+{{--              <td>{{ $order['amount_of_ice']}} lbs</td>--}}
+{{--              <td>{{ $order['amount_of_boxes']}}</td>--}}
+{{--              <td>{{ $order['address']}}</td>--}}
+{{--                <td>--}}
+{{--                    @php--}}
+{{--                        $dateTime = \Carbon\Carbon::parse($order['delivery_date']);--}}
+{{--                    @endphp--}}
+{{--                    <button class="btn btn-primary btn-view" data-order-id="{{ $order['id'] }}">--}}
+{{--                        View--}}
+{{--                    </button>--}}
+{{--                </td>--}}
+{{--            </tr>--}}
+{{--            @endforeach--}}
+{{--          </tbody>--}}
+{{--        </table>--}}
+{{--      </div>--}}
+
+
+{{--        <div class="table recurring">--}}
+{{--        <div class="table-header">--}}
+{{--          Recurring Orders--}}
+{{--        </div>--}}
+{{--        <table>--}}
+{{--          <thead>--}}
+{{--            <tr>--}}
+{{--              <th>Order #</th>--}}
+{{--              <th>Customer</th>--}}
+{{--              <!-- <th>Address</th> -->--}}
+{{--              <th>Delivery Date</th>--}}
+{{--              <!-- <th>Ice</th> -->--}}
+{{--              <!-- <th>Box</th> -->--}}
+{{--              <th>Status</th>--}}
+{{--              <th>Total</th>--}}
+{{--              <th></th>--}}
+{{--            </tr>--}}
+{{--          </thead>--}}
+{{--          <tbody>--}}
+{{--            @foreach($recurringOrders as $order)--}}
+{{--            <tr data-href="{{ url('admin/orders/' . $order->id . '/show') }}">--}}
+{{--              <td>{{ $order->order_id }}</td>--}}
+{{--              <td>{{ $order->order->customer_name }}</td>--}}
+{{--              <!-- <td>{{ $order->order->address }}</td> -->--}}
+{{--              <td>{{ \Carbon\Carbon::parse($order->scheduled_delivery_date)->format('Y-m-d') }}</td>--}}
+{{--              <!-- <td>{{ $order->order->amount_of_ice }} lbs</td> -->--}}
+{{--              <!-- <td>{{ $order->order->amount_of_boxes }}</td> -->--}}
+{{--              <td>--}}
+{{--                <p class="status p-3">{{ $order->status }}</p>--}}
+{{--              </td>--}}
+{{--              <td>${{ $order->order->total_cost }}</td>--}}
+{{--              <td><button class="btn btn-primary rounded-5 px-3" onclick="loadRecurringOrderDetails(1,'{{$order->order_id}}','{{$order->id}}')">View</button></td>--}}
+{{--            </tr>--}}
+{{--            @endforeach--}}
+{{--          </tbody>--}}
+{{--        </table>--}}
+{{--      </div>--}}
+{{--    </div>--}}
+{{--  </div>--}}
+{{--</div>--}}
+{{--<!-- Modal -->--}}
+{{--<div class="modal fade" id="orderSummaryModal" tabindex="-1" aria-labelledby="orderSummaryLabel" aria-hidden="true">--}}
+{{--    <div class="modal-dialog modal-lg">--}}
+{{--        <div class="modal-content" id="modal-content-container">--}}
+
+
+{{--        </div>--}}
+{{--    </div>--}}
+{{--</div><!-- Bootstrap Modal -->--}}
 
 
 @endsection
@@ -286,144 +268,159 @@
 
     }
 
-    .row {
-        display: flex;
-        flex-wrap: wrap;
-        margin: 0 -15px;
+    .row.flex-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
     }
 
-    .col-md-6 {
-        flex: 0 0 50%;
-        max-width: 50%;
-        padding: 0 15px;
+    .row.flex-row > .col-md-3 {
+      flex: 1;
+      min-width: 250px;
+      display: flex;
     }
 
-    .table {
-        margin-bottom: 30px;
-        border-radius: 8px;
-
+    .card {
+      flex: 1;
+      border: none;
+      border-radius: 8px;
+      box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+      background-color: #221e26;
     }
 
-    .table-header {
-        color: #221e26;
-        padding: 10px 0px;
+    .card-header {
+      --bs-bg-opacity: 1 !important;
+      background-color: #221e26;
+      color: #ffffff;
+      border-top-left-radius: 8px !important;
+      border-top-right-radius: 8px !important;
+        font-size: 16px;
         font-weight: 700;
+    }
+
+    .card-body {
+      background-color: white;
+      position: relative;
+      padding: 24px 32px 16px;
+      text-align: left;
+      height: 130px;
+      border-bottom-left-radius: 8px;
+      border-bottom-right-radius: 8px;
+    }
+
+    .card-body h2.title {
+      font-weight: 800;
+        font-size: 30px;
+    }
+
+    .card-body .card-text {
+      color: var(--tblr-card-text);
+      font-size: 14px;
+      transform: translateY(-40%);
+    }
+
+    .card.dashboard .card-body .card-text.stat {
+      position: absolute;
+      bottom: 5px;
+      left: 32px;
+      font-size: 16px;
+      width: fit-content;
+    }
+
+    .card-body .card-text span {
+      color: var(--tblr-success);
+      margin-right: 4px;
+    }
+
+    .card .card-body.inventory {
+      height: fit-content;
+      padding: 16px 64px;
+    }
+
+    .card .card-body .stat {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      align-items: center;
+      text-align: center;
+    }
+
+    .card .card-body .stat.right {
+      flex-direction: column;
+    }
+
+    .card .card-body .stat h5 {
+      display: flex;
+      flex-direction: column;
+      text-transform: uppercase;
+      font-size: 12px
+    }
+
+    .card .card-body .stat h5 span {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .row .table-header {
+        font-weight: 500;
         font-size: 24px;
         line-height: 36px;
         letter-spacing: -0.11px;
-
     }
 
-    .table-header i {
-        color: #0256c5;
-        font-size: 26px;
-        margin-right: 8px;
+    .row .table-head-wrapper {
+      overflow: hidden;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
     }
 
-    /* Table wrapper for horizontal scrolling */
-    .table-responsive-wrapper {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        border-radius: 0 0 8px 8px;
-        background: transparent;
-        box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
-        padding: 0px 5px;
-        height: 100%;
+    .row table {
+      width: 100%;
+      margin-bottom: 0;
+      border-collapse: separate;
+      border-spacing: 0 15px;
     }
 
-    .table table {
-        width: 100%;
-        min-width: 520px;
-        border-collapse: separate;
-        border-spacing: 0;
-        margin-bottom: 0;
+    .row table thead tr {
+      --bs-bg-opacity: 1 !important;
+      background-color: #221e26 !important;
+      color: var(--tblr-secondary-text-emphasis);
+      text-transform: capitalize;
+      padding: 10px 0;
     }
 
-    .table thead {
-        background-color: #221e26;
+    .row table thead tr th {
+      color: white;
+      text-transform: capitalize;
+      font-size: 14px;
+      font-weight: 500;
     }
 
-    .table thead th {
-        color: white;
-        font-weight: 500;
-        font-size: 14px;
-        padding: 15px 12px;
-        border: none;
-        text-transform: capitalize;
-        white-space: nowrap;
-        vertical-align: middle;
+    .row table th,
+    .row table td {
+      font-size: 14px;
+      padding: 12px 15px;
+      vertical-align: middle;
     }
 
-    .table tbody tr {
-        background-color: white;
-        border-bottom: 1px solid #f1f3f4;
+    .row table tbody tr {
+      background-color: white;
+      color: var(--tblr-body-color);
+      box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 10px 5px;
     }
 
-    .table tbody tr:hover {
-        background-color: #f8f9fa;
+    .row table tbody tr td {
+      padding: 15px;
     }
 
-    .table tbody td {
-        padding: 5px !important;
-        font-size: 14px;
-        vertical-align: middle;
-        border: none;
-        white-space: nowrap;
+    .row table tbody tr:hover {
+      background-color: var(--tblr-secondary-bg-subtle);
     }
 
-    /* Badge/Status styling */
-    .status, .badge {
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        display: inline-block;
-        margin: 0;
-    }
-
-
-
-    /* Button styling */
-    .btn-view, .btn-primary {
-        font-weight: 600;
-        font-size: 14px;
-        line-height: 20.8px;
-        letter-spacing: 0px;
-        text-align: center;
-        border-radius: 20px;
-        padding: 6px 18px;
-        border: none;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .btn-primary {
-        background-color: #0256c5;
-        color: white;
-    }
-
-    .btn-primary:hover {
-        background-color: #0246a5;
-    }
-
-    .btn-add {
-        background-color: var(--tblr-primary);
-        border: 1px solid var(--tblr-primary);
-        color: var(--tblr-light);
-        border-radius: 10px;
-        box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
-    }
-
-    .btn-manual {
-        background: rgba(232, 232, 232, 1);
-        border: 1px solid black;
-        letter-spacing: -0.11px;
-        color: black;
-        border-radius: 10px;
-        box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
-    }
-
-    .btn-add:hover {
-        background-color: #0246a5;
-        color: var(--tblr-light);
+    .row .table.recurring {
+      margin-top: 38px;
     }
 
     .form-group.entries {
@@ -443,7 +440,46 @@
 
     /* Status Colors */
 
+    td.status {
+      text-transform: capitalize;
+      transform: translateY(10px);
+    }
 
+    .status.valid {
+      color: var(--tblr-success) !important;
+      font-weight: bold;
+    }
+
+    .status.skip {
+      color: var(--tblr-warning);
+      font-weight: bold;
+    }
+
+    .status.cancelled {
+      color: var(--tblr-danger);
+      font-weight: bold;
+    }
+
+    .btn-add {
+      background-color: var(--tblr-primary);
+      border: 1px solid var(--tblr-primary);
+      color: var(--tblr-light);
+      border-radius: 10px;
+      box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    }
+    .btn-manual {
+      background: rgba(232, 232, 232, 1);
+      border: 1px solid black;
+        letter-spacing: -0.11px;
+        color: black;
+      border-radius: 10px;
+      box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+    }
+
+    .btn-add:hover {
+      background-color: #0246a5;
+      color: var(--tblr-light);
+    }
     .btn-view , .modal .btn {
         font-weight: 600;
         font-size: 14px;
@@ -511,12 +547,9 @@
       }
     }
 
-
-
     footer {
         display: none;
     }
-
 
     .order-details-card .form-group label {
         font-weight: 600;
@@ -534,124 +567,6 @@
     .order-details-card{
         box-shadow: none !important;
     }
-    @media (max-width: 992px) {
-        .col-md-6 {
-            flex: 0 0 100%;
-            max-width: 100%;
-            margin-bottom: 20px;
-        }
-
-        .table table {
-            min-width: 700px;
-        }
-
-        .table thead th,
-        .table tbody td {
-            padding: 12px 8px;
-            font-size: 13px;
-        }
-    }
-
-    /* Mobile Styles */
-    @media (max-width: 768px) {
-        .row {
-            margin: 0 -10px;
-        }
-
-        .col-md-6 {
-            padding: 0 10px;
-        }
-
-        .table-header {
-            padding: 12px 15px;
-            font-size: 20px;
-            text-align: center;
-        }
-
-        .table table {
-            min-width: 600px;
-            font-size: 13px;
-        }
-
-        .table thead th,
-        .table tbody td {
-            padding: 12px 8px;
-            font-size: 13px;
-        }
-
-        .status, .badge {
-            padding: 4px 8px;
-            font-size: 11px;
-        }
-
-        .btn-view, .btn-primary {
-            padding: 6px 12px;
-            font-size: 11px;
-        }
-
-        /* Mobile scrollbar styling */
-        .table-responsive-wrapper::-webkit-scrollbar {
-            height: 4px;
-        }
-
-        .table-responsive-wrapper::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 2px;
-        }
-
-        .table-responsive-wrapper::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 2px;
-        }
-    }
-
-    /* Extra Small Mobile */
-    @media (max-width: 480px) {
-        .table-header {
-            padding: 10px 12px;
-            font-size: 18px;
-        }
-
-        .table table {
-            min-width: 500px;
-        }
-
-        .table thead th,
-        .table tbody td {
-            padding: 10px 6px;
-            font-size: 12px;
-        }
-
-        .status, .badge {
-            padding: 3px 6px;
-            font-size: 10px;
-        }
-
-        .btn-view, .btn-primary {
-            padding: 5px 10px;
-            font-size: 10px;
-        }
-    }
-
-    /* Ensure tables maintain your existing spacing */
-    .table.recurring {
-        margin-top: 38px;
-    }
-
-    .table.mb-3 {
-        margin-bottom: 1rem;
-    }
-
-
-    /* Extra Small Mobile */
-
-    /* Ensure tables maintain your existing spacing */
-
-
-    .table.mb-3 {
-        margin-bottom: 1rem;
-    }
-
 </style>
 
 @endsection
@@ -977,8 +892,16 @@
             document.querySelector('.cost-summary-total').innerHTML =
                 `TOTAL:<strong>$${total.toFixed(2)}</strong>`;
 
+            toggleAddressFields();
         }
+        function toggleAddressFields() {
+            const deliveryType = document.getElementById('modal-pickup-or-delivery').value;
+            const addressFields = document.querySelectorAll('.address-field');
 
+            addressFields.forEach(field => {
+                field.style.display = deliveryType === 'pickup' ? 'none' : 'block';
+            });
+        }
 
         function addCostCalculationListeners() {
             const iceField = document.getElementById('modal-ice-amount');
@@ -1015,6 +938,7 @@
                 {id: 'modal-customer-email', label: 'Customer Email'},
                 {id: 'modal-customer-phone', label: 'Customer Phone'},
                 {id: 'modal-recurring', label: 'Recurring Option'},
+                {id: 'modal-location-name', label: 'Location Name'},
                 {id: 'modal-address', label: 'Address', dependsOnDelivery: true},
                 {id: 'modal-city', label: 'City', dependsOnDelivery: true},
                 {id: 'modal-postal', label: 'Postal Code', dependsOnDelivery: true},

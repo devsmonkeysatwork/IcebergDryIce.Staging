@@ -77,12 +77,16 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
-
+    public function invoice()
+    {
+        return $this->morphOne(Invoice::class, 'invoiceable_type');
+    }
 
     public function recurringOrders()
     {
         return $this->hasMany(RecurringOrder::class);
     }
+
 
     public function nextRecurringOrder()
     {

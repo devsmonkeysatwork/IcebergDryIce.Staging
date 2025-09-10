@@ -860,7 +860,7 @@
             }
 
             // If basic validation passes, proceed with API validation
-            if (error_msg === '' && deliveryType === 'delivery') {
+            if (error_msg === '') {
                 try {
                     // Call the Google Address Validation API
                     const result = await validateAddress({

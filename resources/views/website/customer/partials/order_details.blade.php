@@ -213,9 +213,7 @@
                             <button class="btn btn-secondary btn-submission" onclick="hideOrderDetails()">
                                 <i class="la la-arrow-left me-2"></i> Back to Orders
                             </button>
-{{--                            <button class="btn btn-primary btn-submission mx-2" onclick="window.print()">--}}
-{{--                                <i class="la la-print me-2"></i> Print Order--}}
-{{--                            </button>--}}
+
                         </div>
                     </div>
                 </div>

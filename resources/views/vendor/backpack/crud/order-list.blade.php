@@ -656,16 +656,17 @@
                 document.querySelector('.cost-summary-total').innerHTML =
                     `TOTAL:<strong>$${total.toFixed(2)}</strong>`;
 
-                toggleAddressFields();
+                // toggleAddressFields();
             }
-            function toggleAddressFields() {
-                const deliveryType = document.getElementById('modal-pickup-or-delivery').value;
-                const addressFields = document.querySelectorAll('.address-field');
 
-                addressFields.forEach(field => {
-                    field.style.display = deliveryType === 'pickup' ? 'none' : 'block';
-                });
-            }
+            // function toggleAddressFields() {
+            //     const deliveryType = document.getElementById('modal-pickup-or-delivery').value;
+            //     const addressFields = document.querySelectorAll('.address-field');
+            //
+            //     addressFields.forEach(field => {
+            //         field.style.display = deliveryType === 'pickup' ? 'none' : 'block';
+            //     });
+            // }
 
             function addCostCalculationListeners() {
                 const iceField = document.getElementById('modal-ice-amount');
@@ -702,7 +703,7 @@
                     {id: 'modal-customer-email', label: 'Customer Email'},
                     {id: 'modal-customer-phone', label: 'Customer Phone'},
                     {id: 'modal-recurring', label: 'Recurring Option'},
-                    {id: 'modal-location-name', label: 'Location Name'},
+                    // {id: 'modal-location-name', label: 'Location Name'},
                     {id: 'modal-address', label: 'Address', dependsOnDelivery: true},
                     {id: 'modal-city', label: 'City', dependsOnDelivery: true},
                     {id: 'modal-postal', label: 'Postal Code', dependsOnDelivery: true},

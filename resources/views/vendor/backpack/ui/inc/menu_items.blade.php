@@ -25,10 +25,8 @@
 {{--  <x-backpack::menu-dropdown-item title="Log Files" icon="la la-file-alt" :link="backpack_url('log-files')" />--}}
 </x-backpack::menu-dropdown>
 
-<x-backpack::menu-dropdown title="Reports" icon="la la-chart-bar">
-  <x-backpack::menu-dropdown-item title="Inventory" icon="la la-warehouse" :link="backpack_url('inventory')" />
+<x-backpack::menu-item title="Reports" icon="la la-chart-bar" :link="backpack_url('reports')" />
 {{--  <x-backpack::menu-dropdown-item title="Warehouse Sales" icon="la la-dollar-sign" :link="backpack_url('warehouse-sales')" />--}}
-</x-backpack::menu-dropdown>
 
 <x-backpack::menu-dropdown title="Others" icon="la la-ellipsis-h">
   <x-backpack::menu-dropdown-item title="Manual Payments" icon="la la-money-bill-wave" :link="backpack_url('manual-payments')" />
