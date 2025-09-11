@@ -8,11 +8,12 @@
             <form action="{{ route('manual-payments.store') }}" method="POST" class="card p-5">
                 @csrf
                 <div class="row">
+                    <input type="hidden" id="invoice-id" name="invoice_id" value="">
                     <div class="col-8 px-4 my-3">
                         <h3 class="form-group-heading m-0"><i class="la la-cart-plus me-2"></i> Order</h3>
                         <div class="form-group">
                             <label for="invoice-number">Invoice #</label>
-                            <select id="invoice-number" name="invoice_id" class="form-control" style="width: 100%" required></select>
+                            <select id="invoice-number" class="form-control" style="width: 100%" required></select>
                         </div>
                     </div>
                     <div class="col-6 px-4">
@@ -143,7 +144,7 @@
                 $('#contact-name').val(data.customer_name);
                 $('#contact-email').val(data.customer_email);
                 $('#amount').val(data.total_cost);
-                $('#invoice-number').val(data.id);
+                $('#invoice-id').val(data.id);
             });
         });
     </script>

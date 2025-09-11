@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Requests\ManualPaymentRequest;
+use App\Models\ManualPayment;
+use Illuminate\Support\Facades\DB;
 use App\Mail\OrderPlacedMail;
 use App\Models\Invoice;
 use App\Models\RecurringOrder;
@@ -88,44 +90,61 @@ class ManualPaymentCrudController extends CrudController
     }
 
 
-    public function store()
+    public function Store(Request $request)
     {
         $this->crud->hasAccessOrFail('create');
 
         $request = $this->crud->validateRequest();
         $data = $request->all();
+
         $invoice = Invoice::where('id', $data['invoice_id'])
+            ->where('payment_status', Invoice::PENDING)
             ->first();
 
+        if (!$invoice) {
+            \Alert::error('Invoice not found or already paid.')->flash();
+            return redirect()->back()->withInput();
+        }
 
-//        if($invoice->invoiceable_type == 'App\Models\Order'){
-//            $order = Order::find($data['invoice_id']);
-//
-//            if ($order->total_cost != $data['amount']) {
-//                \Alert::error('The payment amount does not match the order total.')->flash();
-//                return redirect()->back()->withInput();
-//            }
-//            $item = $this->crud->create($data);
-//            $order->payment_status = 1;
-//            $order->status = Order::COMPLETED;
-//            $order->save();
-//            Mail::to($order->email ?? $data['email'])->send(new OrderPlacedMail($order));
-//        }else{
-//            $id = intval(str_replace("R", "", $data['order_number']));
-//            $recurringOrder = RecurringOrder::whereId($id)->with('order')->first();
-//            if ($recurringOrder->order->total_cost != $data['amount']) {
-//                \Alert::error('The payment amount does not match the order total.')->flash();
-//                return redirect()->back()->withInput();
-//            }
-//            $data['recurring_order_id'] = $recurringOrder->id;
-//            $item = $this->crud->create($data);
-//            $recurringOrder->recurring_payment_status = 1;
-//            $recurringOrder->status = RecurringOrder::COMPLETED;
-//            $recurringOrder->save();
-//            Mail::to($recurringOrder->order->email ?? $data['email'])->send(new OrderPlacedMail($recurringOrder->order));
-//        }
+        try {
+            DB::beginTransaction();
 
-        \Alert::success('Manual payment created and order updated.')->flash();
+            // Create manual payment record
+            ManualPayment::create([
+                'invoice_id' => $invoice->id,
+//                'invoice_number' => $data['invoice_id'],
+                'contact_name' => $data['contact_name'],
+                'email' => $data['email'],
+                'description' => $data['description'],
+                'amount' => $data['amount'],
+            ]);
+
+            // Update invoice payment status
+            $invoice->update([
+                'payment_status' => Invoice::PAID,
+//                'paid_at' => now()
+            ]);
+
+            // Optional: Update related order status based on invoice type
+            if ($invoice->invoiceable_type === 'App\Models\Order') {
+                // Update direct order
+                Order::where('invoice_id', $invoice->id)
+                    ->update(['payment_status' => 'paid']);
+            } else {
+                // Update recurring order
+                RecurringOrder::where('id', $invoice->invoiceable_id)
+                    ->update(['recurring_payment_status' => 'paid']);
+            }
+
+            DB::commit();
+
+            \Alert::success('Manual payment created and order updated.')->flash();
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            \Alert::error('Error processing payment: ' . $e->getMessage())->flash();
+            return redirect()->back()->withInput();
+        }
 
         return redirect($this->crud->route);
     }

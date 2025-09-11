@@ -6,6 +6,7 @@ class Invoice extends Model
 {
 
     const PENDING = 'pending';
+    const PAID = 'paid';
 
 
     protected $fillable = [

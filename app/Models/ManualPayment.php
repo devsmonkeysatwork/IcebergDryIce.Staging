@@ -20,6 +20,16 @@ class ManualPayment extends Model
         'recurring_order_id',
         'description',
         'amount',
+        'invoice_id',
     ];
+
+    protected $casts = [
+        'amount' => 'decimal:2',
+    ];
+
+    public function invoice()
+    {
+        return $this->belongsTo(Invoice::class);
+    }
 
 }

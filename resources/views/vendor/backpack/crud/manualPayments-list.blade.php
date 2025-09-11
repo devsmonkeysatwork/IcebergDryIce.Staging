@@ -18,8 +18,8 @@
                 <tr>
                     <th>Contact Name</th>
                     <th>Email</th>
-                    <th>Order Number</th>
-                    <th>Recurring Order</th>
+                    <th>Invoice Number</th>
+{{--                    <th>Recurring Order</th>--}}
                     <th>Description</th>
                     <th>Amount</th>
                     <th>Actions</th>
@@ -30,8 +30,8 @@
                     <tr>
                         <td>{{ $payment->contact_name }}</td>
                         <td>{{ $payment->email }}</td>
-                        <td>{{ $payment->order_number }}</td>
-                        <td>{{ $payment->recurring_order_id ?? 'N/A' }}</td>
+                        <td>{{ $payment->invoice_id }}</td>
+{{--                        <td>{{ $payment->recurring_order_id ?? 'N/A' }}</td>--}}
                         <td>{{ $payment->description }}</td>
                         <td>${{ number_format($payment->amount, 2) }}</td>
                         <td>
