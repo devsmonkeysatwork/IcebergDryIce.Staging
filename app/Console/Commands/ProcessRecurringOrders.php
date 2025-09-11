@@ -9,6 +9,8 @@ use App\Models\RecurringOrder;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Services\InvoiceService;
+
 
 class ProcessRecurringOrders extends Command
 {
@@ -41,6 +43,10 @@ class ProcessRecurringOrders extends Command
                         'scheduled_delivery_date' => $nextDeliveryDate,
                         'status' => 'open',
                     ]);
+
+                    $invoiceService = new InvoiceService();
+                    $invoiceService->createInvoiceForRecurringOrder($recurringOrder);
+
 
                     Log::info("Created recurring order for Order ID: {$order->id}");
                 }

@@ -27,6 +27,7 @@ class OrderPlacedMail extends Mailable
             ->view('emails.order-placed')
             ->with([
                 'order' => $this->order,
+                'invoice_number' => $this->order->invoice->invoice_number,
             ]);
     }
 }

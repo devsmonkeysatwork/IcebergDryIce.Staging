@@ -310,9 +310,14 @@ class OrderCrudController extends CrudController
                 ]);
 
             }
-            DB::commit();
+
             $invoiceService = new InvoiceService();
             $originalInvoice = $invoiceService->createInvoiceForOrder($order);
+
+            $order->load('invoice');
+
+            DB::commit();
+
 
             Mail::to($order->email)->send(new OrderPlacedMail($order));
 

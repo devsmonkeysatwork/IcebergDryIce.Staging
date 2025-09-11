@@ -11,6 +11,7 @@ class Order extends Model
 {
     use CrudTrait;
     use HasFactory;
+
     const RECURRING = 'recurring';
     const NON_RECURRING = 'non-recurring';
     const COMPLETED = 'completed';
@@ -45,6 +46,7 @@ class Order extends Model
         'total_cost',
         'payment_status',
         'supplier_id',
+        'invoice_id',
     ];
 
     public function scopeToday($query)
@@ -77,16 +79,16 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    // FIX: Corrected the polymorphic relationship
     public function invoice()
     {
-        return $this->morphOne(Invoice::class, 'invoiceable_type');
+        return $this->morphOne(Invoice::class, 'invoiceable');
     }
 
     public function recurringOrders()
     {
         return $this->hasMany(RecurringOrder::class);
     }
-
 
     public function nextRecurringOrder()
     {
@@ -96,5 +98,4 @@ class Order extends Model
             ->orderBy('scheduled_delivery_date')
             ->first();
     }
-
 }

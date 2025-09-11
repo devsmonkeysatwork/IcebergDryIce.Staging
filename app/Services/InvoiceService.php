@@ -16,7 +16,7 @@ class InvoiceService
             'invoice_number' => Invoice::generateInvoiceNumber(),
             'invoice_type' => $order->recurring === 'recurring' ? 'recurring' : 'non-recurring',
             'invoiceable_id' => $order->id,
-//            'invoiceable_type' => Order::class,
+            'invoiceable_type' => Order::class,
             'total_amount' => $order->total_cost,
             'invoice_date' => now(),
             'recurring_sequence' => 1, // Original is always sequence 1

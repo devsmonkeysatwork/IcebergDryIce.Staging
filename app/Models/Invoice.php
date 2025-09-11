@@ -5,8 +5,15 @@ use Illuminate\Database\Eloquent\Model;
 class Invoice extends Model
 {
     protected $fillable = [
-        'invoice_number', 'invoice_type', 'total_amount', 'payment_status',
-        'parent_invoice_id', 'recurring_sequence', 'invoice_date'
+        'invoice_number',
+        'invoice_type',
+        'invoiceable_id',
+        'invoiceable_type',
+        'total_amount',
+        'payment_status',
+        'parent_invoice_id',
+        'recurring_sequence',
+        'invoice_date'
     ];
 
     protected $casts = [
