@@ -97,6 +97,7 @@ Route::group([
     Route::crud('warehouse-sales', 'WarehouseSaleCrudController');
 
     Route::get('admin/ajax/orders', [ManualPaymentCrudController::class, 'ajaxSearch'])->name('orders.ajax-search');
+    Route::get('admin/ajax/invoices', [ManualPaymentCrudController::class, 'ajaxSearch_invoices'])->name('invoices.ajax-search');
     Route::get('admin/ajax/customers', [App\Http\Controllers\Admin\OrderCrudController::class, 'ajaxCustomers'])->name('ajax.customers');
 
 

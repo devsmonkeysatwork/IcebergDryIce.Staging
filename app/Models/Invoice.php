@@ -4,6 +4,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Invoice extends Model
 {
+
+    const PENDING = 'pending';
+
+
     protected $fillable = [
         'invoice_number',
         'invoice_type',

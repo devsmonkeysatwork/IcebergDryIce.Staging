@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Requests\ManualPaymentRequest;
 use App\Mail\OrderPlacedMail;
+use App\Models\Invoice;
 use App\Models\RecurringOrder;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -174,46 +175,48 @@ class ManualPaymentCrudController extends CrudController
     {
         $this->setupCreateOperation();
     }
-    public function ajaxSearch(\Illuminate\Http\Request $request)
+    public function ajaxSearch_invoices(Request $request)
     {
         $search = $request->input('q');
-        $order_type = $request->input('order_type');
-        $results = [];
-        if($order_type == 'simple'){
-            $results = Order::query()
-                ->where('status',Order::VALID)
-                ->where('id', 'like', "%{$search}%")
-                ->orWhere('customer_name', 'like', "%{$search}%")
-                ->limit(20)
-                ->get();
-        }else{
-            $completedRecurringOrders = Order::query()
-                ->where('status', Order::COMPLETED)
-                ->where('recurring', Order::RECURRING)
-                ->where(function($query) use ($search) {
-                    $query->where('id', 'like', "%{$search}%")
-                        ->orWhere('customer_name', 'like', "%{$search}%");
-                })
-                ->with(['recurringOrders' => function($query) {
-                    $query->where('status', RecurringOrder::OPEN)
-                        ->whereNull('recurring_payment_status');
-                }])
-                ->limit(20)
-                ->get();
-            foreach ($completedRecurringOrders as $order) {
-                foreach ($order->recurringOrders as $recurringOrder) {
-                    $results[] = [
-                        'id' => 'R' . $recurringOrder->id,
-                        'text' => '#'.$recurringOrder->order_id.'-R#'.$recurringOrder->id.' - '.$order->customer_name.'-'.Carbon::parse($recurringOrder->scheduled_delivery_date)->format('Y-m-d'),
-                        'customer_name' => $order->customer_name,
-                        'email' => $order->email,
-                        'total_cost' => $order->total_cost
-                    ];
-                }
+
+        $invoices = Invoice::where('payment_status', Invoice::PENDING)
+            ->where('invoice_number', 'like', "%{$search}%")
+            ->limit(20)
+            ->get();
+
+        $results = $invoices->map(function($invoice) {
+            if ($invoice->invoiceable_type === 'App\Models\Order') {
+                // Direct order - use invoice ID to find the order
+                $order = Order::where('invoice_id', $invoice->id)->first();
+                return $order ? [
+                    'id' => $invoice->id, // Return invoice ID for selection
+                    'invoice_number' => $invoice->invoice_number,
+                    'customer_name' => $order->customer_name,
+                    'email' => $order->email,
+                    'total_cost' => $order->total_cost ?? $invoice->amount ?? 0,
+                    'type' => 'direct'
+                ] : null;
+            } else {
+                // Recurring order - use invoice ID to find recurring order, then get parent order
+                $recurring = RecurringOrder::where('id', $invoice->invoiceable_id)
+                    ->where('status', RecurringOrder::OPEN)
+                    ->whereNull('recurring_payment_status')
+                    ->with('order')
+                    ->first();
+
+                return $recurring ? [
+                    'id' => $invoice->id, // Return invoice ID for selection
+                    'invoice_number' => $invoice->invoice_number,
+                    'customer_name' => $recurring->order->customer_name,
+                    'email' => $recurring->order->email,
+                    'total_cost' => $recurring->order->total_cost ?? $invoice->amount ?? 0,
+                    'type' => 'recurring'
+                ] : null;
             }
-        }
+        })->filter()->values();
 
 
         return response()->json($results);
     }
+
 }

@@ -110,27 +110,24 @@
 
     <script>
         $(document).ready(function() {
-            $('#order-number').select2({
-                theme: 'bootstrap-5', // Optional if using Bootstrap 5
-                placeholder: 'Enter Order ID',
+            $('#invoice-number').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Enter Invoice No',
                 ajax: {
-                    url: '{{ route('orders.ajax-search') }}',
+                    url: '{{ route('invoices.ajax-search') }}',
                     dataType: 'json',
                     delay: 250,
                     data: function(params) {
-                        return {
-                            q: params.term, // search term
-                            order_type: $('#order-type').val()
-                        };
+                        return { q: params.term };
                     },
                     processResults: function (data) {
                         return {
-                            results: data.map(order => ({
-                                id: order.id,
-                                text: $('#order-type').val() == 'simple' ? `#${order.id} - ${order.customer_name}` :order.text ,
-                                customer_name: order.customer_name,
-                                customer_email: order.email,
-                                total_cost: order.total_cost
+                            results: data.map(item => ({
+                                id: item.id,
+                                text: `#${item.invoice_number} - ${item.customer_name}`,
+                                customer_name: item.customer_name,
+                                customer_email: item.email,
+                                total_cost: item.total_cost
                             }))
                         };
                     },
