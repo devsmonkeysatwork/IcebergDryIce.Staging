@@ -94,33 +94,36 @@ class ManualPaymentCrudController extends CrudController
 
         $request = $this->crud->validateRequest();
         $data = $request->all();
-        $order_type = $request->input('order_type');
-        if($order_type == 'simple'){
-            $order = Order::find($data['order_number']);
+        $invoice = Invoice::where('id', $data['invoice_id'])
+            ->first();
 
-            if ($order->total_cost != $data['amount']) {
-                \Alert::error('The payment amount does not match the order total.')->flash();
-                return redirect()->back()->withInput();
-            }
-            $item = $this->crud->create($data);
-            $order->payment_status = 1;
-            $order->status = Order::COMPLETED;
-            $order->save();
-            Mail::to($order->email ?? $data['email'])->send(new OrderPlacedMail($order));
-        }else{
-            $id = intval(str_replace("R", "", $data['order_number']));
-            $recurringOrder = RecurringOrder::whereId($id)->with('order')->first();
-            if ($recurringOrder->order->total_cost != $data['amount']) {
-                \Alert::error('The payment amount does not match the order total.')->flash();
-                return redirect()->back()->withInput();
-            }
-            $data['recurring_order_id'] = $recurringOrder->id;
-            $item = $this->crud->create($data);
-            $recurringOrder->recurring_payment_status = 1;
-            $recurringOrder->status = RecurringOrder::COMPLETED;
-            $recurringOrder->save();
-            Mail::to($recurringOrder->order->email ?? $data['email'])->send(new OrderPlacedMail($recurringOrder->order));
-        }
+
+//        if($invoice->invoiceable_type == 'App\Models\Order'){
+//            $order = Order::find($data['invoice_id']);
+//
+//            if ($order->total_cost != $data['amount']) {
+//                \Alert::error('The payment amount does not match the order total.')->flash();
+//                return redirect()->back()->withInput();
+//            }
+//            $item = $this->crud->create($data);
+//            $order->payment_status = 1;
+//            $order->status = Order::COMPLETED;
+//            $order->save();
+//            Mail::to($order->email ?? $data['email'])->send(new OrderPlacedMail($order));
+//        }else{
+//            $id = intval(str_replace("R", "", $data['order_number']));
+//            $recurringOrder = RecurringOrder::whereId($id)->with('order')->first();
+//            if ($recurringOrder->order->total_cost != $data['amount']) {
+//                \Alert::error('The payment amount does not match the order total.')->flash();
+//                return redirect()->back()->withInput();
+//            }
+//            $data['recurring_order_id'] = $recurringOrder->id;
+//            $item = $this->crud->create($data);
+//            $recurringOrder->recurring_payment_status = 1;
+//            $recurringOrder->status = RecurringOrder::COMPLETED;
+//            $recurringOrder->save();
+//            Mail::to($recurringOrder->order->email ?? $data['email'])->send(new OrderPlacedMail($recurringOrder->order));
+//        }
 
         \Alert::success('Manual payment created and order updated.')->flash();
 
@@ -189,7 +192,8 @@ class ManualPaymentCrudController extends CrudController
                 // Direct order - use invoice ID to find the order
                 $order = Order::where('invoice_id', $invoice->id)->first();
                 return $order ? [
-                    'id' => $invoice->id, // Return invoice ID for selection
+                    'id' => $invoice->id,
+                    'order_id' => $order->id,
                     'invoice_number' => $invoice->invoice_number,
                     'customer_name' => $order->customer_name,
                     'email' => $order->email,
@@ -206,6 +210,7 @@ class ManualPaymentCrudController extends CrudController
 
                 return $recurring ? [
                     'id' => $invoice->id, // Return invoice ID for selection
+                    'order_id' => $recurring->order->id,
                     'invoice_number' => $invoice->invoice_number,
                     'customer_name' => $recurring->order->customer_name,
                     'email' => $recurring->order->email,
