@@ -30,8 +30,7 @@
                     <tr>
                         <td>{{ $payment->contact_name }}</td>
                         <td>{{ $payment->email }}</td>
-                        <td>{{ $invoice->invoice_number }}</td>
-{{--                        <td>{{ $payment->recurring_order_id ?? 'N/A' }}</td>--}}
+                        <td>    {{ $payment->invoice ? $payment->invoice->invoice_number : 'N/A' }}</td>
                         <td>{{ $payment->description }}</td>
                         <td>${{ number_format($payment->amount, 2) }}</td>
                         <td>

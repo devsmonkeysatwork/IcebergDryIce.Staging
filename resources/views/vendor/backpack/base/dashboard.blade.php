@@ -135,14 +135,10 @@
                                     <td>{{ $order->customer_name }}</td>
                                     <td>{{ \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') }}</td>
                                     <td>
-                                        <span class="badge @if($order['status'] == 'COMPLETED') bg-success
-                                                    @elseif($order['status'] == 'VALID') bg-warning
-                                                    @elseif($order['status'] == 'CANCELLED') bg-warning
-                                                    @elseif($order['status'] == 'SKIP') bg-warning
-                                                    @endif">{{ $order['status'] }}</span>
+                                        <span class="badge {{ $order['status'] == 'completed' ? 'bg-success' : 'bg-secondary'  }}">{{ $order['status'] }}</span>
                                     </td>
                                     <td>${{ $order->total_cost }}</td>
-                                    <td><button class="btn btn-primary btn-view" title="View Order Details" data-order-id="{{ $order['id'] }})"><i class="la la-eye"></i></button>
+                                    <td><button class="btn btn-primary btn-view la la-eye la-2x" title="View Order Details" data-order-id="{{ $order['id'] }})"><i class=""></i></button>
                                     <span class="badge {{$order['payment_status'] == 'paid' ? 'bg-success' : 'bg-warning'}}">
                                             {{ $order['payment_status'] == 'paid' ? 'PAID' : 'UNPAID' }}
                                         </span>
@@ -202,14 +198,18 @@
                                     </td>
                                     <td>
                                         @if($order instanceof \App\Models\RecurringOrder)
-                                            <button class="btn btn-primary rounded-5 px-3"
+                                            <button class="btn btn-primary rounded-5 la la-eye la-2x"
                                                     onclick="loadRecurringOrderDetails(1,'{{ $order->order_id }}','{{ $order->id }}')">
-                                                View
                                             </button>
+                                            <span class="badge {{$order['rucurring_payment_status'] == 'paid' ? 'bg-success' : 'bg-warning'}}">
+                                            {{ $order['payment_status'] == 'paid' ? 'PAID' : 'UNPAID' }}
+                                        </span>
                                         @else
-                                            <button class="btn btn-primary btn-view" data-order-id="{{ $order->id }}">
-                                                View
+                                            <button class="btn btn-primary btn-view la la-eye la-2x" data-order-id="{{ $order->id }}">
                                             </button>
+                                            <span class="badge {{$order['payment_status'] == 'paid' ? 'bg-success' : 'bg-warning'}}">
+                                            {{ $order['payment_status'] == 'paid' ? 'PAID' : 'UNPAID' }}
+                                        </span>
                                         @endif
                                     </td>
                                 </tr>

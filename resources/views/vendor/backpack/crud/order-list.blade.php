@@ -78,6 +78,7 @@
                             <th>Delivery Date</th>
                             <th>Status</th>
                             <th>Total</th>
+                            <th>Payment Status</th>
                             <th>Origin</th>
                             <th>Recurring</th>
                             <th></th>
@@ -92,6 +93,11 @@
                                 <td>{{ \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') }}</td>
                                 <td>{{ $order->status }}</td>
                                 <td>${{ number_format($order->total_cost, 2) }}</td>
+                                <td>
+                                        <span class="badge {{$order['payment_status'] == 'paid' ? 'bg-success' : 'bg-warning'}}">
+                                            {{ $order['payment_status'] == 'paid' ? 'PAID' : 'UNPAID' }}
+                                        </span>
+                                </td>
                                 <td>{{ $order->origin }}</td>
                                 <td>{{ $order->recurring}}</td>
                                 <td>

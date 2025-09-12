@@ -193,6 +193,7 @@ class DashboardController extends Controller
             ->get();
 
         $oneTimeOrders = Order::where('recurring', 'non-recurring')
+            ->whereIn('status', [Order::VALID, Order::COMPLETED])
             ->orderBy('id', 'desc')
             ->take(15)
             ->get();
