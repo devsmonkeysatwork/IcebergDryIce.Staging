@@ -186,11 +186,7 @@
                                             : \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') }}
                                     </td>
                                     <td>
-                                        <span class="badge @if($order['status'] == 'COMPLETED') bg-success
-                                                    @elseif($order['status'] == 'VALID') bg-success
-                                                    @elseif($order['status'] == 'CANCELLED') bg-warning
-                                                    @elseif($order['status'] == 'SKIP') bg-warning
-                                                    @endif">{{ $order['status'] }}</span>
+                                        <span class="badge {{ $order['status'] == 'completed' ? 'bg-success' : 'bg-secondary'  }}">{{ $order['status'] }}</span>
                                     </td>
                                     <td>
                                         {{-- Handle total cost from both sources --}}
