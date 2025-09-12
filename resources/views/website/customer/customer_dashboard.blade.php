@@ -356,8 +356,7 @@
                                                             @if($order->payment_status === 'paid' ) bg-success @elseif($order->payment_status == Null) bg-danger @else badge-secondary @endif">
                                                             {{ $order->payment_status? 'PAID' : 'UNPAID' }}
                                                         </span>
-
-                                                    </td>
+                       </td>
 
                                                     <td>
                                                         <button class="btn btn-sm btn-primary btn-view las la-eye fs-2" data-order-id="{{ $order->id }}">
