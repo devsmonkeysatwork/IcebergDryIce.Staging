@@ -52,8 +52,8 @@
                             </select>
                             <select name="payment_status" id="payment_status">
                                 <option value="">Payment Status</option>
-                                <option value="paid" {{ request('paid') == 'paid' ? 'selected' : '' }}>Paid</option>
-                                <option value="pending" {{ request('pending') == 'pending' ? 'selected' : '' }}>Pending</option>
+                                <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Paid</option>
+                                <option value="pending" {{ request('payment_status') == 'pending' ? 'selected' : '' }}>Pending</option>
                             </select>
                             <select name="recurring" id="recurring">
                                 <option value="">Recurring</option>
