@@ -634,13 +634,47 @@ class OrderCrudController extends CrudController
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getOrderDetails($id)
+    public function getOrderDetails(Request $request)
     {
         try {
-            $order = Order::findOrFail($id);
-            return response()->json($order);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Order not found'], 404);
+            $orderId = $request->get('order_id');
+
+            // Fetch order with invoice relationship
+            $order = Order::where('id', $orderId)->with('invoice')->first();
+
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order not found'
+                ]);
+            }
+
+            if (!$order->invoice) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No invoice found for this order'
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'order_id' => $order->id,
+                    'invoice_id' => $order->invoice->id,
+                    'invoice_number' => $order->invoice->invoice_number,
+                    'amount' => number_format($order->invoice->total_amount, 2),
+                    'customer_name' => $order->invoice->customer_name,
+                    'customer_email' => $order->invoice->customer_email,
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            \Log::error('Error fetching order payment details: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error occurred'
+            ]);
         }
     }
 

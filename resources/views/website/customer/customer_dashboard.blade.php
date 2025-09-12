@@ -331,8 +331,9 @@
                                                 <th>Order #</th>
                                                 <th>Order Date</th>
                                                 <th>Delivery</th>
+                                                <th>Order Status</th>
                                                 <th>Total</th>
-                                                <th>Status</th>
+                                                <th>Payment Status</th>
                                                 <th>Actions</th>
                                             </tr>
                                             </thead>
@@ -342,23 +343,33 @@
                                                     <td>{{ $order->id }}</td>
                                                     <td>{{ $order->created_at }}</td>
                                                     <td>{{ $order->pickup_delivery }}</td>
+                                                    <td>
+                                                         <span class="text-uppercase badge
+                                                            @if($order->status == \App\Models\Order::COMPLETED) bg-success @elseif($order->status == \App\Models\Order::VALID) bg-primary @else badge-secondary @endif">
+                                                            {{ $order->status}}
+                                                        </span>
+
+                                                    </td>
                                                     <td>${{ number_format($order->total_cost, 2) }}</td>
                                                     <td>
                                                         <span class="text-uppercase badge
-                                                            @if($order->payment_status == 1) bg-success @elseif($order->payment_status == 0) bg-danger @else badge-secondary @endif">
+                                                            @if($order->payment_status === 'paid' ) bg-success @elseif($order->payment_status == Null) bg-danger @else badge-secondary @endif">
                                                             {{ $order->payment_status? 'PAID' : 'UNPAID' }}
                                                         </span>
-{{--                                                        <span class="text-uppercase badge--}}
-{{--                                                            @if($order->status == \App\Models\Order::VALID) bg-success @elseif($order->status == 0) bg-danger @else badge-secondary @endif">--}}
-{{--                                                            {{ $order->status}}--}}
-{{--                                                        </span>--}}
+
                                                     </td>
+
                                                     <td>
-                                                        <button class="btn btn-sm btn-primary btn-view btn-submission" data-order-id="{{ $order->id }}">View
+                                                        <button class="btn btn-sm btn-primary btn-view las la-eye fs-2" data-order-id="{{ $order->id }}">
                                                         </button>
-                                                        <button class="btn btn-sm btn-primary btn-submission view-invoice" data-id="{{ $order->id }}">
+                                                        <button class="btn btn-sm btn-primary  view-invoice mx-2" data-id="{{ $order->id }}">
                                                             <i class="las la-file-invoice fs-2"></i>
                                                         </button>
+                                                        @if($order->payment_status == Null )
+                                                        <button class="btn btn-sm btn-success pay-your-order fs-4" data-id="{{ $order->id }}">
+                                                            <i class="las la-credit-card mx-2"></i>Pay Now
+                                                        </button>
+                                                        @endif
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -526,6 +537,81 @@
                     }
                 });
             });
+
+
+
+        $(document).ready(function() {
+            // Handle Pay Now button click
+            $('.pay-your-order').click(function(e) {
+                e.preventDefault();
+
+                const orderId = $(this).data('id');
+                const button = $(this);
+
+                // Disable button to prevent double clicks
+                button.prop('disabled', true);
+
+                // Get order details via AJAX first
+                $.ajax({
+                    url: '{{ route("orders.get-payment-details") }}',
+                    method: 'GET',
+                    data: { order_id: orderId },
+                    success: function(response) {
+                        if (response.success) {
+                            const orderData = response.data;
+
+                            Swal.fire({
+                                title: 'Pay Order',
+                                html: `Do you want to pay <strong>$${orderData.amount}</strong> for Invoice #${orderData.invoice_number}?`,
+                                icon: 'question',
+                                showCancelButton: true,
+                                confirmButtonColor: '#28a745',
+                                cancelButtonColor: '#6c757d',
+                                confirmButtonText: '<i class="las la-credit-card"></i> Yes, Pay Now',
+                                cancelButtonText: 'Cancel',
+                                reverseButtons: true
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    // Show loading
+                                    Swal.fire({
+                                        title: 'Processing...',
+                                        text: 'Redirecting to payment gateway',
+                                        icon: 'info',
+                                        showConfirmButton: false,
+                                        allowOutsideClick: false,
+                                        didOpen: () => {
+                                            Swal.showLoading();
+                                        }
+                                    });
+
+                                    // Submit to controller for payment processing
+                                    {{--window.location.href = `{{ route("orders.process-payment") }}?order_id=${orderId}`;--}}
+                                } else {
+                                    // Re-enable button if cancelled
+                                    button.prop('disabled', false);
+                                }
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error',
+                                text: response.message || 'Unable to fetch order details',
+                                icon: 'error'
+                            });
+                            button.prop('disabled', false);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'Failed to load order details. Please try again.',
+                            icon: 'error'
+                        });
+                        button.prop('disabled', false);
+                    }
+                });
+            });
+        });
+
 
     </script>
 
