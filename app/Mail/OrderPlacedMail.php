@@ -16,18 +16,24 @@ class OrderPlacedMail extends Mailable
 
     public $order;
 
-    public function __construct($order)
+    public function __construct($order,$orderType = 'normal')
     {
         $this->order = $order;
+        $this->type = $orderType;
     }
 
     public function build()
     {
+        $view = match ($this->type) {
+            'recurring' => 'emails.recurring-order-placed',
+            default => 'emails.order-placed', // Fallback
+        };
+
         return $this->subject('Your Order Has Been Placed')
-            ->view('emails.order-placed')
+            ->view($view)
             ->with([
                 'order' => $this->order,
-                'invoice_number' => $this->order->invoice->invoice_number,
+                'invoice_number' => $this->order->invoice->invoice_number ?? null,
             ]);
     }
 }

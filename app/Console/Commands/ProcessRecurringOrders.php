@@ -38,7 +38,7 @@ class ProcessRecurringOrders extends Command
                     ->exists();
 
                 if (!$existingRecurring) {
-                    RecurringOrder::create([
+                    $recurringOrder = RecurringOrder::create([
                         'order_id' => $order->id,
                         'scheduled_delivery_date' => $nextDeliveryDate,
                         'status' => 'open',

@@ -348,10 +348,10 @@
                                                             @if($order->payment_status == 1) bg-success @elseif($order->payment_status == 0) bg-danger @else badge-secondary @endif">
                                                             {{ $order->payment_status? 'PAID' : 'UNPAID' }}
                                                         </span>
-                                                        <span class="text-uppercase badge
-                                                            @if($order->status == \App\Models\Order::VALID) bg-success @elseif($order->status == 0) bg-danger @else badge-secondary @endif">
-                                                            {{ $order->status}}
-                                                        </span>
+{{--                                                        <span class="text-uppercase badge--}}
+{{--                                                            @if($order->status == \App\Models\Order::VALID) bg-success @elseif($order->status == 0) bg-danger @else badge-secondary @endif">--}}
+{{--                                                            {{ $order->status}}--}}
+{{--                                                        </span>--}}
                                                     </td>
                                                     <td>
                                                         <button class="btn btn-sm btn-primary btn-view btn-submission" data-order-id="{{ $order->id }}">View

@@ -98,7 +98,7 @@ class ManualPaymentCrudController extends CrudController
         $request = $this->crud->validateRequest();
         $data = $request->all();
 
-        $invoice = Invoice::where('id', $data['invoice_id'])
+        $invoice = Invoice::where('id', $data['invoice_id'])->with('invoiceable')
             ->where('payment_status', Invoice::PENDING)
             ->first();
 
@@ -126,15 +126,19 @@ class ManualPaymentCrudController extends CrudController
 //                'paid_at' => now()
             ]);
 
-            // Optional: Update related order status based on invoice type
-            if ($invoice->invoiceable_type === 'App\Models\Order') {
+            $invoiceable = $invoice->invoiceable;
+
+            if ($invoiceable instanceof Order) {
                 // Update direct order
-                Order::where('invoice_id', $invoice->id)
-                    ->update(['payment_status' => 'paid']);
-            } else {
+                $invoiceable->update(['payment_status' => 'paid']);
+                Mail::to($invoiceable->email)->send(new OrderPlacedMail($invoiceable));
+            } elseif ($invoiceable instanceof RecurringOrder) {
                 // Update recurring order
-                RecurringOrder::where('id', $invoice->invoiceable_id)
-                    ->update(['recurring_payment_status' => 'paid']);
+                $invoiceable->update(['recurring_payment_status' => 1]);
+                $invoiceable->load('order');
+                if ($invoiceable->order) {
+                    Mail::to($invoiceable->order->email)->send(new OrderPlacedMail($invoiceable, 'recurring'));
+                }
             }
 
             DB::commit();
