@@ -81,6 +81,15 @@ class OrderCrudController extends CrudController
             ->when(request('customer_id'), function($query, $customerId) {
                 return $query->where('customer_id', $customerId);
             })
+            ->when(request('payment_status'), function ($query, $paymentStatus) {
+                if ($paymentStatus === 'paid') {
+                    return $query->where('payment_status', 'paid');
+                }
+                if ($paymentStatus === 'pending') {
+                    return $query->whereNull('payment_status');
+                }
+                return $query;
+            })
             ->orderBy('id', 'desc')
             ->paginate($perPage);
 

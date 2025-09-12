@@ -47,7 +47,7 @@ class ManualPaymentCrudController extends CrudController
         $this->crud->hasAccessOrFail('list');
 
 
-        $payments = ManualPayment::with('invoice')->get();
+        $payments = ManualPayment::with('invoice')->orderBy('id', 'desc')->get();
 
         return view('vendor.backpack.crud.manualPayments-list', [
             'payments' => $payments

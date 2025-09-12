@@ -50,6 +50,11 @@
                                 <option value="">Transfer Status</option>
                                 <!-- Add options here -->
                             </select>
+                            <select name="payment_status" id="payment_status">
+                                <option value="">Payment Status</option>
+                                <option value="paid" {{ request('paid') == 'paid' ? 'selected' : '' }}>Paid</option>
+                                <option value="pending" {{ request('pending') == 'pending' ? 'selected' : '' }}>Pending</option>
+                            </select>
                             <select name="recurring" id="recurring">
                                 <option value="">Recurring</option>
                                 <option value="recurring" {{ request('recurring') == 'recurring' ? 'selected' : '' }}>Yes</option>
@@ -78,7 +83,6 @@
                             <th>Delivery Date</th>
                             <th>Status</th>
                             <th>Total</th>
-                            <th>Payment Status</th>
                             <th>Origin</th>
                             <th>Recurring</th>
                             <th></th>
@@ -93,20 +97,18 @@
                                 <td>{{ \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') }}</td>
                                 <td>{{ $order->status }}</td>
                                 <td>${{ number_format($order->total_cost, 2) }}</td>
-                                <td>
-                                        <span class="badge {{$order['payment_status'] == 'paid' ? 'bg-success' : 'bg-warning'}}">
-                                            {{ $order['payment_status'] == 'paid' ? 'PAID' : 'UNPAID' }}
-                                        </span>
-                                </td>
                                 <td>{{ $order->origin }}</td>
                                 <td>{{ $order->recurring}}</td>
                                 <td>
                                     @php
                                         $dateTime = \Carbon\Carbon::parse($order->delivery_date);
                                     @endphp
-                                    <button class="btn btn-primary btn-view" data-order-id="{{ $order->id }}">
-                                        View
+                                    <button class="btn btn-primary btn-view la la-eye" data-order-id="{{ $order->id }}">
+
                                     </button>
+                                    <span class="badge fs-3 p-2 {{$order['payment_status'] == 'paid' ? 'bg-success' : 'bg-danger'}}">
+                                            {{ $order['payment_status'] == 'paid' ? 'PAID' : 'PENDING' }}
+                                    </span>
 
                                 </td>
                             </tr>

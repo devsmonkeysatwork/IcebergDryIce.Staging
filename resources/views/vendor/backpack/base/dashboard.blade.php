@@ -139,8 +139,8 @@
                                     </td>
                                     <td>${{ $order->total_cost }}</td>
                                     <td><button class="btn btn-primary btn-view la la-eye la-2x" title="View Order Details" data-order-id="{{ $order['id'] }})"><i class=""></i></button>
-                                    <span class="badge {{$order['payment_status'] == 'paid' ? 'bg-success' : 'bg-warning'}}">
-                                            {{ $order['payment_status'] == 'paid' ? 'PAID' : 'UNPAID' }}
+                                    <span class="badge {{$order['payment_status'] == 'paid' ? 'bg-success' : 'bg-danger'}}">
+                                            {{ $order['payment_status'] == 'paid' ? 'PAID' : 'PENDING' }}
                                         </span>
                                     </td>
                                 </tr>
@@ -201,14 +201,14 @@
                                             <button class="btn btn-primary rounded-5 la la-eye la-2x"
                                                     onclick="loadRecurringOrderDetails(1,'{{ $order->order_id }}','{{ $order->id }}')">
                                             </button>
-                                            <span class="badge {{$order['rucurring_payment_status'] == 'paid' ? 'bg-success' : 'bg-warning'}}">
-                                            {{ $order['payment_status'] == 'paid' ? 'PAID' : 'UNPAID' }}
+                                            <span class="badge {{$order['rucurring_payment_status'] == 'paid' ? 'bg-success' : 'bg-danger'}}">
+                                            {{ $order['payment_status'] == 'paid' ? 'PAID' : 'PENDING' }}
                                         </span>
                                         @else
                                             <button class="btn btn-primary btn-view la la-eye la-2x" data-order-id="{{ $order->id }}">
                                             </button>
-                                            <span class="badge {{$order['payment_status'] == 'paid' ? 'bg-success' : 'bg-warning'}}">
-                                            {{ $order['payment_status'] == 'paid' ? 'PAID' : 'UNPAID' }}
+                                            <span class="badge {{$order['payment_status'] == 'paid' ? 'bg-success' : 'bg-danger'}}">
+                                            {{ $order['payment_status'] == 'paid' ? 'PAID' : 'PENDING' }}
                                         </span>
                                         @endif
                                     </td>
