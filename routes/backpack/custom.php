@@ -131,6 +131,8 @@ Route::group([
 
 Route::post('/order/ajax-create-from-review', [OrderCrudController::class, 'ajaxCreateFromReview'])->name('orders.ajax-create-from-review');
 
+Route::get('/orders/payment-details', [OrderCrudController::class, 'getOrderDetails'])->name('orders.get-payment-details');
+
 
 
 Route::group([

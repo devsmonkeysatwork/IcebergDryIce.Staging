@@ -141,6 +141,7 @@
                                                 <th>Total</th>
                                                 <th>Origin</th>
                                                 <th>Recurring</th>
+                                                <th>Payment</th>
                                                 <th>Actions</th>
                                             </tr>
                                             </thead>
@@ -169,10 +170,20 @@
                                                         @endif
                                                     </td>
                                                     <td>
-                                                        <button class="btn btn-sm btn-primary btn-view btn-submission"
+                                                        <span class="text-uppercase badge
+                                                            @if($order->payment_status === 'paid' ) bg-success @elseif($order->payment_status == Null) bg-danger @else badge-secondary @endif">
+                                                            {{ $order->payment_status? 'PAID' : 'UNPAID' }}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-primary btn-view la la-eye fs-2"
                                                                 data-order-id="{{ $order->id }}">
-                                                            <i class="la la-eye"></i> View
                                                         </button>
+                                                        @if($order->payment_status == Null )
+                                                            <button class="btn btn-sm btn-success pay-your-order mx-2 fs-4" data-id="{{ $order->id }}">
+                                                                <i class="las la-credit-card mx-2"></i>Pay Now
+                                                            </button>
+                                                        @endif
                                                     </td>
                                                 </tr>
                                             @endforeach

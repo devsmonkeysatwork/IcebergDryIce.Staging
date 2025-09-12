@@ -85,6 +85,7 @@
                             <th>Total</th>
                             <th>Origin</th>
                             <th>Recurring</th>
+                            <th>Payment</th>
                             <th></th>
                         </tr>
                         </thead>
@@ -100,16 +101,15 @@
                                 <td>{{ $order->origin }}</td>
                                 <td>{{ $order->recurring}}</td>
                                 <td>
+                                    <span class="badge p-2 {{$order['payment_status'] == 'paid' ? 'bg-success' : 'bg-danger'}}">
+                                            {{ $order['payment_status'] == 'paid' ? 'PAID' : 'PENDING' }}
+                                    </span>
+                                </td>
+                                <td>
                                     @php
                                         $dateTime = \Carbon\Carbon::parse($order->delivery_date);
                                     @endphp
-                                    <button class="btn btn-primary btn-view la la-eye" data-order-id="{{ $order->id }}">
-
-                                    </button>
-                                    <span class="badge fs-3 p-2 {{$order['payment_status'] == 'paid' ? 'bg-success' : 'bg-danger'}}">
-                                            {{ $order['payment_status'] == 'paid' ? 'PAID' : 'PENDING' }}
-                                    </span>
-
+                                    <button class="btn btn-primary btn-view la la-eye" data-order-id="{{ $order->id }}"></button>
                                 </td>
                             </tr>
                         @endforeach
