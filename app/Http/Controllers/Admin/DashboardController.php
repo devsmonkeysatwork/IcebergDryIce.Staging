@@ -200,7 +200,7 @@ class DashboardController extends Controller
         $recurringFromOrders = Order::where('recurring', 'recurring')
             ->whereIn('status', [Order::VALID, Order::COMPLETED])
             ->orderBy('id', 'desc')
-            ->take(5)
+            ->take(15)
             ->get();
 
 // Get 10 latest from RecurringOrder table
@@ -212,7 +212,7 @@ class DashboardController extends Controller
             })
             ->with(['order']) // Load the related order data
             ->orderBy('id', 'desc') // Order by RecurringOrder.id (unique ID)
-            ->take(10)
+            ->take(15)
             ->get();
 
         $allRecurringOrders = collect()

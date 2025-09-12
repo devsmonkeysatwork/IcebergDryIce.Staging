@@ -133,16 +133,20 @@
                                 <tr>
                                     <td>{{ $order->id }}</td>
                                     <td>{{ $order->customer_name }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($order->scheduled_delivery_date)->format('Y-m-d') }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') }}</td>
                                     <td>
                                         <span class="badge @if($order['status'] == 'COMPLETED') bg-success
-                                                    @elseif($order['status'] == 'VALID') bg-success
+                                                    @elseif($order['status'] == 'VALID') bg-warning
                                                     @elseif($order['status'] == 'CANCELLED') bg-warning
                                                     @elseif($order['status'] == 'SKIP') bg-warning
                                                     @endif">{{ $order['status'] }}</span>
                                     </td>
                                     <td>${{ $order->total_cost }}</td>
-                                    <td><button class="btn btn-primary btn-view" data-order-id="{{ $order['id'] }})">View</button></td>
+                                    <td><button class="btn btn-primary btn-view" title="View Order Details" data-order-id="{{ $order['id'] }})"><i class="la la-eye"></i></button>
+                                    <span class="badge {{$order['payment_status'] == 'paid' ? 'bg-success' : 'bg-warning'}}">
+                                            {{ $order['payment_status'] == 'paid' ? 'PAID' : 'UNPAID' }}
+                                        </span>
+                                    </td>
                                 </tr>
                             @endforeach
                             </tbody>

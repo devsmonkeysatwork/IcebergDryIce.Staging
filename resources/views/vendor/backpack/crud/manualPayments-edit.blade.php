@@ -22,23 +22,10 @@
                     <div class="col-8 px-4 my-3">
                         <h3 class="form-group-heading m-0"><i class="la la-cart-plus me-2"></i> Order</h3>
                         <div class="form-group">
-                            <label for="order-number">Order #</label>
-                            <select id="order-number" name="order_number" class="form-control" style="width: 100%" required>
-                                <option value="{{ $entry->order_number }}"
-                                    {{ old('order_number') == $entry->order_number ? 'selected' : '' }}>
-                                    {{ $entry->order_number }}
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-4 px-4 my-3">
-                        <h3 class="form-group-heading m-0"><i class="la la-cart-plus me-2"></i> Order</h3>
-                        <div class="form-group">
-                            <label for="order-type">Type</label>
-                            <select id="order-type" name="order_type" class="form-control" style="width: 100%">
-                                <option value="simple">Simple</option>
-                                <option value="recurring" {{$entry->recurring_order_id?'selected':''}}>Recurring</option>
-                            </select>
+                            <label for="order-number">Invoice #</label>
+                                <input type="text" class="form-control" id="contact-name" name="contact_name"
+                                       value="{{ old('contact_name', $invoice->invoice_number ?? '') }}"
+                                       placeholder="Contact Name" required readonly>
                         </div>
                     </div>
                     <div class="col-6 px-4">
@@ -75,7 +62,7 @@
 
                 </div>
                 <div class="form-group px-3">
-                    <button type="submit" class="btn btn-primary btn-submission">Update Manual Payment</button>
+                    <button type="submit" class="btn btn-primary btn-submission">Update Description</button>
                     <button type="button" class="btn btn-secondary btn-submission mx-2" onclick="window.location.href='/admin/manual-payments'">
                         Close
                     </button>
@@ -153,33 +140,33 @@
 
 
     <script>
-        $(document).ready(function() {
-            $('#order-number').select2({
-                theme: 'bootstrap-5', // Optional if using Bootstrap 5
-                placeholder: 'Enter Order ID',
-                ajax: {
-                    url: '{{ route('orders.ajax-search') }}',
-                    dataType: 'json',
-                    delay: 250,
-                    data: function(params) {
-                        return {
-                            q: params.term, // search term
-                            order_type: $('#order-type').val()
-                        };
-                    },
-                    processResults: function (data) {
-                        return {
-                            results: data.map(order => ({
-                                id: order.id,
-                                text: $('#order-type').val() == 'simple' ? `#${order.id} - ${order.customer_name}` :order.text ,
-                            }))
-                        };
-                    },
-                    cache: true
-                },
-                minimumInputLength: 1
-            });
-        });
+        {{--$(document).ready(function() {--}}
+        {{--    $('#order-number').select2({--}}
+        {{--        theme: 'bootstrap-5', // Optional if using Bootstrap 5--}}
+        {{--        placeholder: 'Enter Order ID',--}}
+        {{--        ajax: {--}}
+        {{--            url: '{{ route('orders.ajax-search') }}',--}}
+        {{--            dataType: 'json',--}}
+        {{--            delay: 250,--}}
+        {{--            data: function(params) {--}}
+        {{--                return {--}}
+        {{--                    q: params.term, // search term--}}
+        {{--                    order_type: $('#order-type').val()--}}
+        {{--                };--}}
+        {{--            },--}}
+        {{--            processResults: function (data) {--}}
+        {{--                return {--}}
+        {{--                    results: data.map(order => ({--}}
+        {{--                        id: order.id,--}}
+        {{--                        text: $('#order-type').val() == 'simple' ? `#${order.id} - ${order.customer_name}` :order.text ,--}}
+        {{--                    }))--}}
+        {{--                };--}}
+        {{--            },--}}
+        {{--            cache: true--}}
+        {{--        },--}}
+        {{--        minimumInputLength: 1--}}
+        {{--    });--}}
+        {{--});--}}
 
 
         function confirmDelete() {
