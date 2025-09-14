@@ -2,14 +2,18 @@
 
 namespace App\Console\Commands;
 
+use App\Mail\OrderPlacedMail;
+use App\Models\Invoice;
 use App\Models\SupplyLocation;
 use Illuminate\Console\Command;
 use App\Models\Order;
 use App\Models\RecurringOrder;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Services\InvoiceService;
+use Illuminate\Support\Facades\Mail;
 
 
 class ProcessRecurringOrders extends Command
@@ -38,17 +42,38 @@ class ProcessRecurringOrders extends Command
                     ->exists();
 
                 if (!$existingRecurring) {
-                    $recurringOrder = RecurringOrder::create([
-                        'order_id' => $order->id,
-                        'scheduled_delivery_date' => $nextDeliveryDate,
-                        'status' => 'open',
-                    ]);
+                    DB::beginTransaction();
+                    try {
+                        $recurringOrder = RecurringOrder::create([
+                            'order_id' => $order->id,
+                            'scheduled_delivery_date' => $nextDeliveryDate,
+                            'status' => 'open',
+                        ]);
 
-                    $invoiceService = new InvoiceService();
-                    $invoiceService->createInvoiceForRecurringOrder($recurringOrder);
+                        $invoiceService = new InvoiceService();
+                        $invoice = $invoiceService->createInvoiceForRecurringOrder($recurringOrder);
+
+                        // Attach invoice_id to recurring order
+                        $recurringOrder->update([
+                            'invoice_id' => $invoice->id,
+                        ]);
+
+                        DB::commit();
+
+                        $order = RecurringOrder::with(['invoice', 'order'])
+                            ->where('id', $recurringOrder->id)
+                            ->first();
+
+                        Mail::to($order->order->email)->send(new OrderPlacedMail($order, 'recurring'));
 
 
-                    Log::info("Created recurring order for Order ID: {$order->id}");
+
+                        Log::info("Created recurring order for Order ID: {$order->id}, Invoice ID: {$invoice->id}");
+                    } catch (\Exception $e) {
+                        DB::rollBack();
+                        Log::error("Failed to create recurring order for Order ID: {$order->id}. Error: " . $e->getMessage());
+                        throw $e; // or handle gracefully
+                    }
                 }
             }
         }

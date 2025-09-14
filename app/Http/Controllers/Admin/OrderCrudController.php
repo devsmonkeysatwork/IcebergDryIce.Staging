@@ -734,21 +734,6 @@ class OrderCrudController extends CrudController
 
             DB::beginTransaction();
 
-            // Handle customer creation/update
-//            if (isset($validatedData['email']) && isset($validatedData['customer_name'])) {
-//                $customer = Customer::updateOrCreate(
-//                    ['email' => $validatedData['email']],
-//                    [
-//                        'name' => $validatedData['customer_name'],
-//                        'phone' => $validatedData['phone'] ?? null,
-//                        'address' => $validatedData['address'] ?? null,
-//                        'city' => $validatedData['city'] ?? null,
-//                        'postal_code' => $validatedData['postal_code'] ?? null,
-//                        'province' => $validatedData['province'] ?? null,
-//                        'country' => $validatedData['country'] ?? null
-//                    ]
-//                );
-//            }
 
             // Calculate costs server-side
 

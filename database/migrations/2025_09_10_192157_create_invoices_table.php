@@ -18,17 +18,17 @@ return new class extends Migration
             $table->string('invoice_type')->default('one_time'); // 'one_time' or 'recurring'
 
             // Polymorphic relationship to Order or RecurringOrder
-            $table->morphs('invoiceable'); // invoiceable_id, invoiceable_type
+            $table->morphs('invoiceable');
 
             // Financial fields
             $table->decimal('total_amount', 10, 2);
             $table->enum('payment_status', ['pending', 'paid', 'failed'])->default('pending');
 
-            // *** IMPORTANT: Recurring relationship fields ***
-            $table->unsignedBigInteger('parent_invoice_id')->nullable(); // Links to original invoice
-            $table->integer('recurring_sequence')->default(1); // 1, 2, 3, 4...
 
-            // Dates
+            $table->unsignedBigInteger('parent_invoice_id')->nullable();
+            $table->integer('recurring_sequence')->default(1);
+
+
             $table->date('invoice_date');
             $table->timestamps();
 

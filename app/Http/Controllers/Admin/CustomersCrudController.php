@@ -41,6 +41,24 @@ class CustomersCrudController extends CrudController
     CRUD::column('postal_code');
     CRUD::column('province');
 
+
+      CRUD::addColumn([
+          'name'     => 'payment_status',
+          'label'    => 'Payment Status',
+          'type'     => 'closure',
+          'function' => function($entry) {
+              return $entry->getPaymentStatusBadge();
+          },
+          'escaped'  => false,
+      ]);
+
+
+      CRUD::modifyColumn('payment_status', [
+          'priority' => 1, // higher priority = always visible
+      ]);
+
+
+
     $this->crud->removeAllButtonsFromStack('line');
     $this->crud->addButtonFromView('line', 'view_button', 'view-button', 'beginning');
   }

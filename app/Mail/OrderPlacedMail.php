@@ -24,16 +24,17 @@ class OrderPlacedMail extends Mailable
 
     public function build()
     {
-        $view = match ($this->type) {
-            'recurring' => 'emails.recurring-order-placed',
-            default => 'emails.order-placed', // Fallback
-        };
+        $isRecurring = $this->order instanceof \App\Models\RecurringOrder;
+
+        $view = $isRecurring
+            ? 'emails.recurring-order-placed'
+            : 'emails.order-placed';
 
         return $this->subject('Your Order Has Been Placed')
             ->view($view)
             ->with([
                 'order' => $this->order,
-                'invoice_number' => $this->order->invoice->invoice_number ?? null,
+                'invoice_number' =>  $this->order->invoice->invoice_number ?? null,
             ]);
     }
 }
