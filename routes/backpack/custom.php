@@ -26,6 +26,10 @@ Route::get('admin/reports', [ReportsController::class, 'index'])
     ->middleware(['web', 'admin']) // important!
     ->name('reports');
 
+Route::post('/admin/orders_of_date', [OrderCrudController::class, 'getOrdersByLocationAndDate'])->name('orders.byDate');
+Route::post('/admin/send-email', [OrderCrudController::class, 'sendDryIceOrderEmail'])->name('send.ordersEmail');
+
+
 use App\Http\Middleware\CustomerMiddleware;
 
 Route::group([
@@ -120,11 +124,12 @@ Route::group([
 
 
 
-
     Route::crud('emails', 'EmailCrudController');
     Route::get('emails', function () {
         return view('vendor.backpack.base.emails');
     })->name('emails');
+
+
 
     Route::crud('product', 'ProductCrudController');
 });

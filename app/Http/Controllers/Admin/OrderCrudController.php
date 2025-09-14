@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Customer\CustomerDashboardController;
 use App\Mail\CustomerRegisteredMail;
+use App\Mail\DryIceOrderEmail;
 use App\Models\OrderItem;
 use App\Models\StockMovement;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
@@ -1074,6 +1075,98 @@ class OrderCrudController extends CrudController
             return null;
         }
     }
+
+
+    public function getOrdersByLocationAndDate(Request $request)
+    {
+        try {
+            $request->validate([
+                'location' => 'required|string',
+                'delivery_date' => 'required|date'
+            ]);
+
+            $location = $request->input('location');
+            $deliveryDate = $request->input('delivery_date');
+
+            // Fetch orders from database where delivery_location and delivery_date match
+            $orders = Order::whereRaw('DATE(delivery_date) = ?', [$deliveryDate])
+//                ->where('delivery_location', $location)
+                ->orderBy('created_at', 'asc')
+                ->get([
+                    'id',
+                    'customer_name',
+                    'amount_of_ice',
+                    'amount_of_boxes',
+                    'email',
+                    'phone',
+//                    'delivery_location',
+                    'delivery_date',
+                    'created_at'
+                ]);
+
+            return response()->json($orders, 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch orders',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function sendDryIceOrderEmail(Request $request)
+    {
+        try {
+            $request->validate([
+                'location' => 'required|string',
+                'to' => 'required|email',
+                'subject' => 'required|string',
+                'body' => 'required|string',
+                'delivery_date' => 'required|date'
+            ]);
+
+            $location = $request->input('location');
+            $recipientEmail = $request->input('to');
+            $subject = $request->input('subject');
+            $body = $request->input('body');
+            $deliveryDate = $request->input('delivery_date');
+
+            $orders = Order::whereRaw('DATE(delivery_date) = ?', [$deliveryDate])
+//                ->where('delivery_location', $location)
+                ->orderBy('created_at', 'asc')
+                ->get();
+
+
+            Mail::to($recipientEmail)->send(new DryIceOrderEmail([
+                'location' => $location,
+                'delivery_date' => $deliveryDate,
+                'subject' => $subject,
+                'body' => $body,
+                'orders' => $orders,
+                'recipient_email' => $recipientEmail
+            ]));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Email sent successfully',
+                'data' => [
+                    'location' => $location,
+                    'recipient' => $recipientEmail,
+                    'delivery_date' => $deliveryDate,
+                    'orders_count' => $orders->count()
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to send email',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
 
 
 }
