@@ -20,7 +20,7 @@
                         <div class="col-md-3">
                             <div class="btn-group-vertical">
                                 <button class="btn btn-secondary email-temp-btn" data-location="Kuehne & Nagel" data-email="ange@monkeysatwork.dev" onclick="selectLocation(this)">Kuehne & Nagel</button>
-                                <button class="btn btn-secondary email-temp-btn" data-location="Praxair" data-email="packpropackaging2024@gmail.com" onclick="selectLocation(this)">Praxair</button>
+                                <button class="btn btn-secondary email-temp-btn" data-location="Praxair" data-email="hamza40javed@gmail.com" onclick="selectLocation(this)">Praxair</button>
                             </div>
                         </div>
                         <div class="col-md-9">
