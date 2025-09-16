@@ -513,9 +513,8 @@ class OrderCrudController extends CrudController
     public function paymentRedirect($orderId)
     {
         try {
-            $order = Order::findOrFail($orderId);
+            $order = Order::with('invoice')->findOrFail($orderId);
 
-            // Generate payment parameters
             $paymentParams = $this->generatePaymentParams($order);
 
             return view('website.order.payment-redirect', compact('paymentParams'));
@@ -531,14 +530,15 @@ class OrderCrudController extends CrudController
         $x_login = env('EXACT_LOGIN_ID');
         $transaction_key = env('EXACT_TRANSACTION_KEY');
         $x_amount = number_format($order->total_cost, 2, '.', '');
-        $x_invoice_num = $order->id;
+        $x_invoice_num = $order->invoice->invoice_number;
         $x_description = 'Order #' . $order->id;
         $x_email = $order->email;
+        $x_first_name = $order->customer_name;
         $x_return_url = route('home');
         $x_fp_sequence = rand(1000, 100000) + 123456;
 
-        // FIX #1: Use Unix timestamp instead of Carbon object
-        $x_fp_timestamp = time(); // NOT Carbon::now()
+
+        $x_fp_timestamp = time();
 
         $hmac_data = $x_login . "^" . $x_fp_sequence . "^" . $x_fp_timestamp . "^" . $x_amount . "^" . 'CAD';
         $x_fp_hash = hash_hmac('MD5', $hmac_data, $transaction_key);
@@ -550,6 +550,7 @@ class OrderCrudController extends CrudController
             'x_fp_sequence' => $x_fp_sequence,
             'x_invoice_num' => $x_invoice_num,
             'x_description' => $x_description,
+            'x_first_name' => $x_first_name,
             'x_email' => $x_email,
             'x_return_url' => $x_return_url,
             // FIX #2: Add missing x_currency_code parameter

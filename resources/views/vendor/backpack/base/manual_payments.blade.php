@@ -155,6 +155,7 @@
                                 customer_name: item.customer_name,
                                 customer_email: item.email,
                                 total_cost: item.total_cost,
+                                invoice_num: item.invoice_number
                             }))
                         };
                     },
@@ -170,7 +171,7 @@
                 $('#contact-name').val(data.customer_name);
                 $('#contact-email').val(data.customer_email);
                 $('#amount').val(data.total_cost);
-                $('#invoice-id').val(data.id);
+                $('#invoice-id').val(data.invoice_num);
                 $('#origin-address').val(data.origin_address);
                 $('#destination-address').val(data.destination_address);
 

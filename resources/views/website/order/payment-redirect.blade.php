@@ -75,8 +75,8 @@
             animation: dots 1.5s infinite;
         }
     </style>
-</head>
-<body>
+
+
 <div class="loading-container">
     <div class="spinner"></div>
     <h1>Processing Your Order</h1>
