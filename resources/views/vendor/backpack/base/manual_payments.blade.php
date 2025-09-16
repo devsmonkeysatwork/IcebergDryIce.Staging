@@ -12,7 +12,7 @@
                         <input type="hidden" id="payment-method" name="payment_method" value="other">
 
                         <!-- Exact Payment Hidden Fields (populated when credit card is selected) -->
-                        <input type="hidden" id="x_login" name="x_login" value="{{ config('payment.exact.login') }}">
+                        <input type="hidden" id="x_login" name="x_login" value="">
                         <input type="hidden" id="x_fp_sequence" name="x_fp_sequence" value="">
                         <input type="hidden" id="x_fp_timestamp" name="x_fp_timestamp" value="">
                         <input type="hidden" id="x_fp_hash" name="x_fp_hash" value="">
@@ -20,7 +20,7 @@
                         <input type="hidden" id="x_show_form" name="x_show_form" value="PAYMENT_FORM">
                         <input type="hidden" id="x_test_request" name="x_test_request" value="FALSE">
                         <input type="hidden" id="x_po_num" name="x_po_num" value="3">
-                        <input type="hidden" id="x_invoice_num" name="x_invoice_num" value="manual_edit">
+                        <input type="hidden" id="x_invoice_num" name="x_invoice_num" value="">
 
                         <div class="col-8 px-4 my-3">
                             <h3 class="form-group-heading m-0"><i class="la la-cart-plus me-2"></i> Order</h3>
@@ -58,13 +58,12 @@
                         </div>
                     </div>
                     <div class="form-group px-3 d-flex justify-content-between">
-                        <div>
+                        <div class="mt-2">
                             <button type="button" class="btn btn-credit btn-submission" id="credit-btn">
                                 <i class="la la-credit-card me-2"></i>Credit Card
                             </button>
                             <button type="submit" class="btn btn-primary btn-submission" id="other-btn">Others</button>
                         </div>
-                        <button type="reset" class="btn btn-secondary btn-submission mx-2">Clear</button>
                     </div>
                 </form>
             </div>
@@ -156,8 +155,6 @@
                                 customer_name: item.customer_name,
                                 customer_email: item.email,
                                 total_cost: item.total_cost,
-                                origin_address: item.origin_address || '',
-                                destination_address: item.destination_address || ''
                             }))
                         };
                     },
@@ -179,10 +176,9 @@
 
                 // Populate Exact hidden fields
                 $('#x_first_name').val(data.customer_name);
+                $('#x_invoice_num').val(data.id);
                 $('#x_email').val(data.customer_email);
                 $('#x_amount').val(data.total_cost);
-                $('#x_address').val(data.origin_address);
-                $('#x_ship_to_address').val(data.destination_address);
             });
 
             // Credit card button handler
@@ -214,7 +210,7 @@
                         // Generate Exact security fields
                         generateExactFields().then(() => {
                             // Change form action to Exact
-                            $('#payment-form').attr('action', 'https://checkout.e-xact.com/payment');
+                            $('#payment-form').attr('action', 'https://rpm.demo.e-xact.com/payment');
                             $('#payment-form').submit();
                         });
                     }
@@ -260,7 +256,7 @@
 
             async function generateExactFields() {
                 try {
-                    const response = await fetch('{{ route('manual-payments.store') }}', {
+                    const response = await fetch('{{ route('generate-exact-fields') }}', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -273,6 +269,7 @@
 
                     const data = await response.json();
 
+                    $('#x_login').val(data.x_login);
                     $('#x_fp_sequence').val(data.x_fp_sequence);
                     $('#x_fp_timestamp').val(data.x_fp_timestamp);
                     $('#x_fp_hash').val(data.x_fp_hash);

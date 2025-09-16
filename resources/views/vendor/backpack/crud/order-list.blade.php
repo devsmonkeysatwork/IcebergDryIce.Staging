@@ -48,7 +48,8 @@
                             </select>
                             <select name="transfer_status" id="transfer_status" class="mx-2">
                                 <option value="">Transfer Status</option>
-                                <!-- Add options here -->
+                                <option value="0" {{ request('transfer_status') == '0' ? 'selected' : '' }}>UnPushed</option>
+                                <option value="1" {{ request('transfer_status') == '1' ? 'selected' : '' }}>Pushed</option>
                             </select>
                             <select name="payment_status" id="payment_status">
                                 <option value="">Payment Status</option>

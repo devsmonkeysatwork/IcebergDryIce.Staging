@@ -74,7 +74,7 @@ class OrderCrudController extends CrudController
                 return $query->where('status', $status);
             })
             ->when(request('transfer_status'), function($query, $transferStatus) {
-                return $query->where('transfer_status', $transferStatus);
+                return $query->where('push', $transferStatus);
             })
             ->when(request('recurring'), function($query, $recurring) {
                 return $query->where('recurring', $recurring);
@@ -536,7 +536,10 @@ class OrderCrudController extends CrudController
         $x_email = $order->email;
         $x_return_url = route('home');
         $x_fp_sequence = rand(1000, 100000) + 123456;
-        $x_fp_timestamp = Carbon::now();
+
+        // FIX #1: Use Unix timestamp instead of Carbon object
+        $x_fp_timestamp = time(); // NOT Carbon::now()
+
         $hmac_data = $x_login . "^" . $x_fp_sequence . "^" . $x_fp_timestamp . "^" . $x_amount . "^" . 'CAD';
         $x_fp_hash = hash_hmac('MD5', $hmac_data, $transaction_key);
 
@@ -549,9 +552,13 @@ class OrderCrudController extends CrudController
             'x_description' => $x_description,
             'x_email' => $x_email,
             'x_return_url' => $x_return_url,
+            // FIX #2: Add missing x_currency_code parameter
+            'x_currency_code' => 'CAD',
             'x_fp_hash' => $x_fp_hash,
             'x_show_form' => 'PAYMENT_FORM',
-            'x_test_request' => 'TRUE',
+            // FIX #3: Change from TRUE to FALSE (production vs test)
+            'x_test_request' => 'False',
+            // FIX #4: Change payment URL from demo to production
             'payment_url' => 'https://rpm.demo.e-xact.com/payment'
         ];
     }

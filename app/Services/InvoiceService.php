@@ -47,8 +47,8 @@ class InvoiceService
             'invoiceable_type' => RecurringOrder::class,
             'total_amount' => $originalOrder->total_cost,
             'invoice_date' => $recurringOrder->scheduled_delivery_date->subDays(2),
-            'parent_invoice_id' => $parentInvoice->id, // Link to original
-            'recurring_sequence' => $sequence // 2, 3, 4, 5...
+            'parent_invoice_id' => $parentInvoice->id,
+            'recurring_sequence' => $sequence
         ]);
 
         // Update recurring order with invoice_id

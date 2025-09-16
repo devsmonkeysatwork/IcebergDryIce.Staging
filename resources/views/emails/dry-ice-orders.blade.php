@@ -124,9 +124,7 @@
         </div>
     @endif
 
-{{--    <div style="white-space: pre-line; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">--}}
-{{--        {{ $body }}--}}
-{{--    </div>--}}
+
 
     <div class="footer">
         <p>This email was sent automatically by the Dry Ice Management System.</p>

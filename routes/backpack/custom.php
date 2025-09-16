@@ -167,5 +167,8 @@ Route::group([
     Route::get('/customers/get-by-email', [OrderCrudController::class, 'getCustomerByEmail'])
         ->name('admin.customers.get-by-email');
 
+    Route::post('/generate-exact-fields', [ManualPaymentCrudController::class, 'generateExactFields'])
+        ->name('generate-exact-fields');
+
 });
 

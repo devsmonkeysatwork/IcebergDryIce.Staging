@@ -154,6 +154,29 @@ class ManualPaymentCrudController extends CrudController
         return redirect($this->crud->route);
     }
 
+    public function generateExactFields(Request $request)
+    {
+        $x_login = env('EXACT_LOGIN_ID');
+        $transaction_key = env('EXACT_TRANSACTION_KEY');
+        $x_currency_code = 'CAD';
+
+        // Generate security fields like in your PHP code
+        srand(time());
+        $x_fp_sequence = rand(1000, 100000) + 123456;
+        $x_fp_timestamp = time();
+        $x_amount = $request->amount;
+
+        $hmac_data = $x_login . "^" . $x_fp_sequence . "^" . $x_fp_timestamp . "^" . $x_amount . "^" . $x_currency_code;
+        $x_fp_hash = hash_hmac('MD5', $hmac_data, $transaction_key);
+
+        return response()->json([
+            'x_fp_sequence' => $x_fp_sequence,
+            'x_fp_timestamp' => $x_fp_timestamp,
+            'x_fp_hash' => $x_fp_hash,
+            'x_login' => $x_login,
+            'transaction_key' => $transaction_key
+        ]);
+    }
 
     public function view($id)
     {

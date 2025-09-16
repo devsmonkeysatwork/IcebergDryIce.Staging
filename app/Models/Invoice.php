@@ -59,7 +59,7 @@ class Invoice extends Model
             ->first();
 
         $sequence = $lastInvoice ? (int)substr($lastInvoice->invoice_number, -6) + 1 : 1;
-        return 'INV-' . $year . '-' . str_pad($sequence, 6, '0', STR_PAD_LEFT);
+        return str_pad($sequence, 4, '0', STR_PAD_LEFT);
     }
 
     // Check if this is a recurring invoice
