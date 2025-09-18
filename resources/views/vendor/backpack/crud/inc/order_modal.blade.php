@@ -213,9 +213,11 @@
 </form>
 <div class="modal-footer border-0 d-flex justify-content-between">
     <div>
+        @if(!$defaultValues['novex_pushed'])
         <button id="save-order-btn" class="btn btn-primary" data-mode="{{ $mode }}" @if($mode === 'edit') data-order-id="{{ $order->id }}" @endif>
             <i class="la la-save"></i> <span>{{ $saveButtonText }}</span>
         </button>
+        @endif
 
         @if($showPushButton)
             @if(!$defaultValues['novex_pushed'])
@@ -224,7 +226,7 @@
                 </button>
                 <span id="push-status-{{ $order->id }}" class="ml-2 text-sm text-muted status-push"></span>
             @else
-                <span id="push-status-{{ $order->id }}" class="ml-2 text-sm text-muted status-push">Order pushed</span>
+                <button id="push-status-{{ $order->id }}" class="ml-2 text-sm btn btn-success status-push">Order Pushed</button>
             @endif
         @endif
 

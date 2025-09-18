@@ -15,7 +15,6 @@ class CustomerDashboardController extends Controller
     {
         // You can pass data to the view if needed
 
-
         $customerId = auth()->guard('customer')->id();
 
 
@@ -44,7 +43,8 @@ class CustomerDashboardController extends Controller
             ->first();
 
         // Get orders for the current customer with pagination
-        $orders = Order::where('customer_id', $customerId)
+        $orders = Order::with('invoice')
+            ->where('customer_id', $customerId)
             ->orderBy('created_at', 'desc') // or 'delivery_date'
             ->paginate(request('per_page', 10));
 
@@ -61,7 +61,8 @@ class CustomerDashboardController extends Controller
         // $customerId = auth()->guard('customer')->id();
 
         // Get orders for the current customer with pagination
-        $orders = Order::where('customer_id', $customerId)
+        $orders = Order::with('invoice')
+            ->where('customer_id', $customerId)
             ->orderBy('created_at', 'desc') // or 'delivery_date'
             ->paginate(request('per_page', 10));
 
@@ -149,5 +150,7 @@ class CustomerDashboardController extends Controller
             return null;
         }
     }
+
+
 
 }

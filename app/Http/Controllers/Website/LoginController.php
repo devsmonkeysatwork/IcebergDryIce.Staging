@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Website;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -26,6 +27,11 @@ class LoginController extends Controller
         // Try admin first
         if (Auth::guard('web')->attempt($credentials)) {
             return redirect()->intended('/admin/dashboard');
+        }
+
+        $customer = Customer::where('email', $request->email)->first();
+        if ($customer && is_null($customer->password)) {
+            return back()->with('ibdi_error', 'You are not a registered customer');
         }
 
         if (Auth::guard('customer')->attempt($credentials)) {

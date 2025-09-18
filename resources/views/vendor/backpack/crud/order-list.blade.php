@@ -27,7 +27,6 @@
 @section('content')
     {{-- Default box --}}
     <div class="row" bp-section="crud-operation-list">
-
         {{-- THE ACTUAL CONTENT --}}
         <div class="{{ $crud->getListContentClass() }}">
             <h3 class="filter-heading">
@@ -51,7 +50,7 @@
                                 <option value="0" {{ request('transfer_status') == '0' ? 'selected' : '' }}>UnPushed</option>
                                 <option value="1" {{ request('transfer_status') == '1' ? 'selected' : '' }}>Pushed</option>
                             </select>
-                            <select name="payment_status" id="payment_status">
+                            <select name="payment_status" id="payment_status" class="mx-2">
                                 <option value="">Payment Status</option>
                                 <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Paid</option>
                                 <option value="pending" {{ request('payment_status') == 'pending' ? 'selected' : '' }}>Pending</option>

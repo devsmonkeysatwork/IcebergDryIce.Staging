@@ -125,7 +125,8 @@
                                 <th>Delivery Date</th>
                                 <th>Status</th>
                                 <th>Total</th>
-                                <th></th>
+                                <th>View</th>
+                                <th>Payment</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -138,8 +139,11 @@
                                         <span class="badge {{ $order['status'] == 'completed' ? 'bg-success' : 'bg-secondary'  }}">{{ $order['status'] }}</span>
                                     </td>
                                     <td>${{ $order->total_cost }}</td>
-                                    <td><button class="btn btn-primary btn-view la la-eye la-2x" title="View Order Details" data-order-id="{{ $order['id'] }})"><i class=""></i></button>
-                                    <span class="badge {{$order['payment_status'] == 'paid' ? 'bg-success' : 'bg-danger'}}">
+                                    <td>
+                                        <button class="btn btn-primary btn-view la la-eye la-2x" title="View Order Details" data-order-id="{{ $order['id'] }})"><i class=""></i></button>
+                                    </td>
+                                    <td>
+                                        <span class="badge {{$order['payment_status'] == 'paid' ? 'bg-success' : 'bg-danger'}}">
                                             {{ $order['payment_status'] == 'paid' ? 'PAID' : 'PENDING' }}
                                         </span>
                                     </td>
@@ -166,7 +170,8 @@
                                 <th>Delivery Date</th>
                                 <th>Status</th>
                                 <th>Total</th>
-                                <th></th>
+                                <th>View</th>
+                                <th>Payment</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -197,12 +202,16 @@
                                             <button class="btn btn-primary rounded-5 la la-eye la-2x"
                                                     onclick="loadRecurringOrderDetails(1,'{{ $order->order_id }}','{{ $order->id }}')">
                                             </button>
+                                        @else
+                                            <button class="btn btn-primary btn-view la la-eye la-2x" data-order-id="{{ $order->id }}"></button>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($order instanceof \App\Models\RecurringOrder)
                                             <span class="badge {{$order['rucurring_payment_status'] == 'paid' ? 'bg-success' : 'bg-danger'}}">
                                             {{ $order['payment_status'] == 'paid' ? 'PAID' : 'PENDING' }}
                                         </span>
                                         @else
-                                            <button class="btn btn-primary btn-view la la-eye la-2x" data-order-id="{{ $order->id }}">
-                                            </button>
                                             <span class="badge {{$order['payment_status'] == 'paid' ? 'bg-success' : 'bg-danger'}}">
                                             {{ $order['payment_status'] == 'paid' ? 'PAID' : 'PENDING' }}
                                         </span>
@@ -882,14 +891,21 @@
         }
 
         function setupDeliveryCalculation() {
-            const addressFields = ['modal-address', 'modal-city', 'modal-province', 'modal-postal', 'modal-ice-amount'];
+            const addressFields = [
+                'modal-address',
+                'modal-city',
+                'modal-province',
+                'modal-postal',
+                'modal-ice-amount'
+            ];
+
             let btnHtml = `<button
-                                id="recalculate-delivery-btn"
-                                type="button"
-                                class="btn btn-xs btn-outline-primary"
-                                title="Click to recalculate delivery charges">
-                                Recalculate
-                            </button>`;
+                        id="recalculate-delivery-btn"
+                        type="button"
+                        class="btn btn-xs btn-outline-primary"
+                        title="Click to recalculate delivery charges">
+                        Recalculate
+                    </button>`;
 
             addressFields.forEach(id => {
                 const field = document.getElementById(id);
@@ -900,13 +916,38 @@
                     field._deliveryListener = () => {
                         const deliveryOption = document.getElementById('modal-pickup-or-delivery');
                         const recalculateButton = document.getElementById('recalculate-delivery-btn');
+                        const saveOrderBtn = document.getElementById('save-order-btn');
+
                         if (deliveryOption && deliveryOption.value === 'delivery') {
                             if (!recalculateButton) {
                                 $('.cost-summary-delivery').append(btnHtml);
+
+                                // Disable save order button when recalc button is shown
+                                if (saveOrderBtn) {
+                                    saveOrderBtn.disabled = true;
+                                }
                             }
                         }
+
+                        // If button already exists but user clears/change fields
+                        setTimeout(() => {
+                            const btnExists = document.getElementById('recalculate-delivery-btn');
+                            if (!btnExists && saveOrderBtn) {
+                                saveOrderBtn.disabled = false; // Enable back if button gone
+                            }
+                        }, 100);
                     };
+
                     field.addEventListener('input', field._deliveryListener);
+                }
+            });
+
+            // Handle recalc button click (remove it and enable save order button)
+            $(document).on('click', '#recalculate-delivery-btn', function () {
+                $(this).remove();
+                const saveOrderBtn = document.getElementById('save-order-btn');
+                if (saveOrderBtn) {
+                    saveOrderBtn.disabled = false;
                 }
             });
         }

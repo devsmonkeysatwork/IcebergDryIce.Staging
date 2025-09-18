@@ -1,7 +1,6 @@
 {{--@extends('website.layouts.main')--}}
 
 {{--@section('content')--}}
-
 {{--    <div class="container">--}}
 {{--        <div class='info'>--}}
 {{--            <h1 class="text-center">WelCome Registered Customer</h1>--}}
@@ -353,10 +352,16 @@
                                                     <td>${{ number_format($order->total_cost, 2) }}</td>
                                                     <td>
                                                         <span class="text-uppercase badge
-                                                            @if($order->payment_status === 'paid' ) bg-success @elseif($order->payment_status == Null) bg-danger @else badge-secondary @endif">
-                                                            {{ $order->payment_status? 'PAID' : 'UNPAID' }}
+                                                           @if(optional($order->invoice)->payment_status === 'paid')
+                                                                bg-success
+                                                            @elseif(optional($order->invoice)->payment_status === 'pending')
+                                                                bg-danger
+                                                            @else
+                                                                badge-secondary
+                                                            @endif">
+                                                            {{ optional($order->invoice)->payment_status ?: 'no invoice' }}
                                                         </span>
-                       </td>
+                                                    </td>
 
                                                     <td>
                                                         <button class="btn btn-sm btn-primary btn-view las la-eye fs-2" data-order-id="{{ $order->id }}">
@@ -364,8 +369,8 @@
                                                         <button class="btn btn-sm btn-primary  view-invoice mx-2" data-id="{{ $order->id }}">
                                                             <i class="las la-file-invoice fs-2"></i>
                                                         </button>
-                                                        @if($order->payment_status == Null )
-                                                        <button class="btn btn-sm btn-success pay-your-order fs-4" data-id="{{ $order->id }}">
+                                                        @if(optional($order->invoice)->payment_status === 'pending')
+                                                        <button class="btn btn-sm btn-success pay-your-order fs-4" data-id="{{ $order->invoice_id }}">
                                                             <i class="las la-credit-card mx-2"></i>Pay Now
                                                         </button>
                                                         @endif
@@ -544,7 +549,7 @@
             $('.pay-your-order').click(function(e) {
                 e.preventDefault();
 
-                const orderId = $(this).data('id');
+                const invoiceId = $(this).data('id');
                 const button = $(this);
 
                 // Disable button to prevent double clicks
@@ -554,7 +559,7 @@
                 $.ajax({
                     url: '{{ route("orders.get-payment-details") }}',
                     method: 'GET',
-                    data: { order_id: orderId },
+                    data: { invoice_id: invoiceId },
                     success: function(response) {
                         if (response.success) {
                             const orderData = response.data;
@@ -584,7 +589,7 @@
                                     });
 
                                     // Submit to controller for payment processing
-                                    {{--window.location.href = `{{ route("orders.process-payment") }}?order_id=${orderId}`;--}}
+                                    window.location.href = `{{ route("payments.initiate") }}?invoice_id=${invoiceId}`;
                                 } else {
                                     // Re-enable button if cancelled
                                     button.prop('disabled', false);
