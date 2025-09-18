@@ -21,6 +21,14 @@ class CustomerForgotPasswordController extends Controller
     {
         $request->validate(['email' => 'required|email']);
 
+        $customer = \App\Models\Customer::where('email', $request->email)->first();
+
+        if ($customer && is_null($customer->password)) {
+            return back()->withErrors([
+                'email' => 'Please sign up first, you are not a registered customer.'
+            ]);
+        }
+
         $status = Password::broker('customers')->sendResetLink(
             $request->only('email')
         );
@@ -29,6 +37,7 @@ class CustomerForgotPasswordController extends Controller
             ? back()->with(['status' => __($status)])
             : back()->withErrors(['email' => __($status)]);
     }
+
     public function showResetForm(Request $request, $token = null)
     {
         return view('website.auth.customer-reset-password', ['token' => $token, 'email' => $request->email]);

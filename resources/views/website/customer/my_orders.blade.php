@@ -154,7 +154,7 @@
                                                     <td>
                                                         <span class="badge
                                                             @if($order->status == \App\Models\Order::COMPLETED) bg-success
-                                                            @elseif($order->status == \App\Models\Order::VALID) bg-success
+                                                            @elseif($order->status == \App\Models\Order::VALID) bg-primary
                                                             @elseif($order->status == \App\Models\Order::CANCELLED) bg-warning
                                                             @endif">
                                                             {{ ucfirst($order->status) }}
@@ -171,16 +171,22 @@
                                                     </td>
                                                     <td>
                                                         <span class="text-uppercase badge
-                                                            @if($order->payment_status === 'paid' ) bg-success @elseif($order->payment_status == Null) bg-danger @else badge-secondary @endif">
-                                                            {{ $order->payment_status? 'PAID' : 'UNPAID' }}
+                                                           @if(optional($order->invoice)->payment_status === 'paid')
+                                                                bg-success
+                                                            @elseif(optional($order->invoice)->payment_status === 'pending')
+                                                                bg-danger
+                                                            @else
+                                                                badge-secondary
+                                                            @endif">
+                                                            {{ optional($order->invoice)->payment_status ?: 'no invoice' }}
                                                         </span>
                                                     </td>
                                                     <td>
                                                         <button class="btn btn-sm btn-primary btn-view la la-eye fs-2"
                                                                 data-order-id="{{ $order->id }}">
                                                         </button>
-                                                        @if($order->payment_status == Null )
-                                                            <button class="btn btn-sm btn-success pay-your-order mx-2 fs-4" data-id="{{ $order->id }}">
+                                                        @if(optional($order->invoice)->payment_status === 'pending')
+                                                            <button class="btn btn-sm btn-success pay-your-order fs-4" data-id="{{ $order->invoice_id }}">
                                                                 <i class="las la-credit-card mx-2"></i>Pay Now
                                                             </button>
                                                         @endif
@@ -245,6 +251,8 @@
     </div>
 
     {{-- JavaScript --}}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             console.log('Page loaded. Binding click events...');
@@ -294,6 +302,80 @@
                 contentDiv.innerHTML = '';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             };
+
         });
+
+        $(document).ready(function() {
+            // Handle Pay Now button click
+            $('.pay-your-order').click(function(e) {
+                e.preventDefault();
+
+                const invoiceId = $(this).data('id');
+                const button = $(this);
+
+                // Disable button to prevent double clicks
+                button.prop('disabled', true);
+
+                // Get order details via AJAX first
+                $.ajax({
+                    url: '{{ route("orders.get-payment-details") }}',
+                    method: 'GET',
+                    data: { invoice_id: invoiceId },
+                    success: function(response) {
+                        if (response.success) {
+                            const orderData = response.data;
+
+                            Swal.fire({
+                                title: 'Pay Order',
+                                html: `Do you want to pay <strong>$${orderData.amount}</strong> for Invoice #${orderData.invoice_number}?`,
+                                icon: 'question',
+                                showCancelButton: true,
+                                confirmButtonColor: '#28a745',
+                                cancelButtonColor: '#6c757d',
+                                confirmButtonText: '<i class="las la-credit-card"></i> Yes, Pay Now',
+                                cancelButtonText: 'Cancel',
+                                reverseButtons: true
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    // Show loading
+                                    Swal.fire({
+                                        title: 'Processing...',
+                                        text: 'Redirecting to payment gateway',
+                                        icon: 'info',
+                                        showConfirmButton: false,
+                                        allowOutsideClick: false,
+                                        didOpen: () => {
+                                            Swal.showLoading();
+                                        }
+                                    });
+
+                                    // Submit to controller for payment processing
+                                    window.location.href = `{{ route("payments.initiate") }}?invoice_id=${invoiceId}`;
+                                } else {
+                                    // Re-enable button if cancelled
+                                    button.prop('disabled', false);
+                                }
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error',
+                                text: response.message || 'Unable to fetch order details',
+                                icon: 'error'
+                            });
+                            button.prop('disabled', false);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'Failed to load order details. Please try again.',
+                            icon: 'error'
+                        });
+                        button.prop('disabled', false);
+                    }
+                });
+            });
+        });
+
     </script>
 @endsection

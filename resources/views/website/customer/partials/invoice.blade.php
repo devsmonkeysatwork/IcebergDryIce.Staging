@@ -15,7 +15,7 @@
             <span class="payment-status {{ $order->payment_status ? 'paid' : 'unpaid' }}">
                 {{ $order->payment_status ? 'PAID' : 'UNPAID' }}
             </span>
-            <h2>Invoice <span class="fw-bold">#{{ $order->id }}</span></h2>
+            <h2>Invoice <span class="fw-bold">#{{ $order->invoice->invoice_number ?? 'N/A' }}</span></h2>
         </div>
     </div>
 

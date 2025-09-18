@@ -79,7 +79,7 @@
                                             </td>
                                             <td style="vertical-align: top;">
                                                 <p style="font-family: Inter;font-weight: 600;font-size: 36px;leading-trim: Cap height;line-height: 40px;letter-spacing: -3%;text-align: right;color:#B2B7C2;">Invoice</p>
-                                                <p style="font-family: Inter;font-weight: 500;font-size: 10px;line-height: 14px;letter-spacing: 0%;color:#5E6470;text-align: right;">#{{ $invoice_number }}</p>
+                                                <p style="font-family: Inter;font-weight: 500;font-size: 10px;line-height: 14px;letter-spacing: 0%;color:#5E6470;text-align: right;">#{{ $invoice_number ?? 'N/A' }}</p>
                                             </td>
                                         </tr>
                                         </tbody>

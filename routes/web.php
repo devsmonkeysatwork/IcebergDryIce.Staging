@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Middleware\RedirectIfAuthenticatedCustom;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\InventoryPageController;
@@ -104,7 +105,13 @@ Route::group([
 
 });
 // Login
+//
+//Route::get('/login', [LoginController::class, 'showLoginForm'])
+//    ->middleware([RedirectIfAuthenticatedCustom::class, 'handle'])
+//    ->name('login.form');
+
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login.form');
+
 Route::post('/login', [LoginController::class, 'login'])->name('login.custom');
 
 // Logout
@@ -131,7 +138,7 @@ Route::post('/get-novex-quote', [SupplierController::class, 'getNovexQuote']);
 
 Route::post('/orders/{id}/push-novex', [SupplierController::class, 'pushToNovex']);
 
-Route::get('/payment-redirect/{order}', [OrderCrudController::class, 'paymentRedirect'])->name('payment.redirect');
+
 
 
 Route::prefix('customer')->group(function () {

@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Customer\CustomerDashboardController;
 use App\Mail\CustomerRegisteredMail;
 use App\Mail\DryIceOrderEmail;
+use App\Models\Invoice;
 use App\Models\OrderItem;
+use App\Models\RecurringOrder;
 use App\Models\StockMovement;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
@@ -534,7 +536,7 @@ class OrderCrudController extends CrudController
         $x_description = 'Order #' . $order->id;
         $x_email = $order->email;
         $x_first_name = $order->customer_name;
-        $x_return_url = route('home');
+        $x_return_url = url('https://idi.monkeysatwork.dev/');
         $x_fp_sequence = rand(1000, 100000) + 123456;
 
 
@@ -626,17 +628,6 @@ class OrderCrudController extends CrudController
     }
 
 
-    // Override update method to update order and customer
-//    public function update($id)
-//    {
-//        $request = $this->crud->validateRequest();
-//        $data = $request->all();
-//
-//        $this->updateOrderData($data, $id);
-//
-//        return $this->crud->performUpdateAction($id);
-//    }
-
     /**
      * Show order details (AJAX endpoint)
      *
@@ -646,44 +637,184 @@ class OrderCrudController extends CrudController
     public function getOrderDetails(Request $request)
     {
         try {
-            $orderId = $request->get('order_id');
+            $invoiceId = $request->get('invoice_id');
 
-            // Fetch order with invoice relationship
-            $order = Order::where('id', $orderId)->with('invoice')->first();
+            $invoice = Invoice::find($invoiceId);
 
-            if (!$order) {
+            if (!$invoice) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Order not found'
+                    'message' => 'Invoice not found'
                 ]);
             }
 
-            if (!$order->invoice) {
+            $customerInfo = $this->getCustomerInfo($invoice);
+
+            if (!$customerInfo) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No invoice found for this order'
+                    'message' => 'Customer information not found'
                 ]);
             }
 
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'order_id' => $order->id,
-                    'invoice_id' => $order->invoice->id,
-                    'invoice_number' => $order->invoice->invoice_number,
-                    'amount' => number_format($order->invoice->total_amount, 2),
-                    'customer_name' => $order->invoice->customer_name,
-                    'customer_email' => $order->invoice->customer_email,
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'amount' => number_format($invoice->total_amount, 2),
+                    'customer_name' => $customerInfo->customer_name,
+                    'customer_email' => $customerInfo->email,
                 ]
             ]);
 
         } catch (Exception $e) {
-            \Log::error('Error fetching order payment details: ' . $e->getMessage());
+            \Log::error('Error fetching invoice payment details: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
                 'message' => 'Server error occurred'
             ]);
+        }
+    }
+
+    private function getCustomerInfo($invoice)
+    {
+        $customerInfo = null;
+
+        switch($invoice->invoiceable_type) {
+            case 'App\\Models\\Order':
+            case 'Model\\Order':
+                $order = \App\Models\Order::where('invoice_id', $invoice->id)->first();
+                if ($order) {
+                    $customerInfo = $order;
+                }
+                break;
+
+            case 'App\\Models\\RecurringOrder':
+            case 'Model\\RecurringOrder':
+                $recurringOrder = \App\Models\RecurringOrder::find($invoice->invoiceable_id);
+                if ($recurringOrder) {
+                    $order = \App\Models\Order::find($recurringOrder->order_id);
+                    if ($order) {
+                        $customerInfo = $order;
+                    }
+                }
+                break;
+
+            default:
+                // If no specific type, try to find order by invoice_id as fallback
+                $order = \App\Models\Order::where('invoice_id', $invoice->id)->first();
+                if ($order) {
+                    $customerInfo = $order;
+                }
+                break;
+        }
+
+        return $customerInfo;
+    }
+
+
+
+
+    public function initiatePayment(Request $request)
+    {
+        try {
+            $invoiceId = $request->get('invoice_id');
+
+            $invoice = Invoice::find($invoiceId);
+
+            if (!$invoice) {
+                return redirect()->back()->with('error', 'Invoice not found');
+            }
+
+            $customerInfo = $this->getCustomerInfo($invoice);
+
+            if (!$customerInfo) {
+                return redirect()->back()->with('error', 'Customer information not found');
+            }
+
+            $paymentParams = $this->buildExactPaymentParams($invoice, $customerInfo);
+
+            // Create HTML form and auto-submit directly to Exact
+            $form = '<html><body>';
+            $form .= '<form id="exactForm" method="POST" action="' . $paymentParams['payment_url'] . '">';
+
+            foreach ($paymentParams as $key => $value) {
+                if ($key !== 'payment_url') {
+                    $form .= '<input type="hidden" name="' . $key . '" value="' . $value . '">';
+                }
+            }
+
+            $form .= '</form>';
+            $form .= '<script>document.getElementById("exactForm").submit();</script>';
+            $form .= '</body></html>';
+
+            return response($form);
+
+        } catch (Exception $e) {
+            \Log::error('Error processing payment: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Server error occurred while processing payment');
+        }
+    }
+
+    protected function buildExactPaymentParams($invoice, $customerInfo)
+    {
+        $x_login = env('EXACT_LOGIN_ID');
+        $transaction_key = env('EXACT_TRANSACTION_KEY');
+        $x_amount = number_format($invoice->total_amount, 2, '.', '');
+        $x_invoice_num = $invoice->invoice_number;
+        $x_description = 'Invoice #' . $invoice->invoice_number;
+        $x_email = $customerInfo->email;
+        $x_first_name = $customerInfo->customer_name;
+        $x_return_url = url(route('payments.callback')); // You'll need to create this route
+
+//        $x_relay_response = 'TRUE';
+//        $x_receipt_link_method = 'REDIRECT';
+//        $x_receipt_link_url = url(route('payments.callback'));
+
+        $x_fp_sequence = rand(1000, 100000) + 123456;
+        $x_fp_timestamp = time();
+
+        $hmac_data = $x_login . "^" . $x_fp_sequence . "^" . $x_fp_timestamp . "^" . $x_amount . "^" . 'CAD';
+        $x_fp_hash = hash_hmac('MD5', $hmac_data, $transaction_key);
+
+        return [
+            'x_login' => $x_login,
+            'x_amount' => $x_amount,
+            'x_fp_timestamp' => $x_fp_timestamp,
+            'x_fp_sequence' => $x_fp_sequence,
+            'x_invoice_num' => $x_invoice_num,
+            'x_description' => $x_description,
+            'x_first_name' => $x_first_name,
+            'x_email' => $x_email,
+            'x_return_url' => $x_return_url,
+            'x_currency_code' => 'CAD',
+            'x_fp_hash' => $x_fp_hash,
+            'x_show_form' => 'PAYMENT_FORM',
+            'x_test_request' => 'False',
+//            'x_relay_response' => $x_relay_response,
+//            'x_receipt_link_method' => $x_receipt_link_method,
+//            'x_receipt_link_url' => $x_receipt_link_url,
+            'payment_url' => 'https://rpm.demo.e-xact.com/payment'
+        ];
+    }
+
+
+    public function handlePaymentCallback(Request $request)
+    {
+
+
+        $responseCode = $request->get('x_response_code');
+        $invoiceNumber = $request->get('x_invoice_num');
+
+
+        if ($responseCode == '1') {
+            // Payment successful
+            return redirect()->route('payments.success')->with('success', 'Payment completed successfully!');
+        } else {
+            // Payment failed
+            return redirect()->route('payments.failed')->with('error', 'Payment failed. Please try again.');
         }
     }
 
@@ -709,6 +840,12 @@ class OrderCrudController extends CrudController
                 'recurring' => 'string|in:recurring,non-recurring',
                 'origin' => 'nullable|string|max:100',
                 'location_name' => 'nullable|string|max:255',
+                'address' => 'required|string|max:255',
+                'unit' => 'nullable|string|max:50',
+                'city' => 'required|string|max:100',
+                'postal_code' => 'required|string|max:20',
+                'province' => 'required|string|max:50',
+                'country' => 'required|string|max:100',
                 'delivery_date' => 'nullable',
                 'delivery_cost' => 'nullable|numeric|min:0',
                 'notes' => 'nullable|string',
@@ -718,17 +855,7 @@ class OrderCrudController extends CrudController
                 'hazmat' => 'nullable|numeric|min:0',
             ];
 
-            // Conditional address fields
-            if ($request->pickup_delivery === 'delivery') {
-                $rules = array_merge($rules, [
-                    'address' => 'required|string|max:255',
-                    'unit' => 'nullable|string|max:50',
-                    'city' => 'required|string|max:100',
-                    'postal_code' => 'required|string|max:20',
-                    'province' => 'required|string|max:50',
-                    'country' => 'required|string|max:100',
-                ]);
-            }
+
 
             $validator = Validator::make($request->all(), $rules);
 
