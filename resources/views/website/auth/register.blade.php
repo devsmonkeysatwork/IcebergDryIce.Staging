@@ -15,7 +15,7 @@
     </style>
     <div class="container">
         <div class="info">
-            <h1 class="">Register Your Account</h1>
+            <h1 class="">{{ __('register_title') }}</h1>
 
             {{-- Display errors --}}
             @if ($errors->any())
@@ -38,12 +38,12 @@
                 @csrf
                 <table border="0">
                     <tr>
-                        <td width="150px">Name:</td>
+                        <td width="150px">{{ __('register_name') }}:</td>
                         <td><input class="textbox_data" type="text" name="name" value="{{ old('name') }}" required></td>
                     </tr>
 
                     <tr>
-                        <td>Email:</td>
+                        <td>{{ __('email') }}:</td>
                         <td>
                             <input onblur="check_email()" id="email" class="textbox_data" type="email" name="email" value="{{ old('email') }}" required>
                             <span id="email_notes"></span>
@@ -51,7 +51,7 @@
                     </tr>
 
                     <tr>
-                        <td>Phone:</td>
+                        <td>{{ __('phone') }}:</td>
                         <td>
                             <input onblur="check_phone();" class="textbox_data" id="phone_input" type="text" name="phone" value="{{ old('phone') }}" required>
                             <span id="phone_notes"></span>
@@ -59,12 +59,12 @@
                     </tr>
 
                     <tr>
-                        <td>Address:</td>
+                        <td>{{ __('address') }}:</td>
                         <td><input class="textbox_data" type="text" name="address" id="address" value="{{ old('address') }}" pattern="^[a-zA-Z0-9\s\-\#\.\/]+$" title="Address can only contain letters, numbers, spaces, hyphens, hash symbols, periods, and forward slashes" required></td>
                     </tr>
 
                     <tr>
-                        <td>City:</td>
+                        <td>{{ __('city') }}:</td>
                         <td><input class="textbox_data" type="text" name="city" id="city" value="{{ old('city') }}" pattern="^[a-zA-Z\s\-\.]+$" title="City can only contain letters, spaces, hyphens, and periods" required></td>
                     </tr>
 
@@ -80,7 +80,7 @@
                     </tr>
 
                     <tr>
-                        <td>Postal Code:</td>
+                        <td>{{ __('postal_code') }}:</td>
                         <td>
                             <input onblur="check_postal()" id="postal" class="textbox_data" type="text" name="postal_code" value="{{ old('postal_code') }}" pattern="^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$" title="Please enter a valid Canadian postal code (e.g., K1A 0A6)" required>
                             <span id="postal_notes"></span>
@@ -88,18 +88,18 @@
                     </tr>
 
                     <tr>
-                        <td>Password:</td>
+                        <td>{{ __('register_password') }}:</td>
                         <td><input class="textbox_data" type="password" name="password" required></td>
                     </tr>
 
                     <tr>
-                        <td>Confirm Password:</td>
+                        <td>{{ __('register_confirm_password') }}:</td>
                         <td><input class="textbox_data" type="password" name="password_confirmation" required></td>
                     </tr>
 
                     <tr>
                         <td colspan="2" align="left">
-                            <input class="is_button" type="submit" value="Register">
+                            <input class="is_button" type="submit" value="{{ __('register_submit') }}">
                         </td>
                     </tr>
                 </table>
