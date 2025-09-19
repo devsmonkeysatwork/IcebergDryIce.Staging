@@ -157,9 +157,9 @@
         <!-- Tab Navigation -->
         <table width='90%'>
             <tr>
-                <td class='forsale_menu selected' id='tab-order' onclick='showTab("order")'>ORDER</td>
-                <td class='forsale_menu' id='tab-location' onclick='showTab("location")'>Location</td>
-                <td class='forsale_menu' id='tab-review' onclick='showTab("review")'>Review</td>
+                <td class='forsale_menu text-uppercase selected' id='tab-order' onclick='showTab("order")'>{{ __('order_tab_order') }}</td>
+                <td class='forsale_menu text-uppercase' id='tab-location' onclick='showTab("location")'>{{ __('order_tab_location') }}</td>
+                <td class='forsale_menu text-uppercase' id='tab-review' onclick='showTab("review")'>{{ __('order_tab_review') }}</td>
             </tr>
         </table>
 
@@ -170,7 +170,7 @@
             <form id='order_form'>
                 <table>
                     <tr>
-                        <th colspan='4'>ORDER</th>
+                        <th class="text-uppercase" colspan='4'>{{ __('order_tab_order') }}</th>
                     </tr>
 
                     @foreach ($products as $product)
@@ -215,7 +215,7 @@
                                     <i>
                                         ${{ $priceFormatted }} / {{ $product->unit }}
                                         @if ($product->id == 1)
-                                            , <span style="color:red">minimum 10 lbs.</span>
+                                            , <span style="color:red">{{ __('order_minimum_weight') }}</span>
                                         @endif
                                     </i>
                                 </div>
@@ -225,7 +225,7 @@
                 </table>
 
                 <br>
-                <input style='width: 100px; text-align: center; color: #090; border: outset 2px #090;' class='is_button' type='button' value='NEXT' onclick='nextFromOrder();'>
+                <input style='width: 100px; text-align: center; color: #090; border: outset 2px #090;' class='is_button' type='button' value='{{ __('order_next') }}' onclick='nextFromOrder();'>
             </form>
         </div>
 
@@ -233,18 +233,18 @@
         <div id="signupModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    Welcome
+                    {{ __('order_signup_welcome') }}
                 </div>
                 <div class="modal-text">
-                    <p>Would you like to log in or sign up to access your account, or continue as a guest customer?</p>
+                    <p>{{ __('order_signup_question') }}</p>
                 </div>
                 <div class="modal-buttons">
                     <button class="modal-button signup-btn" onclick="redirectToLoginOrSignup()">
-                        LOGIN / SIGN UP
+                        {{ __('order_login_signup') }}
                     </button>
                     <br>
                     <button class="modal-button guest-btn" onclick="proceedAsGuest()">
-                        CONTINUE AS GUEST
+                        {{ __('order_continue_guest') }}
                     </button>
                 </div>
             </div>
@@ -256,16 +256,16 @@
             <form id='location_form'>
                 <table width="95%">
                     <tr>
-                        <th colspan='4'>Delivery Location</th>
+                        <th colspan='4'>{{ __('order_delivery_location') }}</th>
                     </tr>
                     <tr>
-                        <td>Pickup / Delivery</td>
+                        <td>{{ __('order_pickup_delivery') }}</td>
                         <td></td>
                         <td>
                             <select class='textbox_data' style='width: 215px;' id='delivery_type'>
-                                <option value=''>Select</option>
-                                <option value='pickup'>Pickup</option>
-                                <option value='delivery'>Delivery</option>
+                                <option value=''>{{ __('order_select') }}</option>
+                                <option value='pickup'>{{ __('order_pickup') }}</option>
+                                <option value='delivery'>{{ __('order_delivery') }}</option>
                             </select>
                         </td>
                         <td>
@@ -273,7 +273,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <td>Province</td>
+                        <td>{{ __('order_province') }}</td>
                         <td></td>
                         <td>
                             <select name='province' id='province' style='width: 210px;' class='textbox_data'>
@@ -283,12 +283,12 @@
                         </td>
                     </tr>
                     <tr>
-                        <td>City</td>
+                        <td>{{ __('order_city') }}</td>
                         <td></td>
                         <td><input class='textbox_data' size='22' type='text' id='city' name='city'></td>
                     </tr>
                     <tr>
-                        <td>Address</td>
+                        <td>{{ __('order_address') }}</td>
                         <td></td>
                         <td><input class='textbox_data' size='22' type='text' id='address' name='address'></td>
                         <td rowspan='4'>
@@ -296,7 +296,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <td>Postal</td>
+                        <td>{{ __('order_postal') }}</td>
                         <td></td>
                         <td><input class='textbox_data' size='22' type='text' id='postal' name='postal_code'></td>
                     </tr>
@@ -304,7 +304,7 @@
                         <td colspan='4'><br></td>
                     </tr>
                     <tr>
-                        <th colspan='4'>Delivery Date</th>
+                        <th colspan='4'>{{ __('order_delivery_date') }}</th>
                     </tr>
                     <tr>
                         <td colspan='3'>
@@ -326,7 +326,7 @@
                         </td>
                         <td>
                             <br>
-                            <div id='date_notes'>Minimum 12 hours notice required for new orders.
+                            <div id='date_notes'>{{ __('order_min_hours_notice') }}
                                 <br>
                                 <br>
                             </div>
@@ -334,27 +334,27 @@
                     </tr>
 
                     <tr>
-                        <th colspan='4'>Contact Information and Notes</th>
+                        <th colspan='4'>{{ __('order_contact_notes') }}</th>
                     </tr>
                     <tr>
-                        <td width='130px'>Your Name</td>
+                        <td width='130px'>{{ __('order_your_name') }}</td>
                         <td></td>
                         <td><input class='textbox_data' style='text-align: left;' size='22' type='text' name='name' id='name' value=''></td>
                         <td></td>
                     </tr>
                     <tr>
-                        <td>Location Type</td>
+                        <td>{{ __('order_location_type') }}</td>
                         <td></td>
                         <td>
                             <select class='textbox_data' style='width: 215px;' id='location_type' onchange="set_name();">
-                                <option value='2'>Company</option>
-                                <option value='1'>Home Residence</option>
+                                <option value='2'>{{ __('order_company') }}</option>
+                                <option value='1'>{{ __('order_home_residence') }}</option>
                             </select>
                         </td>
                         <td></td>
                     </tr>
                     <tr>
-                        <td>Location Name</td>
+                        <td>{{ __('order_location_name') }}</td>
                         <td></td>
                         <td><input onblur='check_company_name();' class='textbox_data' size='22' type='text' id='company' name='company' value=''></td>
                         <td>
@@ -362,7 +362,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <td>Phone</td>
+                        <td>{{ __('order_phone') }}</td>
                         <td></td>
                         <td><input onblur="check_phone();" class='textbox_data' style='text-align: left;' size='22' type='text' name='phone' id='phone' value=''></td>
                         <td>
@@ -370,7 +370,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <td>Email</td>
+                        <td>{{ __('order_email') }}</td>
                         <td></td>
                         <td><input onblur="check_email();" class='textbox_data' style='text-align: left;' size='22' type='text' name='email' id='email' value=''></td>
                         <td>
@@ -378,7 +378,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <td>Notes</td>
+                        <td>{{ __('order_notes') }}</td>
                         <td></td>
                         <td><input class='textbox_data' style='text-align: left;' size='22' type='text' name='notes' id='notes' value=''></td>
                         <td></td>
@@ -389,8 +389,8 @@
                 </center>
             </form>
             <center>
-                <br><b>We deliver to the Greater Vancouver Regional District, and Calgary<br>
-                    Deliveries require minimum 5 hour window. (If necessary, write in notes: "Deliver before 1pm" or "deliver after 12")</b>
+                <br><b>{{ __('order_delivery_info') }}<br>
+                    {{ __('order_delivery_window') }}</b>
             </center>
         </div>
 
@@ -434,7 +434,7 @@
 
                 <table>
                     <tr>
-                        <th colspan='4'>Order</th>
+                        <th colspan='4'>{{ __('order_review_order') }}</th>
                     </tr>
                     <tr>
                         <td width='300px' id='order-summary'>
@@ -445,18 +445,18 @@
                         </td>
                     </tr>
                     <tr>
-                        <td>Delivery</td>
+                        <td>{{ __('order_delivery') }}</td>
                         <td align='right' id="delivery-cost"></td>
                     </tr>
                     <tr>
-                        <td>Hazmat fee</td>
+                        <td>{{ __('order_hazmat_fee') }}</td>
                         <td align='right'>$12.00</td>
                     </tr>
                     <tr>
                         <td>
-                            TAX<br>
+                            {{ __('order_tax') }}<br>
                             <hr>
-                            <b>TOTAL</b>
+                            <b>{{ __('order_total') }}</b>
                         </td>
                         <td align='right' id='tax-total'>
                             <!-- Tax and total will be calculated -->
@@ -464,7 +464,7 @@
                     </tr>
 
                     <tr>
-                        <th colspan='4'>Location</th>
+                        <th colspan='4'>{{ __('order_location') }}</th>
                     </tr>
                     <tr>
                         <td colspan='4' id='delivery-location'>
@@ -473,7 +473,7 @@
                     </tr>
 
                     <tr>
-                        <th colspan='4'>Date</th>
+                        <th colspan='4'>{{ __('order_date') }}</th>
                     </tr>
                     <tr>
                         <td colspan='4' id='delivery-date'>
@@ -482,7 +482,7 @@
                     </tr>
 
                     <tr>
-                        <th colspan='4'>Contact Information</th>
+                        <th colspan='4'>{{ __('order_contact_info') }}</th>
                     </tr>
                     <tr>
                         <td colspan='4' id='contact-info'>
@@ -491,7 +491,7 @@
                     </tr>
 
                     <tr>
-                        <th colspan='4'>Notes</th>
+                        <th colspan='4'>{{ __('order_order_notes') }}</th>
                     </tr>
                     <tr>
                         <td colspan='4' id='order-notes'>
@@ -501,18 +501,18 @@
                 </table>
 
                 <div class="safety-disclaimer" style="text-align: left">
-                    <h1>Safety</h1>
-                    <p>1. Never touch dry ice with bare skin.</p>
-                    <p>2. Never seal dry ice in an airtight container.</p>
-                    <p>3. Never let dry ice vapor fill a room.</p>
+                    <h1>{{ __('order_safety_title') }}</h1>
+                    <p>1. {{ __('order_safety_tip1') }}</p>
+                    <p>2. {{ __('order_safety_tip2') }}</p>
+                    <p>3. {{ __('order_safety_tip3') }}</p>
 
-                    <h1>Disclaimer</h1>
-                    <p>1. Same day deliveries must be scheduled by 8:30am.</p>
-                    <p>2. Couriers need a 5-hour window for delivery.</p>
-                    <p>3. We are not open on holidays.</p>
-                    <p>4. You confirm you have provided an accurate address and contact information.</p>
-                    <p>5. You confirm you will be available to accept the delivery.</p>
-                    <p><i>Due to the nature of dry ice, we cannot accept returns or offer refunds once the delivery is en route.</i></p>
+                    <h1>{{ __('order_disclaimer_title') }}</h1>
+                    <p>1. {{ __('order_disclaimer1') }}</p>
+                    <p>2. {{ __('order_disclaimer2') }}</p>
+                    <p>3. {{ __('order_disclaimer3') }}</p>
+                    <p>4. {{ __('order_disclaimer4') }}</p>
+                    <p>5. {{ __('order_disclaimer5') }}</p>
+                    <p><i>{{ __('order_disclaimer6') }}</i></p>
                     <hr>
                 </div>
 
@@ -520,7 +520,7 @@
                     <div class="checkbox-section">
                         <b>
                             <input type="checkbox" id="accept" required name="accept">
-                            I have read and understand the above safety information and disclaimer.
+                            {{ __('order_accept_checkbox') }}
                         </b>
                     </div>
                     <input type="image"
