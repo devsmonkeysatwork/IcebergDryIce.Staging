@@ -577,7 +577,7 @@
                 const productName = productNameCell?.textContent.trim() || '';
 
                 // Check if this is a Dry Ice product and quantity is less than 10
-                if (productName.toLowerCase().includes('dry ice') && quantity >= 0 && quantity < 10) {
+                if (productName.toLowerCase().includes('dry ice') && quantity > 0 && quantity < 10) {
                     // Show error message in the notes field
                     const notesId = 'notes_' + productId;
                     const notesElement = document.getElementById(notesId);
@@ -590,7 +590,20 @@
                         notesElement.className = 'error';
                     }
                     hasDryIceError = true;
-                } else {
+                }else if(productName.toLowerCase().includes('dry ice pellets') && quantity == 0){
+                    const notesId = 'notes_' + productId;
+                    const notesElement = document.getElementById(notesId);
+                    if (notesElement) {
+                        // Get the original price info
+                        const originalContent = notesElement.innerHTML;
+                        const priceInfo = originalContent.split(',')[0]; // Get the price part
+
+                        notesElement.innerHTML = '<span style="color:red; font-weight:bold;">Invalid: Please add at least 10 lbs</span>';
+                        notesElement.className = 'error';
+                    }
+                    hasDryIceError = true;
+                }
+                else {
                     // Clear any previous error messages for this product
                     const notesId = 'notes_' + productId;
                     const notesElement = document.getElementById(notesId);
