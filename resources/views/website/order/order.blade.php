@@ -577,7 +577,7 @@
                 const productName = productNameCell?.textContent.trim() || '';
 
                 // Check if this is a Dry Ice product and quantity is less than 10
-                if (productName.toLowerCase().includes('dry ice') && quantity > 0 && quantity < 10) {
+                if (productName.toLowerCase().includes('dry ice') && quantity >= 0 && quantity < 10) {
                     // Show error message in the notes field
                     const notesId = 'notes_' + productId;
                     const notesElement = document.getElementById(notesId);
