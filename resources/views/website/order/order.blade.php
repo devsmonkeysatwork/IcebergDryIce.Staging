@@ -258,14 +258,14 @@
                     <tr>
                         <th colspan='4'>{{ __('order_delivery_location') }}</th>
                     </tr>
-                    <tr>
+                    <tr style="visibility: hidden">
                         <td>{{ __('order_pickup_delivery') }}</td>
                         <td></td>
                         <td>
                             <select class='textbox_data' style='width: 215px;' id='delivery_type'>
                                 <option value=''>{{ __('order_select') }}</option>
                                 <option value='pickup'>{{ __('order_pickup') }}</option>
-                                <option value='delivery'>{{ __('order_delivery') }}</option>
+                                <option selected value='delivery'>{{ __('order_delivery') }}</option>
                             </select>
                         </td>
                         <td>
@@ -307,21 +307,76 @@
                         <th colspan='4'>{{ __('order_delivery_date') }}</th>
                     </tr>
                     <tr>
+                        <?php
+// Get current time and determine if we should show next day
+                        $now = new DateTime();
+                        $currentHour = (int)$now->format('H');
+                        $currentMinute = (int)$now->format('i');
+
+// Check if current time is after 8:30 AM (assuming server time is in one of the target zones)
+                        $isAfter830AM = ($currentHour > 8) || ($currentHour == 8 && $currentMinute > 30);
+
+// Determine starting month, day, and year
+                        if ($isAfter830AM) {
+                            $tomorrow = clone $now;
+                            $tomorrow->modify('+1 day');
+                            $startMonth = (int)$tomorrow->format('n');
+                            $startDay = (int)$tomorrow->format('j');
+                            $startYear = (int)$tomorrow->format('Y');
+                        } else {
+                            $startMonth = (int)$now->format('n');
+                            $startDay = (int)$now->format('j');
+                            $startYear = (int)$now->format('Y');
+                        }
+
+                        $currentMonth = (int)$now->format('n');
+                        $currentYear = (int)$now->format('Y');
+                        ?>
+
                         <td colspan='3'>
-                            <select name="month" id='month' style='width: 80px;' class='textbox_data'>
-                                @foreach (["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] as $index => $month)
-                                    <option value="{{ $index + 1 }}" {{ date('n') == $index + 1 ? 'selected' : '' }}>{{ $month }}</option>
-                                @endforeach
+                            <!-- Month Selection -->
+                            <select name="month" id='month' style='width: 150px;' class='textbox_data' onchange="updateDayOptions()">
+                                <?php
+                                $months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+                                foreach ($months as $index => $month) {
+                                    $monthValue = $index + 1;
+                                    $selected = ($monthValue == $startMonth) ? 'selected' : '';
+                                    echo "<option value='{$monthValue}' {$selected}>{$month}</option>";
+                                }
+                                ?>
                             </select>
+
+                            <!-- Day Selection -->
                             <select name="day" id='day' style='width: 80px;' class='textbox_data'>
-                                @for ($i = 1; $i <= 31; $i++)
-                                    <option value="{{ $i }}" {{ date('j') == $i ? 'selected' : '' }}>{{ $i }}</option>
-                                @endfor
+                                <?php
+                                // We'll populate this with JavaScript based on month selection
+                                // But provide initial values
+                                $daysInMonth = date('t', mktime(0, 0, 0, $startMonth, 1, $startYear));
+
+                                for ($i = 1; $i <= $daysInMonth; $i++) {
+                                    // Only show valid days (current day or future)
+                                    if ($startMonth == $currentMonth && $startYear == $currentYear) {
+                                        if ($i >= $startDay) {
+                                            $selected = ($i == $startDay) ? 'selected' : '';
+                                            echo "<option value='{$i}' {$selected}>{$i}</option>";
+                                        }
+                                    } else {
+                                        $selected = ($i == $startDay) ? 'selected' : '';
+                                        echo "<option value='{$i}' {$selected}>{$i}</option>";
+                                    }
+                                }
+                                ?>
                             </select>
-                            <select name="year" id='year' style='width: 80px;' class='textbox_data'>
-                                @for ($i = date('Y'); $i <= date('Y') + 3; $i++)
-                                    <option value="{{ $i }}" {{ date('Y') == $i ? 'selected' : '' }}>{{ $i }}</option>
-                                @endfor
+
+                            <!-- Year Selection -->
+                            <select name="year" id='year' style='width: 80px;' class='textbox_data' onchange="updateMonthAndDayOptions()">
+                                <?php
+                                for ($i = $startYear; $i <= $startYear + 3; $i++) {
+                                    $selected = ($i == $startYear) ? 'selected' : '';
+                                    echo "<option value='{$i}' {$selected}>{$i}</option>";
+                                }
+                                ?>
                             </select>
                         </td>
                         <td>
@@ -916,28 +971,120 @@
 
 
 
+        // Store PHP values for JavaScript use
+        const phpStartMonth = <?php echo $startMonth; ?>;
+        const phpStartDay = <?php echo $startDay; ?>;
+        const phpStartYear = <?php echo $startYear; ?>;
+        const phpCurrentMonth = <?php echo $currentMonth; ?>;
+        const phpCurrentYear = <?php echo $currentYear; ?>;
 
-        // Location validation functions
+        function updateMonthAndDayOptions() {
+            const yearSelect = document.getElementById('year');
+            const monthSelect = document.getElementById('month');
+            const selectedYear = parseInt(yearSelect.value);
+
+            // Clear and repopulate month options
+            monthSelect.innerHTML = '';
+
+            const months = [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            ];
+
+            // Determine which months to show
+            let startMonth = 1;
+            if (selectedYear === phpCurrentYear) {
+                startMonth = phpStartMonth; // Only show current month and future months in current year
+            }
+
+            // Add month options
+            for (let i = startMonth; i <= 12; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = months[i - 1];
+
+                // Select the first available month by default
+                if (i === startMonth) {
+                    option.selected = true;
+                }
+
+                monthSelect.appendChild(option);
+            }
+
+            // Update day options after month options are set
+            updateDayOptions();
+        }
+
+        function updateDayOptions() {
+            const monthSelect = document.getElementById('month');
+            const daySelect = document.getElementById('day');
+            const yearSelect = document.getElementById('year');
+
+            const selectedMonth = parseInt(monthSelect.value);
+            const selectedYear = parseInt(yearSelect.value);
+
+            // Clear existing options
+            daySelect.innerHTML = '';
+
+            // Get number of days in selected month
+            const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+
+            // Determine minimum day based on current selection
+            let minDay = 1;
+
+            // Only restrict days if it's the CURRENT month in the CURRENT year
+            // For future months or future years, show all days from 1
+            if (selectedYear === phpCurrentYear && selectedMonth === phpCurrentMonth) {
+                minDay = phpStartDay;
+            }
+
+            // Populate day options
+            for (let i = minDay; i <= daysInMonth; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i;
+
+                // Select the minimum valid day by default
+                if (i === minDay) {
+                    option.selected = true;
+                }
+
+                daySelect.appendChild(option);
+            }
+        }
+
         function check_date() {
-            var year = parseInt(document.getElementById('year').value);
-            var month = parseInt(document.getElementById('month').value) - 1;
-            var day = parseInt(document.getElementById('day').value);
-            var error_msg = '';
+            const year = parseInt(document.getElementById('year').value);
+            const month = parseInt(document.getElementById('month').value) - 1;
+            const day = parseInt(document.getElementById('day').value);
+            let error_msg = '';
 
-            var date = new Date(year, month, day);
-            var today = new Date();
-            var now = new Date();
+            const date = new Date(year, month, day);
+            const today = new Date();
+            const now = new Date();
 
-            var hour_now = now.getHours();
-            var min_now = now.getMinutes();
+            const hour_now = now.getHours();
+            const min_now = now.getMinutes();
 
             today.setHours(0, 0, 0, 0);
-            var tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+            const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
+            // Check if it's a weekend
             if ([0, 6].includes(date.getDay())) {
                 error_msg += 'Week days only please.<br>';
             }
 
+            // Enhanced time zone aware validation
+            const selectedDate = new Date(year, month, day);
+            const currentDate = new Date();
+            currentDate.setHours(0, 0, 0, 0);
+
+            // Check if selected date is in the past
+            if (selectedDate < currentDate) {
+                error_msg += 'Cannot select past dates.<br>';
+            }
+
+            // Same day order validation with time zone consideration
             if (
                 date.getFullYear() === today.getFullYear() &&
                 date.getMonth() === today.getMonth() &&
@@ -946,10 +1093,9 @@
                 if ((hour_now === 8 && min_now > 30) || hour_now > 8) {
                     error_msg += 'Same day orders must be completed before 8:30am.<br>';
                 }
-            } else if (date < tomorrow) {
-                error_msg += 'Orders must be completed before 8:30am day of.<br>';
             }
 
+            // Display validation result
             if (error_msg === '') {
                 set_msg('date_notes', '<center><b>VALID</b></center>', false);
             } else {
@@ -958,6 +1104,11 @@
 
             return error_msg;
         }
+
+        // Initialize day options on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateMonthAndDayOptions();
+        });
 
         function check_delivery() {
             var error_msg = '';
