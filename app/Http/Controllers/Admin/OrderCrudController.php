@@ -1103,7 +1103,7 @@ class OrderCrudController extends CrudController
             return view('website.customer.partials.order_details', $data);
         }
         $order = Order::findOrFail($id);
-        Mail::to($order->email)->send(new OrderPlacedMail($order));
+
         $data = [
             'mode' => 'edit',
             'order' => $order,
