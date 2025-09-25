@@ -60,7 +60,7 @@
                                         <tbody>
                                         <tr>
                                             <td align="left" style="width:55px;vertical-align: top;">
-                                                <img src="{{asset('idi_logo.svg')}}" width="54" height="54" alt="logo" border="0" />
+                                                <img src="https://idi.monkeysatwork.dev/public/idi_logo.png" style="width: 54px"  width="54" height="54" alt="logo" border="0" />
                                             </td>
                                             <td align="left">
                                                 <p style="font-family: Inter;font-weight: 700;font-size: 18px;line-height: 24px;letter-spacing: 0%;color:#1A1C21;">Iceberg Dry Ice</p>
@@ -127,7 +127,7 @@
                                 </td>
                                 <td style="vertical-align: top;text-align:right;">
                                     <p style="font-family: Inter;font-weight: 400;font-size: 10px;line-height: 14px;letter-spacing: 0%;color:#5E6470;">Amount</p>
-                                    <p style="margin-right: -100px !important;font-family: Inter;font-weight: 700;font-size: 20px;line-height: 28px;letter-spacing: 0%;color:#fff;background-color: #0B75AF;width: 128px;height: 32px;transform: translateX(85px);gap: 10px;padding-top: 6px;padding-right: 40px;padding-bottom: 6px;padding-left: 12px;">
+                                    <p style="font-family: Inter;font-weight: 700;font-size: 20px;line-height: 28px;letter-spacing: 0%;color:#fff;background-color: #0B75AF;width: 100%;height: 32px;transform: translateX(85px);gap: 10px;padding-top: 6px;padding-right: 40px;padding-bottom: 6px;padding-left: 12px;">
                                         ${{ number_format($order->order->total_cost, 2) }}
                                     </p>
                                 </td>
