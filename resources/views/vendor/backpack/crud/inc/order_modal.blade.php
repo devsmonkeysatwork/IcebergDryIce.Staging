@@ -169,7 +169,7 @@
                 </div>
                 <div class="m-1">
                     <p class="m-0 d-flex justify-content-between align-items-center cost-summary-hazmat">
-                        hazmat:
+                        Hazmat:
                         <span class="d-flex align-items-center">
                             <strong class="me-2">${{ number_format($defaultValues['hazmat'], 2) }}</strong>
                         </span>

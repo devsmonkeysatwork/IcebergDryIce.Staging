@@ -891,37 +891,37 @@ class OrderCrudController extends CrudController
             $oldQty = $order->amount_of_ice ?? 0;
             $diff = $newQty - $oldQty;
             if ($diff != 0) {
-                if ($diff > 0) {
-                    if ($product->current_stock == 0.0 || $product->current_stock < $diff) {
-                        DB::rollBack();
-                        return response()->json([
-                            'success' => false,
-                            'message' => $product->product_name . ' is out of stock',
-                        ]);
-                    }
-                    $product->decrement('current_stock', $diff);
-                } elseif ($diff < 0) {
-                    $product->increment('current_stock', abs($diff));
-                }
+//                if ($diff > 0) {
+//                    if ($product->current_stock == 0.0 || $product->current_stock < $diff) {
+//                        DB::rollBack();
+//                        return response()->json([
+//                            'success' => false,
+//                            'message' => $product->product_name . ' is out of stock',
+//                        ]);
+//                    }
+//                    $product->decrement('current_stock', $diff);
+//                } elseif ($diff < 0) {
+//                    $product->increment('current_stock', abs($diff));
+//                }
 
                 $orderItem = OrderItem::where('product_id', $product->id)->where('order_id', $order->id)->first();
-                $stockMovement = StockMovement::where('product_id', $product->id)->where('order_id', $order->id)->first();
-
-                if ($orderItem) {
+//                $stockMovement = StockMovement::where('product_id', $product->id)->where('order_id', $order->id)->first();
+//
+//                if ($orderItem) {
                     $orderItem->amount_of_items = intval($newQty);
                     $orderItem->total_price = $newQty * $product->price;
                     $orderItem->save();
-                }
-
-                if ($stockMovement) {
-                    if ($diff > 0) {
-                        $stockMovement->increment('quantity', abs($diff));
-                    } elseif ($diff < 0) {
-                        $stockMovement->decrement('quantity', abs($diff));
-
-                    }
-                    $stockMovement->save();
-                }
+//                }
+//
+//                if ($stockMovement) {
+//                    if ($diff > 0) {
+//                        $stockMovement->increment('quantity', abs($diff));
+//                    } elseif ($diff < 0) {
+//                        $stockMovement->decrement('quantity', abs($diff));
+//
+//                    }
+//                    $stockMovement->save();
+//                }
             }
 
             // BOXES
@@ -947,8 +947,8 @@ class OrderCrudController extends CrudController
                 $orderItem2 = OrderItem::where('product_id', $product2->id)->where('order_id', $order->id)->first();
 //                $stockMovement2 = StockMovement::where('product_id', $product2->id)->where('order_id', $order->id)->first();
 //                if ($orderItem2) {
-//                    $orderItem2->amount_of_items = intval($newQty2);
-//                    $orderItem2->total_price = $newQty2 * $product2->price;
+                    $orderItem2->amount_of_items = intval($newQty2);
+                    $orderItem2->total_price = $newQty2 * $product2->price;
                     $orderItem2->save();
 //                }
 //
