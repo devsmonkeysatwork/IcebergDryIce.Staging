@@ -683,7 +683,6 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key={{config('services.google.api_key')}}&libraries=places"></script>
 <script>
-    // Replace the existing JavaScript section in your blade template with this:
 
     document.addEventListener('DOMContentLoaded', function() {
         let summaryModal = document.getElementById("orderSummaryModal");
@@ -1647,12 +1646,6 @@
                 }
             });
     }
-
-
-
-
-
-
 
 
     function loadRecurringOrderDetails(action=0, orderId,recurring_id) {

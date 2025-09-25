@@ -63,7 +63,9 @@
 
                         <div class="form-group col-md-4">
                             <label for="phone">Phone</label>
-                            <input type="text" class="form-control" id="phone" name="phone"
+                            <input type="text" class="form-control" id="phone" name="phone"  pattern="^\+?[0-9]{10,15}$"
+                                   oninput="this.value = this.value.replace(/(?!^\+)[^\d]/g, '')"
+                                   maxlength="16"
                                    value="{{ old('phone', $entry->phone ?? '') }}" placeholder="Phone" required>
                         </div>
 

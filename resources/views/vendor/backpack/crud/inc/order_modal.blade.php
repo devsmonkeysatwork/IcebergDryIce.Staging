@@ -39,7 +39,9 @@
 
             <div class="mb-2">
                 <label class="form-label">Phone<span class="text-danger">*</span></label>
-                <input id="modal-customer-phone" class="form-control" name="phone" type="tel" value="{{ $defaultValues['customer_phone'] }}" required>
+                <input id="modal-customer-phone" class="form-control" name="phone" type="tel" value="{{ $defaultValues['customer_phone'] }}" pattern="^\+?[0-9]{10,15}$"
+                       oninput="this.value = this.value.replace(/(?!^\+)[^\d]/g, '')"
+                       maxlength="16" required>
             </div>
 
             <div class="mb-2">
