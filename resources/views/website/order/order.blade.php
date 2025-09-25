@@ -308,15 +308,27 @@
                     </tr>
                     <tr>
                         <?php
-// Get current time and determine if we should show next day
+                        $timeZones = [
+                            'America/Vancouver',    // GMT-7 (British Columbia)
+                            'America/Edmonton',     // GMT-6 (Alberta)
+                            'America/Toronto'       // GMT-4 (Quebec)
+                        ];
+
+                        $isAfter830AM = false;
+
+                        foreach ($timeZones as $tz) {
+                            $zoneTime = new DateTime('now', new DateTimeZone($tz));
+                            $hour = (int)$zoneTime->format('H');
+                            $minute = (int)$zoneTime->format('i');
+
+                            if (($hour > 8) || ($hour == 8 && $minute > 30)) {
+                                $isAfter830AM = true;
+                                break; // If any zone is past 8:30 AM, we show next day
+                            }
+                        }
+
                         $now = new DateTime();
-                        $currentHour = (int)$now->format('H');
-                        $currentMinute = (int)$now->format('i');
 
-// Check if current time is after 8:30 AM (assuming server time is in one of the target zones)
-                        $isAfter830AM = ($currentHour > 8) || ($currentHour == 8 && $currentMinute > 30);
-
-// Determine starting month, day, and year
                         if ($isAfter830AM) {
                             $tomorrow = clone $now;
                             $tomorrow->modify('+1 day');
@@ -334,7 +346,7 @@
                         ?>
 
                         <td colspan='3'>
-                            <!-- Month Selection -->
+
                             <select name="month" id='month' style='width: 150px;' class='textbox_data' onchange="updateDayOptions()">
                                 <?php
                                 $months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -971,7 +983,6 @@
 
 
 
-        // Store PHP values for JavaScript use
         const phpStartMonth = <?php echo $startMonth; ?>;
         const phpStartDay = <?php echo $startDay; ?>;
         const phpStartYear = <?php echo $startYear; ?>;
@@ -1063,12 +1074,6 @@
             const today = new Date();
             const now = new Date();
 
-            const hour_now = now.getHours();
-            const min_now = now.getMinutes();
-
-            today.setHours(0, 0, 0, 0);
-            const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-
             // Check if it's a weekend
             if ([0, 6].includes(date.getDay())) {
                 error_msg += 'Week days only please.<br>';
@@ -1084,14 +1089,36 @@
                 error_msg += 'Cannot select past dates.<br>';
             }
 
+            // Time zone specific validation for same day orders
+            // Check multiple time zones: GMT-7 (BC), GMT-6 (Alberta), GMT-4 (Quebec)
+            const timeZones = [
+                { name: 'Pacific Time (BC)', offset: -7 },
+                { name: 'Mountain Time (Alberta)', offset: -6 },
+                { name: 'Eastern Time (Quebec)', offset: -4 }
+            ];
+
+            let isAfter830InAnyZone = false;
+
+            // Check if it's past 8:30 AM in any of the target time zones
+            timeZones.forEach(zone => {
+                const utcTime = new Date();
+                const zoneTime = new Date(utcTime.getTime() + (zone.offset * 60 * 60 * 1000));
+                const hour = zoneTime.getUTCHours();
+                const minute = zoneTime.getUTCMinutes();
+
+                if ((hour > 8) || (hour === 8 && minute > 30)) {
+                    isAfter830InAnyZone = true;
+                }
+            });
+
             // Same day order validation with time zone consideration
             if (
                 date.getFullYear() === today.getFullYear() &&
                 date.getMonth() === today.getMonth() &&
                 date.getDate() === today.getDate()
             ) {
-                if ((hour_now === 8 && min_now > 30) || hour_now > 8) {
-                    error_msg += 'Same day orders must be completed before 8:30am.<br>';
+                if (isAfter830InAnyZone) {
+                    error_msg += 'Same day orders must be completed before 8:30am in BC/Alberta/Quebec time zones.<br>';
                 }
             }
 
