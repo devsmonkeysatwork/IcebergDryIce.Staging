@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Order Invoice</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,100..900;1,100..900');
         @import url(https://fonts.googleapis.com/css?family=Inter:400,600,700);
         body { margin: 0; padding: 0; background: #e1e1e1; }
         div, p, a, li, td { -webkit-text-size-adjust: none; }
@@ -79,8 +78,8 @@
 
                                             </td>
                                             <td style="vertical-align: top;">
-                                                <p style="font-family: Archivo;font-weight: 600;font-size: 36px;leading-trim: Cap height;line-height: 40px;letter-spacing: -3%;text-align: right;color:#B2B7C2;">Invoice</p>
-                                                <p style="font-family: Archivo;font-weight: 500;font-size: 10px;line-height: 14px;letter-spacing: 0%;color:#5E6470;text-align: right;">#{{ $invoice_number }}</p>
+                                                <p style="font-family: sans-serif;font-weight: 600;font-size: 36px;leading-trim: Cap height;line-height: 40px;letter-spacing: -3%;text-align: right;color:#B2B7C2;">Invoice</p>
+                                                <p style="font-family: sans-serif;font-weight: 500;font-size: 10px;line-height: 14px;letter-spacing: 0%;color:#5E6470;text-align: right;">#{{ $invoice_number }}</p>
                                             </td>
                                         </tr>
                                         </tbody>
