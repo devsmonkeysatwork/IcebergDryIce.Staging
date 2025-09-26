@@ -222,6 +222,11 @@
                             </td>
                         </tr>
                     @endforeach
+                    <tr>
+                        <td colspan="4" id="anyproducterror">
+
+                        </td>
+                    </tr>
                 </table>
 
                 <br>
@@ -627,6 +632,8 @@
 
         function validateDryIceMinimum() {
             let hasDryIceError = false;
+            let allQuantityZero = true;
+            document.getElementById('anyproducterror').innerHTML = '';
 
             // Get all product quantity inputs
             const productInputs = document.querySelectorAll('[name^="product["][name$="[quantity]"]');
@@ -657,7 +664,8 @@
                         notesElement.className = 'error';
                     }
                     hasDryIceError = true;
-                }else if(productName.toLowerCase().includes('dry ice pellets') && quantity == 0){
+                }
+                else if(quantity > 0 && quantity < 10){
                     const notesId = 'notes_' + productId;
                     const notesElement = document.getElementById(notesId);
                     if (notesElement) {
@@ -671,6 +679,9 @@
                     hasDryIceError = true;
                 }
                 else {
+                    if(allQuantityZero && quantity > 0){
+                        allQuantityZero = false;
+                    }
                     // Clear any previous error messages for this product
                     const notesId = 'notes_' + productId;
                     const notesElement = document.getElementById(notesId);
@@ -693,8 +704,12 @@
                     }
                 }
             });
-
-            return !hasDryIceError;
+            if(allQuantityZero && !hasDryIceError){
+                document.getElementById('anyproducterror').innerHTML = '<span style="color:red">Please select at least one product.</span>';
+                return false;
+            }else{
+                return !hasDryIceError;
+            }
         }
 
         function calculateProductCost(productId, unitPrice) {
