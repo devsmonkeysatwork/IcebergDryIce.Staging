@@ -1201,10 +1201,11 @@
             var error_msg = '';
             if (document.getElementById('location_type').value == 1) {
                 document.getElementById('company').value = 'Residence';
-            } else {
-                if (document.getElementById('company').value === '')
-                    error_msg = "Please enter the company name here.";
             }
+            // else {
+            //     if (document.getElementById('company').value === '')
+            //         error_msg = "Please enter the company name here.";
+            // }
             set_msg('company_notes', error_msg, true);
             return error_msg;
         }

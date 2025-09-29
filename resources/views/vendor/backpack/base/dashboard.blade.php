@@ -983,57 +983,65 @@
 
         // Dynamic cost calculation
         function updateCostSummary() {
-            const iceAmount = parseFloat(document.getElementById('modal-ice-amount').value) || 0;
-            const boxAmount = parseFloat(document.getElementById('modal-box-amount').value) || 0;
+            let productTotal = 0;
+            let productSummaryHtml = '';
+
+            // Calculate product costs
+            document.querySelectorAll('.product-amount').forEach(input => {
+                const amount = parseFloat(input.value) || 0;
+                const unitPrice = parseFloat(input.dataset.unitPrice) || 0;
+                const productCost = amount * unitPrice;
+                productTotal += productCost;
+
+                if (amount > 0) {
+                    const productId = input.dataset.productId;
+                    const productName = document.querySelector('.label-'+productId).textContent;
+                    productSummaryHtml += `
+                <p class="m-0 d-flex justify-content-between align-items-center">
+                    ${productName} (${amount} @ $${unitPrice.toFixed(2)}):
+                    <strong>$${productCost.toFixed(2)}</strong>
+                </p>
+            `;
+                }
+            });
+
             const pickupDelivery = document.getElementById('modal-pickup-or-delivery').value;
-            const deliveryCost = document.getElementById('modal-delivery-cost').value;
-            const hazmatCost = document.getElementById('modal-hazmat-cost').value;
+            const deliveryCost = parseFloat(document.getElementById('modal-delivery-cost').value) || 0;
+            const hazmatCost = parseFloat(document.getElementById('modal-hazmat-cost').value) || 0;
 
-            const pricePerLb = 1.95;
-            const pricePerBox = 30.00;
-            const deliveryFee = pickupDelivery === 'delivery' ? parseFloat(deliveryCost) : 0.00; // Fix this line
-            const hazmatFee = parseFloat(hazmatCost);
-
-            const iceCost = iceAmount * pricePerLb;
-            const boxCost = boxAmount * pricePerBox;
-            const subTotal = iceCost + boxCost;
+            const deliveryFee = pickupDelivery === 'delivery' ? deliveryCost : 0.00;
+            const subTotal = productTotal;
             const taxRate = 0.15;
-            const tax = subTotal * taxRate;
-            const total = subTotal + tax + deliveryFee + hazmatFee;
+            const tax = (subTotal + deliveryFee) * taxRate;
+            const total = subTotal + tax + deliveryFee + hazmatCost;
 
             // Update the cost summary section
-            document.querySelector('.cost-summary-ice').innerHTML =
-                `<p class="m-0">Dry Ice (${iceAmount} lbs @ $${pricePerLb.toFixed(2)}/lb):</p>
-            <strong>$${iceCost.toFixed(2)}</strong>`;
-
-            document.querySelector('.cost-summary-box').innerHTML =
-                `Styrofoam Box (${boxAmount} @ $${pricePerBox.toFixed(2)}/box):<strong>$${boxCost.toFixed(2)}</strong>`;
+            document.querySelector('.cost-summary-products').innerHTML = productSummaryHtml;
 
             document.querySelector('.cost-summary-delivery').innerHTML =
                 `Pickup/Delivery:<strong>$${deliveryFee.toFixed(2)}</strong>`;
 
             document.querySelector('.cost-summary-hazmat').innerHTML =
-                `Hazmat:<strong>$${hazmatFee.toFixed(2)}</strong>`;
+                `Hazmat:<strong>$${hazmatCost.toFixed(2)}</strong>`;
 
             document.querySelector('.cost-summary-subtotal').innerHTML =
                 `Sub-Total:<strong>$${subTotal.toFixed(2)}</strong>`;
-
+            document.querySelector('#modal-sub-total').value = subTotal.toFixed(2);
             document.querySelector('.cost-summary-tax').innerHTML =
                 `Tax (${(taxRate * 100).toFixed(0)}%):<strong>$${tax.toFixed(2)}</strong>`;
-
+            document.querySelector('#modal-tax').value = tax.toFixed(2);
             document.querySelector('.cost-summary-total').innerHTML =
                 `TOTAL:<strong>$${total.toFixed(2)}</strong>`;
-
+            document.querySelector('#modal-total-cost').value = total.toFixed(2);
         }
 
 
         function addCostCalculationListeners() {
-            const iceField = document.getElementById('modal-ice-amount');
-            const boxField = document.getElementById('modal-box-amount');
-            const deliveryField = document.getElementById('modal-pickup-or-delivery');
+            document.querySelectorAll('.product-amount').forEach(input => {
+                input.addEventListener('input', updateCostSummary);
+            });
 
-            if (iceField) iceField.addEventListener('input', updateCostSummary);
-            if (boxField) boxField.addEventListener('input', updateCostSummary);
+            const deliveryField = document.getElementById('modal-pickup-or-delivery');
             if (deliveryField) deliveryField.addEventListener('change', updateCostSummary);
         }
 
@@ -1074,8 +1082,9 @@
             let firstInvalidField = null;
             let missingFields = [];
 
+            // Check required fields
             requiredFields.forEach(({id, label, dependsOnDelivery}) => {
-                if (dependsOnDelivery && pickupOrDelivery === 'pickup') return; // skip validation
+                if (dependsOnDelivery && pickupOrDelivery === 'pickup') return;
 
                 const field = document.getElementById(id);
                 field.classList.remove('is-invalid');
@@ -1092,16 +1101,22 @@
                     if (!firstInvalidField) firstInvalidField = field;
                     missingFields.push(label);
                 }
+            });
 
-                if (id === 'modal-ice-amount' && parseFloat(fieldValue) <= 0) {
-                    field.classList.add('is-invalid');
-                    isValid = false;
-                    if (!firstInvalidField) firstInvalidField = field;
-                    if (!missingFields.includes(label)) {
-                        missingFields.push(`${label} must be greater than 0`);
-                    }
+            // Check if at least one product has amount > 0
+            const productAmounts = document.querySelectorAll('.product-amount');
+            let hasProducts = false;
+
+            productAmounts.forEach(input => {
+                if (parseFloat(input.value) > 0) {
+                    hasProducts = true;
                 }
             });
+
+            if (!hasProducts) {
+                isValid = false;
+                missingFields.push('At least one product with amount > 0');
+            }
 
             // Email format validation
             const emailField = document.getElementById('modal-customer-email');
@@ -1336,28 +1351,39 @@
             // Update display
             const displayElement = document.querySelector('.cost-summary-delivery strong');
             if (displayElement) {
-                displayElement.textContent = amount !== null ? `$${amount.toFixed(2)}` : 'Not found';
+                displayElement.textContent = amount !== null ? `${amount.toFixed(2)}` : 'Not found';
             }
 
             // Update TOTAL only if amount is not null
             if (amount !== null) {
-                const dryIceText = document.querySelector('.cost-summary-ice strong').textContent.replace('$', '') || 0;
-                const boxText = document.querySelector('.cost-summary-box strong').textContent.replace('$', '') || 0;
-                const hazmatText = document.querySelector('.cost-summary-hazmat strong').textContent.replace('$', '') || 0;
+                let productTotal = 0;
+                document.querySelectorAll('.product-amount').forEach(input => {
+                    const inputAmount = parseFloat(input.value) || 0;
+                    const unitPrice = parseFloat(input.dataset.unitPrice) || 0;
+                    productTotal += inputAmount * unitPrice;
+                });
+
+                const hazmatText = parseFloat(document.getElementById('modal-hazmat-cost').value) || 0;
                 const delivery = amount;
 
-                const subtotal = parseFloat(dryIceText) + parseFloat(boxText);
-                const tax = subtotal * 0.15;
-                const total = subtotal + tax + delivery + parseFloat(hazmatText);
+                const subtotal = productTotal;
+                const tax = (subtotal + delivery) * 0.15;
+                const total = subtotal + tax + delivery + hazmatText;
 
-                document.querySelector('.cost-summary-subtotal strong').textContent = `$${subtotal.toFixed(2)}`;
-                document.querySelector('.cost-summary-tax strong').textContent = `$${tax.toFixed(2)}`;
-                document.querySelector('.cost-summary-total strong').textContent = `$${total.toFixed(2)}`;
+                document.querySelector('.cost-summary-subtotal strong').textContent = `${subtotal.toFixed(2)}`;
+                document.querySelector('#modal-sub-total').value = subtotal.toFixed(2);
+                document.querySelector('.cost-summary-tax strong').textContent = `${tax.toFixed(2)}`;
+                document.querySelector('#modal-tax').value = tax.toFixed(2);
+                document.querySelector('.cost-summary-total strong').textContent = `${total.toFixed(2)}`;
+                document.querySelector('#modal-total-cost').value = total.toFixed(2);
             } else {
                 // Reset totals when delivery cost can't be calculated
                 document.querySelector('.cost-summary-subtotal strong').textContent = '$0.00';
+                document.querySelector('#modal-sub-total').value = 0;
                 document.querySelector('.cost-summary-tax strong').textContent = '$0.00';
+                document.querySelector('#modal-tax').value = 0;
                 document.querySelector('.cost-summary-total strong').textContent = '$0.00';
+                document.querySelector('#modal-total-cost').value = 0;
             }
         }
 

@@ -267,7 +267,20 @@ class OrderCrudController extends CrudController
         }
 
         $validated = $validator->validated();
+        $hasProducts = false;
+        foreach ($request->products as $amount) {
+            if ($amount > 0) {
+                $hasProducts = true;
+                break;
+            }
+        }
 
+        if (!$hasProducts) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'At least one product with amount greater than 0 is required'
+            ], 422);
+        }
         try {
             DB::beginTransaction();
             // Handle customer lookup or creation
@@ -282,45 +295,41 @@ class OrderCrudController extends CrudController
             }
 
             // Calculate costs server-side
-            $iceCost = ($validated['amount_of_ice'] ?? 0) * 1.95;
-            $boxCost = ($validated['amount_of_boxes'] ?? 0) * 30.00;
+            $subtotal = 0;
+            foreach ($request->products as $productId => $amount) {
+                if ($amount > 0) {
+                    $product = Product::find($productId);
+                    if ($product) {
+                        $subtotal += $amount * $product->price;
+                    }
+                }
+            }
+
             $delivery_cost = $validated['delivery_cost'];
             $hazmat_cost = $validated['hazmat'];
-//            $deliveryFee = ($validated['pickup_delivery'] === 'delivery') ? NULL : 0.00;
-            $subtotal = $iceCost + $boxCost;
             $tax = $subtotal * 0.15;
-
 
             // Add calculated fields
             $validated['sub_total'] = $subtotal;
             $validated['tax'] = $tax;
-            $validated['total_cost'] = $subtotal + $tax + floatval($delivery_cost)+ floatval($hazmat_cost);
-//            $validated['delivery_cost'] = $deliveryFee;
+            $validated['total_cost'] = $subtotal + $tax + floatval($delivery_cost) + floatval($hazmat_cost);
             $validated['customer_id'] = $customer->id;
             $validated['origin'] = 'manual';
 
+
             // Create the order
             $order = Order::create($validated);
-            if($iceCost){
-                $product = Product::find(1);
-                $order->items()->create([
-                    'order_id' => $order->id,
-                    'product_id' => 1,
-                    'amount_of_items' => $validated['amount_of_ice'],
-                    'unit_price' => $product->price,
-                    'total_price' => $iceCost,
-                ]);
-            }
-            if($boxCost){
-                $product2 = Product::find(2);
-                $order->items()->create([
-                    'order_id' => $order->id,
-                    'product_id' => 2,
-                    'amount_of_items' => $validated['amount_of_ice'],
-                    'unit_price' => $product2->price,
-                    'total_price' => $boxCost,
-                ]);
-
+            foreach ($request->products as $productId => $amount) {
+                if ($amount > 0) {
+                    $product = Product::find($productId);
+                    OrderItem::create([
+                        'order_id' => $order->id,
+                        'product_id' => $productId,
+                        'amount_of_items' => $amount,
+                        'unit_price' => $product->price,
+                        'total_price' => $amount * $product->price,
+                    ]);
+                }
             }
 
             $invoiceService = new InvoiceService();
@@ -536,7 +545,7 @@ class OrderCrudController extends CrudController
         $x_description = 'Order #' . $order->id;
         $x_email = $order->email;
         $x_first_name = $order->customer_name;
-        $x_return_url = url('https://idi.monkeysatwork.dev/');
+        $x_return_url = route('payments.callback');
         $x_fp_sequence = rand(1000, 100000) + 123456;
 
 
@@ -554,14 +563,13 @@ class OrderCrudController extends CrudController
             'x_description' => $x_description,
             'x_first_name' => $x_first_name,
             'x_email' => $x_email,
-            'x_return_url' => $x_return_url,
-            // FIX #2: Add missing x_currency_code parameter
+//            'x_receipt_link_text' => 'Payment Page',
+            'x_receipt_link_url' => $x_return_url,
+            'x_receipt_link_method' => 'AUTO-GET',
             'x_currency_code' => 'CAD',
             'x_fp_hash' => $x_fp_hash,
             'x_show_form' => 'PAYMENT_FORM',
-            // FIX #3: Change from TRUE to FALSE (production vs test)
             'x_test_request' => 'False',
-            // FIX #4: Change payment URL from demo to production
             'payment_url' => 'https://rpm.demo.e-xact.com/payment'
         ];
     }
@@ -767,7 +775,7 @@ class OrderCrudController extends CrudController
         $x_description = 'Invoice #' . $invoice->invoice_number;
         $x_email = $customerInfo->email;
         $x_first_name = $customerInfo->customer_name;
-        $x_return_url = url(route('payments.callback')); // You'll need to create this route
+        $x_return_url = route('payments.callback'); // You'll need to create this route
 
 //        $x_relay_response = 'TRUE';
 //        $x_receipt_link_method = 'REDIRECT';
@@ -788,7 +796,9 @@ class OrderCrudController extends CrudController
             'x_description' => $x_description,
             'x_first_name' => $x_first_name,
             'x_email' => $x_email,
-            'x_return_url' => $x_return_url,
+//            'x_receipt_link_text' => 'Payment Page',
+            'x_receipt_link_url' => $x_return_url,
+            'x_receipt_link_method' => 'AUTO-GET',
             'x_currency_code' => 'CAD',
             'x_fp_hash' => $x_fp_hash,
             'x_show_form' => 'PAYMENT_FORM',
@@ -803,18 +813,47 @@ class OrderCrudController extends CrudController
 
     public function handlePaymentCallback(Request $request)
     {
-
-
+        $exact_ctr = $request->get('exact_ctr');
+//        dd($request->all());
         $responseCode = $request->get('x_response_code');
         $invoiceNumber = $request->get('x_invoice_num');
-
-
+        $invoice = Invoice::where('invoice_number', $invoiceNumber)->with('invoiceable')
+            ->where('payment_status', Invoice::PENDING)
+            ->first();
         if ($responseCode == '1') {
+            $invoice->update([
+                'payment_status' => Invoice::PAID,
+                'transaction_json' => json_encode($request->all()),
+//                'paid_at' => now()
+            ]);
+            $invoiceable = $invoice->invoiceable;
+
+            if ($invoiceable instanceof Order) {
+                // Update direct order
+                $invoiceable->update(['payment_status' => 'paid']);
+                Mail::to($invoiceable->email)->send(new OrderPlacedMail($invoiceable));
+            } elseif ($invoiceable instanceof RecurringOrder) {
+                // Update recurring order
+                $invoiceable->update(['recurring_payment_status' => 1]);
+                $invoiceable->load('order');
+                if ($invoiceable->order) {
+                    Mail::to($invoiceable->order->email)->send(new OrderPlacedMail($invoiceable, 'recurring'));
+                }
+            }
+
+
+
+
             // Payment successful
-            return redirect()->route('payments.success')->with('success', 'Payment completed successfully!');
+            return redirect()->route('customer.dashboard')->with('success', 'Payment completed successfully!');
         } else {
             // Payment failed
-            return redirect()->route('payments.failed')->with('error', 'Payment failed. Please try again.');
+            $invoice->update([
+                'payment_status' => Invoice::FAILED,
+                'transaction_json' => json_encode($request->all()),
+//                'paid_at' => now()
+            ]);
+            return redirect()->route('customer.dashboard')->with('error', 'Payment failed. Please try again.');
         }
     }
 
@@ -835,8 +874,8 @@ class OrderCrudController extends CrudController
                 'customer_name' => 'required|string|max:255',
                 'email' => 'required|email|max:255',
                 'phone' => 'required|string|max:20',
-                'amount_of_ice' => 'nullable|numeric|min:0',
-                'amount_of_boxes' => 'nullable|numeric|min:0',
+                'products' => 'required|array',
+                'products.*' => 'numeric|min:0',
                 'recurring' => 'string|in:recurring,non-recurring',
                 'origin' => 'nullable|string|max:100',
                 'location_name' => 'nullable|string|max:255',
@@ -855,8 +894,6 @@ class OrderCrudController extends CrudController
                 'hazmat' => 'nullable|numeric|min:0',
             ];
 
-
-
             $validator = Validator::make($request->all(), $rules);
 
             if ($validator->fails()) {
@@ -868,16 +905,37 @@ class OrderCrudController extends CrudController
 
             $validatedData = $validator->validated();
 
+            // Validate at least one product has amount > 0
+            $hasProducts = false;
+            foreach ($request->products as $amount) {
+                if ($amount > 0) {
+                    $hasProducts = true;
+                    break;
+                }
+            }
+
+            if (!$hasProducts) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'At least one product with amount greater than 0 is required'
+                ], 422);
+            }
+
             DB::beginTransaction();
 
+            // Calculate costs server-side using actual product prices from DB
+            $subtotal = 0;
+            foreach ($request->products as $productId => $amount) {
+                if ($amount > 0) {
+                    $product = Product::find($productId);
+                    if ($product) {
+                        $subtotal += $amount * $product->price;
+                    }
+                }
+            }
 
-            // Calculate costs server-side
-
-            $iceCost = ($validatedData['amount_of_ice'] ?? 0) * 1.95;
-            $boxCost = ($validatedData['amount_of_boxes'] ?? 0) * 30.00;
             $delivery_cost = $validatedData['delivery_cost'];
             $hazmat_cost = $validatedData['hazmat'];
-            $subtotal = $iceCost + $boxCost;
             $tax = $subtotal * 0.15;
 
             // Add calculated fields
@@ -885,91 +943,50 @@ class OrderCrudController extends CrudController
             $validatedData['tax'] = $tax;
             $validatedData['total_cost'] = $subtotal + $tax + floatval($delivery_cost) + floatval($hazmat_cost);
 
-            // ICE
-            $product = Product::find(1);
-            $newQty = $validatedData['amount_of_ice'] ?? 0;
-            $oldQty = $order->amount_of_ice ?? 0;
-            $diff = $newQty - $oldQty;
-            if ($diff != 0) {
-//                if ($diff > 0) {
-//                    if ($product->current_stock == 0.0 || $product->current_stock < $diff) {
-//                        DB::rollBack();
-//                        return response()->json([
-//                            'success' => false,
-//                            'message' => $product->product_name . ' is out of stock',
-//                        ]);
-//                    }
-//                    $product->decrement('current_stock', $diff);
-//                } elseif ($diff < 0) {
-//                    $product->increment('current_stock', abs($diff));
-//                }
-
-                $orderItem = OrderItem::where('product_id', $product->id)->where('order_id', $order->id)->first();
-//                $stockMovement = StockMovement::where('product_id', $product->id)->where('order_id', $order->id)->first();
-//
-//                if ($orderItem) {
-                    $orderItem->amount_of_items = intval($newQty);
-                    $orderItem->total_price = $newQty * $product->price;
-                    $orderItem->save();
-//                }
-//
-//                if ($stockMovement) {
-//                    if ($diff > 0) {
-//                        $stockMovement->increment('quantity', abs($diff));
-//                    } elseif ($diff < 0) {
-//                        $stockMovement->decrement('quantity', abs($diff));
-//
-//                    }
-//                    $stockMovement->save();
-//                }
-            }
-
-            // BOXES
-            $product2 = Product::find(2);
-            $newQty2 = $validatedData['amount_of_boxes'] ?? 0;
-            $oldQty2 = $order->amount_of_boxes ?? 0;
-            $diff2 = $newQty2 - $oldQty2;
-
-            if ($diff2 != 0) {
-//                if ($diff2 > 0) {
-//                    if ($product2->current_stock == 0.0) {
-//                        DB::rollBack();
-//                        return response()->json([
-//                            'success' => false,
-//                            'message' => $product2->product_name . ' is out of stock',
-//                        ]);
-//                    }
-//                    $product2->decrement('current_stock', $diff2);
-//                } elseif ($diff2 < 0) {
-//                    $product2->increment('current_stock', abs($diff2));
-//                }
-
-                $orderItem2 = OrderItem::where('product_id', $product2->id)->where('order_id', $order->id)->first();
-//                $stockMovement2 = StockMovement::where('product_id', $product2->id)->where('order_id', $order->id)->first();
-//                if ($orderItem2) {
-                    $orderItem2->amount_of_items = intval($newQty2);
-                    $orderItem2->total_price = $newQty2 * $product2->price;
-                    $orderItem2->save();
-//                }
-//
-//                if ($stockMovement2) {
-//                    if ($diff2 > 0) {
-//                        $stockMovement2->increment('quantity', $diff2);
-//                    } elseif ($diff2 < 0) {
-//                        $stockMovement2->decrement('quantity', abs($diff2));
-//                    }
-//                    $stockMovement2->save();
-//                }
-            }
-
-
-
             // Keep original origin value
             $validatedData['origin'] = $order->origin;
 
+            // Remove products from validated array as it's not an Order field
+            unset($validatedData['products']);
+
+            // Update order items
+            foreach ($request->products as $productId => $amount) {
+                $orderItem = OrderItem::where('product_id', $productId)->where('order_id', $order->id)->first();
+
+                if ($amount > 0) {
+                    $product = Product::find($productId);
+                    if ($product) {
+                        if ($orderItem) {
+                            // Update existing order item
+                            $orderItem->update([
+                                'amount_of_items' => $amount,
+                                'unit_price' => $product->price,
+                                'total_price' => $amount * $product->price,
+                            ]);
+                        } else {
+                            // Create new order item
+                            OrderItem::create([
+                                'order_id' => $order->id,
+                                'product_id' => $productId,
+                                'amount_of_items' => $amount,
+                                'unit_price' => $product->price,
+                                'total_price' => $amount * $product->price,
+                            ]);
+                        }
+                    }
+                } else {
+                    // Remove order item if amount is 0
+                    if ($orderItem) {
+                        $orderItem->delete();
+                    }
+                }
+            }
+
             // Update the order
             $order->update($validatedData);
+
             DB::commit();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Order updated successfully',
@@ -1086,6 +1103,7 @@ class OrderCrudController extends CrudController
                 ->with(['recurringOrders' => function ($query) use ($recurring_id) {
                     $query->where('id',$recurring_id);
                 }])
+                ->with(['items','items.product'])
                 ->get()
                 ->first();
             $status = null;
@@ -1102,8 +1120,9 @@ class OrderCrudController extends CrudController
             ];
             return view('website.customer.partials.order_details', $data);
         }
-        $order = Order::findOrFail($id);
-        Mail::to($order->email)->send(new OrderPlacedMail($order));
+        $order = Order::whereId($id)->with(['items','items.product'])->first();
+        // Get only products that are in this order
+        $orderProducts = $order->items;
         $data = [
             'mode' => 'edit',
             'order' => $order,
@@ -1112,6 +1131,7 @@ class OrderCrudController extends CrudController
             'showOrderId' => true,
             'showDeleteButton' => true,
             'showPushButton' => true,
+            'products' => $orderProducts,
             'defaultValues' => [
                 'order_id' => $order->id,
                 'customer_email' => $order->email,
@@ -1138,15 +1158,16 @@ class OrderCrudController extends CrudController
                 'total_cost' => $order->total_cost ?? 0,
                 'origin' => $order->origin,
                 'novex_pushed' => $order->push ?? 0,
-                'hazmat' => $order->hazmat ?? 0,
+                'hazmat' => $order->hazmat ?? 0
             ]
         ];
-
         return view('vendor.backpack.crud.inc.order_modal', $data);
     }
 
     public function modalCreate()
     {
+        $products = Product::all();
+
         $defaultValues = [
             'order_id' => '',
             'customer_email' => '',
@@ -1184,6 +1205,7 @@ class OrderCrudController extends CrudController
             'showDeleteButton' => false,
             'showPushButton' => false,
             'defaultValues' => $defaultValues,
+            'products' => $products,
             'order' => null
         ]);
     }

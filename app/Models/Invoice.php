@@ -7,6 +7,7 @@ class Invoice extends Model
 
     const PENDING = 'pending';
     const PAID = 'paid';
+    const FAILED = 'failed';
 
 
     protected $fillable = [
@@ -18,7 +19,8 @@ class Invoice extends Model
         'payment_status',
         'parent_invoice_id',
         'recurring_sequence',
-        'invoice_date'
+        'invoice_date',
+        'transaction_json'
     ];
 
     protected $casts = [

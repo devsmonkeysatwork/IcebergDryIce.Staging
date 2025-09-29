@@ -133,15 +133,12 @@
                         </h3>
 
                         <div class="row">
-                            <div class="form-group col-md-4">
-                                <label>Amount of Ice</label>
-                                <input type="text" class="form-control" value="{{ $order->amount_of_ice }}" readonly>
-                            </div>
-
-                            <div class="form-group col-md-4">
-                                <label>Amount of Boxes</label>
-                                <input type="text" class="form-control" value="{{ $order->amount_of_boxes }}" readonly>
-                            </div>
+                            @foreach($order->items as $product)
+                                <div class="form-group col-md-4">
+                                    <label>{{$product->product->product_name}}</label>
+                                    <input type="text" class="form-control" value="{{ $product->amount_of_items }}" readonly>
+                                </div>
+                            @endforeach
 
                             <div class="form-group col-md-4">
                                 <label>Recurring</label>

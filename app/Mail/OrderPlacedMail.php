@@ -25,12 +25,16 @@ class OrderPlacedMail extends Mailable
     public function build()
     {
         $isRecurring = $this->order instanceof \App\Models\RecurringOrder;
+        $isPaid = $this->order->invoice->payment_status == 'paid'? 1 : 0;
 
         $view = $isRecurring
             ? 'emails.recurring-order-placed'
             : 'emails.order-placed';
+        $subject = $isPaid
+            ? 'Payment Received – Your Invoice is Attached'
+            : 'Your Order Has Been Placed';
 
-        return $this->subject('Your Order Has Been Placed')
+        return $this->subject($subject)
             ->view($view)
             ->with([
                 'order' => $this->order,

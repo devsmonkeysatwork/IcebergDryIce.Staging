@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\OrderCrudController;
-use http\Client\Request;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\IceOrdersCrudController;
@@ -143,12 +143,6 @@ Route::get('/orders/payment-details', [OrderCrudController::class, 'getOrderDeta
 
 Route::get('payments/initiate', [OrderCrudController::class, 'initiatePayment'])->name('payments.initiate');
 Route::get('payments/callback', [OrderCrudController::class, 'handlePaymentCallback'])->name('payments.callback');
-
-// Alternative: Create a generic success page that redirects based on invoice
-Route::get('payments/success-redirect', function(Request $request) {
-    $invoiceNum = $request->get('x_invoice_num');
-    return redirect()->route('payments.callback', ['invoice' => $invoiceNum]);
-});
 
 Route::group([
     'prefix' => config('backpack.base.route_prefix', 'admin'),

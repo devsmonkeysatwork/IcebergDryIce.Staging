@@ -370,9 +370,13 @@
                                                             <i class="las la-file-invoice fs-2"></i>
                                                         </button>
                                                         @if(optional($order->invoice)->payment_status === 'pending')
-                                                        <button class="btn btn-sm btn-success pay-your-order fs-4" data-id="{{ $order->invoice_id }}">
-                                                            <i class="las la-credit-card mx-2"></i>Pay Now
-                                                        </button>
+                                                            <button class="btn btn-sm btn-success pay-your-order fs-4" data-id="{{ $order->invoice_id }}">
+                                                                <i class="las la-credit-card mx-2"></i>Pay Now
+                                                            </button>
+                                                        @elseif(optional($order->invoice)->payment_status === \App\Models\Invoice::FAILED)
+                                                            <button class="btn btn-sm btn-secondary pay-your-order fs-4" data-id="{{ $order->invoice_id }}">
+                                                                <i class="las la-credit-card mx-2"></i>Try again
+                                                            </button>
                                                         @endif
                                                     </td>
                                                 </tr>

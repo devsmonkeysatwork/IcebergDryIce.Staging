@@ -45,13 +45,47 @@
             </div>
 
             <div class="mb-2">
-                <label class="form-label">Amount of Ice (lbs)</label>
-                <input id="modal-ice-amount" class="form-control" name="amount_of_ice" type="number" min="0" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" step="0.1" value="{{ $defaultValues['ice_amount'] }}" required>
-            </div>
-
-            <div class="mb-2">
-                <label class="form-label">Amount of Boxes</label>
-                <input id="modal-box-amount" class="form-control" name="amount_of_boxes" type="number" min="0" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" step="1" value="{{ $defaultValues['box_amount'] }}">
+                @if($mode === 'edit')
+                    @foreach($products as $product)
+                        <div class="row mb-2 align-items-center">
+                            <div class="col-12">
+                                <label for="modal-product-{{ $product->product_id }}" class="form-label label-{{ $product->product_id }}">{{ $product->product->product_name }}({{ $product->product->unit }})</label>
+                            </div>
+                            <div class="col-12">
+                                <input
+                                    id="modal-product-{{ $product->product_id }}"
+                                    class="form-control product-amount"
+                                    name="products[{{ $product->product_id }}]"
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value="{{ $product->amount_of_items ?? 0 }}"
+                                    data-product-id="{{ $product->product_id }}"
+                                    data-unit-price="{{ $product->unit_price }}">
+                            </div>
+                        </div>
+                    @endforeach
+                @else
+                    @foreach($products as $product)
+                        <div class="row mb-2 align-items-center">
+                            <div class="col-12">
+                                <label for="modal-product-{{ $product->id }}" class="form-label label-{{ $product->id }}">{{ $product->product_name }}({{ $product->unit }})</label>
+                            </div>
+                            <div class="col-12">
+                                <input
+                                    id="modal-product-{{ $product->id }}"
+                                    class="form-control product-amount"
+                                    name="products[{{ $product->id }}]"
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value="{{ $defaultValues['products'][$product->id] ?? 0 }}"
+                                    data-product-id="{{ $product->id }}"
+                                    data-unit-price="{{ $product->price }}">
+                            </div>
+                        </div>
+                    @endforeach
+                @endif
             </div>
 
             <div class="mb-2">
@@ -148,16 +182,16 @@
         <div class="col-md-4">
             <h5><i class="la la-dollar-sign"></i> Cost Summary</h5>
             <div class="p-3 rounded" style="background: rgba(245, 246, 250, 1);">
-                <div class=" m-1">
-                    <p class="m-0 d-flex justify-content-between align-items-center cost-summary-ice">
-                        Dry Ice ({{ $defaultValues['ice_amount'] }} lbs @ $1.95/lb):
-                        <strong>${{ number_format($defaultValues['ice_amount'] * 1.95, 2) }}</strong>
-                    </p>
-                </div>
-                <div class=" m-1">
-                    <p class="m-0 d-flex justify-content-between align-items-center cost-summary-box">
-                        Styrofoam Box ({{ $defaultValues['box_amount'] }} @ $30.00/box):
-                        <strong>${{ number_format($defaultValues['box_amount'] * 30.00, 2) }}</strong>
+                <div class="m-1 cost-summary-products">
+                    <p class="m-0 d-flex justify-content-between align-items-center">
+                        @if($products && $mode === 'edit')
+                            @foreach($products as $product)
+                                <p class="m-0 d-flex justify-content-between align-items-center">
+                                    {{ $product->product->product_name .'('.$product->product->unit.') '.$product->amount_of_items .'@'.$product->unit_price }}
+                                    <strong>${{number_format($product->amount_of_items *$product->unit_price,2) }}</strong>
+                                </p>
+                            @endforeach
+                        @endif()
                     </p>
                 </div>
                 <div class="m-1">

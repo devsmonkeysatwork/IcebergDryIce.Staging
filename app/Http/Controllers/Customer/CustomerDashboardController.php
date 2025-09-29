@@ -87,6 +87,7 @@ class CustomerDashboardController extends Controller
                         ->where('scheduled_delivery_date', '>', now())
                         ->orderBy('scheduled_delivery_date');
                 }])
+                ->with(['items.product'])
                 ->get()
                 ->sortBy(function ($order) {
                     return $order->recurringOrders->first()?->scheduled_delivery_date;
