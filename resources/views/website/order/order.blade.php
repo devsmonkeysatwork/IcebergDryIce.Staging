@@ -313,6 +313,7 @@
                     </tr>
                     <tr>
                         <?php
+// Define target time zones
                         $timeZones = [
                             'America/Vancouver',    // GMT-7 (British Columbia)
                             'America/Edmonton',     // GMT-6 (Alberta)
@@ -321,6 +322,7 @@
 
                         $isAfter830AM = false;
 
+// Check each time zone to see if any are past 8:30 AM
                         foreach ($timeZones as $tz) {
                             $zoneTime = new DateTime('now', new DateTimeZone($tz));
                             $hour = (int)$zoneTime->format('H');
@@ -332,8 +334,10 @@
                             }
                         }
 
+// Use server local time for date calculations
                         $now = new DateTime();
 
+// Determine starting month, day, and year
                         if ($isAfter830AM) {
                             $tomorrow = clone $now;
                             $tomorrow->modify('+1 day');
@@ -351,7 +355,7 @@
                         ?>
 
                         <td colspan='3'>
-
+                            <!-- Month Selection -->
                             <select name="month" id='month' style='width: 150px;' class='textbox_data' onchange="updateDayOptions()">
                                 <?php
                                 $months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -367,19 +371,28 @@
                             <!-- Day Selection -->
                             <select name="day" id='day' style='width: 80px;' class='textbox_data'>
                                 <?php
-                                // We'll populate this with JavaScript based on month selection
-                                // But provide initial values
+                                // We'll populate this with JavaScript based on month selection to exclude weekends
+                                // But provide initial values excluding weekends
                                 $daysInMonth = date('t', mktime(0, 0, 0, $startMonth, 1, $startYear));
 
                                 for ($i = 1; $i <= $daysInMonth; $i++) {
+                                    // Check if this day is valid (not in the past and not a weekend)
+                                    $dayToCheck = mktime(0, 0, 0, $startMonth, $i, $startYear);
+                                    $dayOfWeek = date('w', $dayToCheck); // 0 = Sunday, 6 = Saturday
+
+                                    // Skip weekends
+                                    if ($dayOfWeek == 0 || $dayOfWeek == 6) {
+                                        continue;
+                                    }
+
                                     // Only show valid days (current day or future)
                                     if ($startMonth == $currentMonth && $startYear == $currentYear) {
                                         if ($i >= $startDay) {
-                                            $selected = ($i == $startDay) ? 'selected' : '';
+                                            $selected = ($i == $startDay && $dayOfWeek != 0 && $dayOfWeek != 6) ? 'selected' : '';
                                             echo "<option value='{$i}' {$selected}>{$i}</option>";
                                         }
                                     } else {
-                                        $selected = ($i == $startDay) ? 'selected' : '';
+                                        $selected = ($i == $startDay && $dayOfWeek != 0 && $dayOfWeek != 6) ? 'selected' : '';
                                         echo "<option value='{$i}' {$selected}>{$i}</option>";
                                     }
                                 }
@@ -1064,17 +1077,39 @@
                 minDay = phpStartDay;
             }
 
-            // Populate day options
+            let firstValidDay = null;
+
+            // Populate day options, excluding weekends
             for (let i = minDay; i <= daysInMonth; i++) {
+                // Check if this day is a weekend
+                const dateToCheck = new Date(selectedYear, selectedMonth - 1, i);
+                const dayOfWeek = dateToCheck.getDay(); // 0 = Sunday, 6 = Saturday
+
+                // Skip weekends
+                if (dayOfWeek === 0 || dayOfWeek === 6) {
+                    continue;
+                }
+
                 const option = document.createElement('option');
                 option.value = i;
                 option.textContent = i;
 
-                // Select the minimum valid day by default
-                if (i === minDay) {
+                // Track the first valid day
+                if (firstValidDay === null) {
+                    firstValidDay = i;
                     option.selected = true;
                 }
 
+                daySelect.appendChild(option);
+            }
+
+            // If no weekdays are available in this month, show a message
+            if (daySelect.children.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No weekdays available';
+                option.disabled = true;
+                option.selected = true;
                 daySelect.appendChild(option);
             }
         }
@@ -1087,12 +1122,6 @@
 
             const date = new Date(year, month, day);
             const today = new Date();
-            const now = new Date();
-
-            // Check if it's a weekend
-            if ([0, 6].includes(date.getDay())) {
-                error_msg += 'Week days only please.<br>';
-            }
 
             // Enhanced time zone aware validation
             const selectedDate = new Date(year, month, day);
@@ -1169,33 +1198,6 @@
             return error_msg;
         }
 
-        // function check_address() {
-        //     var address = document.getElementById('address').value;
-        //     var city = document.getElementById('city').value;
-        //     var prov = document.getElementById('province').value;
-        //     var postal = document.getElementById('postal').value;
-        //     var error_msg = '';
-        //
-        //     if (address === '' || city === '' || prov === '' || postal === '')
-        //         error_msg = 'Please enter all address information.';
-        //
-        //     if (postal != '') {
-        //         var no_spaces_postal = postal.replace(/ /g, '');
-        //         no_spaces_postal = no_spaces_postal.toUpperCase();
-        //         document.getElementById('postal').value = no_spaces_postal;
-        //         postal = no_spaces_postal;
-        //         var regex = new RegExp(/^[ABCEGHJKLMNPRSTVXY]\d[ABCEGHJKLMNPRSTVWXYZ]( )?\d[ABCEGHJKLMNPRSTVWXYZ]\d$/i);
-        //         if (!regex.test(postal))
-        //             error_msg += '<br>Postal code must be in the form A1A1A1.';
-        //     }
-        //
-        //     if (error_msg === '')
-        //         set_msg('address_notes', '<center><b>VALID</b></center>', false);
-        //     else
-        //         set_msg('address_notes', error_msg, true);
-        //
-        //     return error_msg;
-        // }
 
         function check_company_name() {
             var error_msg = '';
@@ -1243,6 +1245,8 @@
         function set_name() {
             if (document.getElementById('location_type').value == 1) {
                 document.getElementById('company').value = 'Residence';
+            } else {
+                document.getElementById('company').value = '';
             }
         }
 

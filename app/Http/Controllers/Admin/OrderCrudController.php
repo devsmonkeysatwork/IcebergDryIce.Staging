@@ -1120,6 +1120,7 @@ class OrderCrudController extends CrudController
             ];
             return view('website.customer.partials.order_details', $data);
         }
+
         $order = Order::whereId($id)->with(['items','items.product'])->first();
         // Get only products that are in this order
         $orderProducts = $order->items;
