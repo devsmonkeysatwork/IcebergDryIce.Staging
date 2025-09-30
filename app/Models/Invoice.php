@@ -55,9 +55,9 @@ class Invoice extends Model
     // Generate unique invoice number
     public static function generateInvoiceNumber(): string
     {
-        $lastInvoice = self::orderBy('invoice_id', 'desc')->first();
+        $lastInvoice = self::orderBy('id', 'desc')->first();
 
-        $nextInvoiceId = $lastInvoice ? $lastInvoice->invoice_id + 1 : 1;
+        $nextInvoiceId = $lastInvoice ? $lastInvoice->id + 1 : 1;
 
         return str_pad($nextInvoiceId, 4, '0', STR_PAD_LEFT);
     }
