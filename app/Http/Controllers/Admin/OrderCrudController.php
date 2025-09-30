@@ -67,11 +67,14 @@ class OrderCrudController extends CrudController
     {
         $this->setupListOperation();
         $crud = $this->crud;
+
         // Get pagination parameters
         $perPage = request('per_page') ?? 10;
+        $page = request('page', 1);
 
-        // Get orders with pagination
-        $entries = Order::query()
+        // Get regular orders
+        $ordersQuery = Order::query()
+            ->select('id', 'invoice_id', 'customer_name', 'delivery_date', 'status', 'total_cost', 'origin', 'recurring', 'payment_status')
             ->when(request('status'), function($query, $status) {
                 return $query->where('status', $status);
             })
@@ -92,11 +95,49 @@ class OrderCrudController extends CrudController
                     return $query->whereNull('payment_status');
                 }
                 return $query;
-            })
-            ->orderBy('id', 'desc')
-            ->paginate($perPage);
+            });
 
-        // Make sure entries are available to the view
+        // Get recurring orders
+        $recurringOrdersQuery = RecurringOrder::query()
+            ->with('order')
+            ->when(request('status'), function($query, $status) {
+                return $query->where('status', $status);
+            })
+            ->when(request('customer_id'), function($query, $customerId) {
+                return $query->whereHas('order', function($q) use ($customerId) {
+                    $q->where('customer_id', $customerId);
+                });
+            })
+            ->when(request('payment_status'), function ($query, $paymentStatus) {
+                if ($paymentStatus === 'paid') {
+                    return $query->where('recurring_payment_status', 'paid'); // Fixed column name
+                }
+                if ($paymentStatus === 'pending') {
+                    return $query->whereNull('recurring_payment_status'); // Fixed column name
+                }
+                return $query;
+            });
+
+        // Get all orders and recurring orders
+        $orders = $ordersQuery->get();
+        $recurringOrders = $recurringOrdersQuery->get();
+
+        // Merge and sort by invoice_id
+        $allOrders = collect()
+            ->merge($orders)
+            ->merge($recurringOrders)
+            ->sortByDesc('invoice_id');
+
+        // Manual pagination
+        $total = $allOrders->count();
+        $entries = new \Illuminate\Pagination\LengthAwarePaginator(
+            $allOrders->forPage($page, $perPage),
+            $total,
+            $perPage,
+            $page,
+            ['path' => request()->url(), 'query' => request()->query()]
+        );
+
         return view('vendor.backpack.crud.order-list', compact('entries', 'crud'));
     }
 
@@ -811,8 +852,8 @@ class OrderCrudController extends CrudController
     }
 
 
-    public function handlePaymentCallback(Request $request)
-    {
+    public function handlePaymentCallback(Request $request) {
+
         $exact_ctr = $request->get('exact_ctr');
 //        dd($request->all());
         $responseCode = $request->get('x_response_code');
@@ -1135,6 +1176,7 @@ class OrderCrudController extends CrudController
             'products' => $orderProducts,
             'defaultValues' => [
                 'order_id' => $order->id,
+                'invoice_id' => $order->invoice_id,
                 'customer_email' => $order->email,
                 'customer_name' => $order->customer_name,
                 'customer_phone' => $order->phone,
@@ -1170,7 +1212,7 @@ class OrderCrudController extends CrudController
         $products = Product::all();
 
         $defaultValues = [
-            'order_id' => '',
+            'invoice_id' => '',
             'customer_email' => '',
             'customer_name' => '',
             'customer_phone' => '',

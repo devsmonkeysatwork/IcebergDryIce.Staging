@@ -55,13 +55,11 @@ class Invoice extends Model
     // Generate unique invoice number
     public static function generateInvoiceNumber(): string
     {
-        $year = date('Y');
-        $lastInvoice = self::whereYear('created_at', $year)
-            ->orderBy('id', 'desc')
-            ->first();
+        $lastInvoice = self::orderBy('invoice_id', 'desc')->first();
 
-        $sequence = $lastInvoice ? (int)substr($lastInvoice->invoice_number, -6) + 1 : 1;
-        return str_pad($sequence, 4, '0', STR_PAD_LEFT);
+        $nextInvoiceId = $lastInvoice ? $lastInvoice->invoice_id + 1 : 1;
+
+        return str_pad($nextInvoiceId, 4, '0', STR_PAD_LEFT);
     }
 
     // Check if this is a recurring invoice

@@ -8,135 +8,14 @@ use App\Models\RecurringOrder;
 
 class DashboardController extends Controller
 {
-    public function index()
-    {
+    public function index() {
 
-        $currentYear = now()->year;
-        $lastYear = $currentYear - 1;
-
-// ------------------ CURRENT YEAR TOTALS (YTD) ------------------ //
-        $totalSalesOnline = Order::where('origin', 'online')
-            ->whereYear('created_at', $currentYear)
-            ->sum('total_cost');
-
-        $totalSalesManual = Order::where('origin', 'manual')
-            ->whereYear('created_at', $currentYear)
-            ->sum('total_cost');
-
-        $dryIceUnitSold = Order::whereYear('created_at', $currentYear)
-            ->sum('amount_of_ice');
-
-        $styrofoamBoxUnitSold = Order::whereYear('created_at', $currentYear)
-            ->sum('amount_of_boxes');
-
-// Recurring orders (completed only, current year YTD)
-        $recurringOnlineSales = RecurringOrder::where('status', 'completed')
-            ->whereHas('order', fn($q) => $q->where('origin', 'online')
-                ->whereYear('created_at', $currentYear))
-            ->with('order')
-            ->get()
-            ->sum(fn($recurring) => $recurring->order->total_cost);
-
-        $recurringManualSales = RecurringOrder::where('status', 'completed')
-            ->whereHas('order', fn($q) => $q->where('origin', 'manual')
-                ->whereYear('created_at', $currentYear))
-            ->with('order')
-            ->get()
-            ->sum(fn($recurring) => $recurring->order->total_cost);
-
-        $recurringDryIce = RecurringOrder::where('status', 'completed')
-            ->whereHas('order', fn($q) => $q->whereYear('created_at', $currentYear))
-            ->with('order')
-            ->get()
-            ->sum(fn($recurring) => $recurring->order->amount_of_ice);
-
-        $recurringStyrofoam = RecurringOrder::where('status', 'completed')
-            ->whereHas('order', fn($q) => $q->whereYear('created_at', $currentYear))
-            ->with('order')
-            ->get()
-            ->sum(fn($recurring) => $recurring->order->amount_of_boxes);
-
-// Add recurring to current totals
-        $totalSalesOnline += $recurringOnlineSales;
-        $totalSalesManual += $recurringManualSales;
-        $dryIceUnitSold += $recurringDryIce;
-        $styrofoamBoxUnitSold += $recurringStyrofoam;
-
-
-// ------------------ LAST YEAR TOTALS (FULL YEAR) ------------------ //
-        $lastYearOnline = Order::where('origin', 'online')
-            ->whereYear('created_at', $lastYear)
-            ->sum('total_cost');
-
-        $lastYearManual = Order::where('origin', 'manual')
-            ->whereYear('created_at', $lastYear)
-            ->sum('total_cost');
-
-        $lastYearDryIce = Order::whereYear('created_at', $lastYear)
-            ->sum('amount_of_ice');
-
-        $lastYearStyrofoam = Order::whereYear('created_at', $lastYear)
-            ->sum('amount_of_boxes');
-
-// Recurring (completed only, last year FULL YEAR)
-        $lastYearRecurringOnline = RecurringOrder::where('status', 'completed')
-            ->whereHas('order', fn($q) => $q->where('origin', 'online')
-                ->whereYear('created_at', $lastYear))
-            ->with('order')
-            ->get()
-            ->sum(fn($recurring) => $recurring->order->total_cost);
-
-        $lastYearRecurringManual = RecurringOrder::where('status', 'completed')
-            ->whereHas('order', fn($q) => $q->where('origin', 'manual')
-                ->whereYear('created_at', $lastYear))
-            ->with('order')
-            ->get()
-            ->sum(fn($recurring) => $recurring->order->total_cost);
-
-        $lastYearRecurringDryIce = RecurringOrder::where('status', 'completed')
-            ->whereHas('order', fn($q) => $q->whereYear('created_at', $lastYear))
-            ->with('order')
-            ->get()
-            ->sum(fn($recurring) => $recurring->order->amount_of_ice);
-
-        $lastYearRecurringStyrofoam = RecurringOrder::where('status', 'completed')
-            ->whereHas('order', fn($q) => $q->whereYear('created_at', $lastYear))
-            ->with('order')
-            ->get()
-            ->sum(fn($recurring) => $recurring->order->amount_of_boxes);
-
-// Add recurring to last year totals
-        $lastYearOnline += $lastYearRecurringOnline;
-        $lastYearManual += $lastYearRecurringManual;
-        $lastYearDryIce += $lastYearRecurringDryIce;
-        $lastYearStyrofoam += $lastYearRecurringStyrofoam;
-
-
-// ------------------ PERCENTAGE CHANGE ------------------ //
-        $onlineChange = $lastYearOnline > 0
-            ? round((($totalSalesOnline - $lastYearOnline) / $lastYearOnline) * 100, 2)
-            : 0;
-
-        $manualChange = $lastYearManual > 0
-            ? round((($totalSalesManual - $lastYearManual) / $lastYearManual) * 100, 2)
-            : 0;
-
-        $dryIceChange = $lastYearDryIce > 0
-            ? round((($dryIceUnitSold - $lastYearDryIce) / $lastYearDryIce) * 100, 2)
-            : 0;
-
-        $styrofoamChange = $lastYearStyrofoam > 0
-            ? round((($styrofoamBoxUnitSold - $lastYearStyrofoam) / $lastYearStyrofoam) * 100, 2)
-            : 0;
-
-
-        // Fetch data for tables
-        // Fetch data for tables
-        $orders = Order::select('id', 'customer_name', 'delivery_date', 'recurring', 'status', 'total_cost','address', 'origin','amount_of_boxes','amount_of_ice')
+        $orders = Order::select('id', 'customer_name', 'delivery_date', 'recurring', 'status', 'total_cost', 'address', 'origin', 'amount_of_boxes', 'amount_of_ice', 'invoice_id')
             ->get()
             ->map(function($order) {
                 return [
                     'id' => $order->id,
+                    'invoice_id' => $order->invoice_id,
                     'customer_name' => $order->customer_name,
                     'delivery_date' => $order->delivery_date,
                     'status' => $order->status,
@@ -154,6 +33,7 @@ class DashboardController extends Controller
             ->map(function($recurring) {
                 return [
                     'id' => $recurring->order->id,
+                    'invoice_id' => $recurring->invoice_id, // Use invoice_id from RecurringOrder table
                     'customer_name' => $recurring->order->customer_name,
                     'delivery_date' => $recurring->scheduled_delivery_date,
                     'status' => $recurring->status,
@@ -178,13 +58,11 @@ class DashboardController extends Controller
             ->take(15)
             ->values();
 
-
-
         $recurringOrders = RecurringOrder::where('status', RecurringOrder::OPEN)
             ->where('scheduled_delivery_date', '>', now())
             ->whereHas('order', function ($query) {
                 $query->where('recurring', 'recurring')
-                    ->whereIn('status', [Order::VALID,Order::COMPLETED]);
+                    ->whereIn('status', [Order::VALID, Order::COMPLETED]);
             })
             ->with(['order'])
             ->orderBy('scheduled_delivery_date')
@@ -204,7 +82,7 @@ class DashboardController extends Controller
             ->take(15)
             ->get();
 
-// Get 10 latest from RecurringOrder table
+// Get 15 latest from RecurringOrder table
         $recurringFromRecurringTable = RecurringOrder::where('status', RecurringOrder::OPEN)
             ->where('scheduled_delivery_date', '>', now())
             ->whereHas('order', function ($query) {
@@ -221,22 +99,12 @@ class DashboardController extends Controller
             ->merge($recurringFromRecurringTable)
             ->sortByDesc('id');
 
-
         return view('vendor.backpack.base.dashboard', compact(
-            'totalSalesOnline',
-            'totalSalesManual',
-            'dryIceUnitSold',
-            'styrofoamBoxUnitSold',
-            'onlineChange',
-            'manualChange',
-            'dryIceChange',
-            'styrofoamChange',
             'manualOrders',
             'onlineOrders',
             'recurringOrders',
             'oneTimeOrders',
             'allRecurringOrders',
-            'lastYearOnline'
         ));
     }
 }

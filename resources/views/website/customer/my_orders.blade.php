@@ -148,7 +148,7 @@
                                             <tbody>
                                             @foreach($orders as $order)
                                                 <tr>
-                                                    <td>{{ $order->id }}</td>
+                                                    <td>{{ str_pad($order->invoice_id, 4, '0', STR_PAD_LEFT) }}</td>
                                                     <td>{{ $order->customer_name }}</td>
                                                     <td>{{ \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') }}</td>
                                                     <td>

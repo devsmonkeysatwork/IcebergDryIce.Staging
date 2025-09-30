@@ -78,7 +78,7 @@
                     <table>
                         <thead>
                         <tr>
-                            <th>Order #</th>
+                            <th>INV #</th>
                             <th>Customer Name</th>
                             <th>Delivery Date</th>
                             <th>Status</th>
@@ -93,23 +93,59 @@
 
                         @foreach($entries as $order)
                             <tr>
-                                <td>{{ $order->id }}</td>
-                                <td>{{ $order->customer_name }}</td>
-                                <td>{{ \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') }}</td>
-                                <td>{{ $order->status }}</td>
-                                <td>${{ number_format($order->total_cost, 2) }}</td>
-                                <td>{{ $order->origin }}</td>
-                                <td>{{ $order->recurring}}</td>
                                 <td>
-                                    <span class="badge p-2 {{$order['payment_status'] == 'paid' ? 'bg-success' : 'bg-danger'}}">
-                                            {{ $order['payment_status'] == 'paid' ? 'PAID' : 'PENDING' }}
+                                    {{ str_pad($order instanceof \App\Models\RecurringOrder ? $order->invoice_id : $order->invoice_id, 4, '0', STR_PAD_LEFT) }}
+                                </td>
+                                <td>
+                                    {{-- Customer Name --}}
+                                    {{ $order instanceof \App\Models\RecurringOrder ? $order->order->customer_name : $order->customer_name }}
+                                </td>
+                                <td>
+                                    {{-- Delivery Date --}}
+                                    {{ $order instanceof \App\Models\RecurringOrder
+                                        ? \Carbon\Carbon::parse($order->scheduled_delivery_date)->format('Y-m-d')
+                                        : \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') }}
+                                </td>
+                                <td>
+                                    {{-- Status --}}
+                                    <span class="badge {{ $order->status == 'completed' ? 'bg-success' : 'bg-secondary' }}">
+                                        {{ $order->status }}
                                     </span>
                                 </td>
                                 <td>
+                                    {{-- Total Cost --}}
+                                    ${{ number_format($order instanceof \App\Models\RecurringOrder ? $order->order->total_cost : $order->total_cost, 2) }}
+                                </td>
+                                <td>
+                                    {{-- Origin --}}
+                                    {{ $order instanceof \App\Models\RecurringOrder ? $order->order->origin : $order->origin }}
+                                </td>
+                                <td>
+                                    {{-- Recurring Type --}}
+                                    {{ $order instanceof \App\Models\RecurringOrder ? 'recurring' : $order->recurring }}
+                                </td>
+                                <td>
+                                    {{-- Payment Status --}}
                                     @php
-                                        $dateTime = \Carbon\Carbon::parse($order->delivery_date);
+                                        $paymentStatus = $order instanceof \App\Models\RecurringOrder
+                                            ? $order->recurring_payment_status  // Fixed column name
+                                            : $order->payment_status;
                                     @endphp
-                                    <button class="btn btn-primary btn-view la la-eye" data-order-id="{{ $order->id }}"></button>
+                                        <span class="badge p-2 {{ $paymentStatus == 'paid' ? 'bg-success' : 'bg-danger' }}">
+                                            {{ $paymentStatus == 'paid' ? 'PAID' : 'PENDING' }}
+                                        </span>
+                                </td>
+                                <td>
+                                    {{-- View Button --}}
+                                    @if($order instanceof \App\Models\RecurringOrder)
+                                        <button class="btn btn-primary rounded-5 la la-eye"
+                                                onclick="loadRecurringOrderDetails(1,'{{ $order->order_id }}','{{ $order->id }}')">
+                                        </button>
+                                    @else
+                                        <button class="btn btn-primary btn-view la la-eye"
+                                                data-order-id="{{ $order->id }}">
+                                        </button>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach

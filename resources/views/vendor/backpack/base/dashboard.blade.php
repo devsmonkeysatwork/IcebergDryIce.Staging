@@ -17,100 +17,6 @@
 <div class="container-fluid">
 
     <div class="row">
-{{--        <div class="col-md-6">--}}
-{{--            <div class="table">--}}
-{{--                <div class="table-header">--}}
-{{--                    Online Orders--}}
-{{--                </div>--}}
-{{--                <div class="table-responsive-wrapper">--}}
-{{--                    <table>--}}
-{{--                        <thead>--}}
-{{--                        <tr>--}}
-{{--                            <th>#</th>--}}
-{{--                            <th>Customer</th>--}}
-{{--                            <th>Delivery Date</th>--}}
-{{--                            <th>Status</th>--}}
-{{--                            <th>Total</th>--}}
-{{--                            <th>Action</th>--}}
-{{--                        </tr>--}}
-{{--                        </thead>--}}
-{{--                        <tbody>--}}
-{{--                        @foreach($onlineOrders as $order)--}}
-{{--                            <tr>--}}
-{{--                                <td>{{ $order['id'] }}</td>--}}
-{{--                                <td>{{ $order['customer_name'] }}</td>--}}
-{{--                                <td>{{ \Illuminate\Support\Carbon::parse($order['delivery_date'])->format("Y-m-d") }}</td>--}}
-{{--                                <td>--}}
-{{--                                    <span class="badge @if($order['status'] == 'COMPLETED') bg-success--}}
-{{--                                                    @elseif($order['status'] == 'VALID') bg-success--}}
-{{--                                                    @elseif($order['status'] == 'CANCELLED') bg-warning--}}
-{{--                                                    @elseif($order['status'] == 'SKIP') bg-warning--}}
-{{--                                                    @endif">{{ $order['status'] }}</span>--}}
-{{--                                </td>--}}
-{{--                                <td>${{ $order['total_cost'] }}</td>--}}
-{{--                                <td>--}}
-{{--                                    @php--}}
-{{--                                        $dateTime = \Carbon\Carbon::parse($order['delivery_date']);--}}
-{{--                                    @endphp--}}
-{{--                                    <button class="btn btn-primary btn-view" data-order-id="{{ $order['id'] }}">--}}
-{{--                                        View--}}
-{{--                                    </button>--}}
-{{--                                </td>--}}
-{{--                            </tr>--}}
-{{--                        @endforeach--}}
-{{--                        </tbody>--}}
-{{--                    </table>--}}
-{{--                </div>--}}
-{{--            </div>--}}
-{{--        </div>--}}
-
-{{--        <div class="col-md-6">--}}
-{{--            <div class="table mb-3">--}}
-{{--                <div class="table-header">--}}
-{{--                    Manual Orders--}}
-{{--                </div>--}}
-{{--                <div class="table-responsive-wrapper">--}}
-{{--                    <table>--}}
-{{--                        <thead>--}}
-{{--                        <tr>--}}
-{{--                            <th>#</th>--}}
-{{--                            <th>Customer</th>--}}
-{{--                            <th>Delivery</th>--}}
-{{--                            <th>Status</th>--}}
-{{--                            <th>Total</th>--}}
-{{--                            <th>Action</th>--}}
-{{--                        </tr>--}}
-{{--                        </thead>--}}
-{{--                        <tbody>--}}
-{{--                        @foreach($manualOrders as $order)--}}
-{{--                            <tr>--}}
-{{--                                <td>{{ $order['id'] }}</td>--}}
-{{--                                <td>{{ $order['customer_name'] }}</td>--}}
-{{--                                <td>{{ \Illuminate\Support\Carbon::parse($order['delivery_date'])->format("Y-m-d") }}</td>--}}
-{{--                                <td>--}}
-{{--                                    <span class="badge @if($order['status'] == 'COMPLETED') bg-success--}}
-{{--                                                    @elseif($order['status'] == 'VALID') bg-success--}}
-{{--                                                    @elseif($order['status'] == 'CANCELLED') bg-warning--}}
-{{--                                                    @elseif($order['status'] == 'SKIP') bg-warning--}}
-{{--                                                    @endif">{{ $order['status'] }}</span>--}}
-{{--                                </td>--}}
-{{--                                <td>${{ $order['total_cost'] }}</td>--}}
-{{--                                <td>--}}
-{{--                                    @php--}}
-{{--                                        $dateTime = \Carbon\Carbon::parse($order['delivery_date']);--}}
-{{--                                    @endphp--}}
-{{--                                    <button class="btn btn-primary btn-view" data-order-id="{{ $order['id'] }}">--}}
-{{--                                        View--}}
-{{--                                    </button>--}}
-{{--                                </td>--}}
-{{--                            </tr>--}}
-{{--                        @endforeach--}}
-{{--                        </tbody>--}}
-{{--                    </table>--}}
-{{--                </div>--}}
-{{--            </div>--}}
-{{--        </div>--}}
-
             <div class="col-md-6">
                 <div class="table">
                     <div class="table-header">
@@ -132,7 +38,9 @@
                             <tbody>
                             @foreach($oneTimeOrders as $order)
                                 <tr>
-                                    <td>{{ $order->id }}</td>
+                                    <td>
+                                        {{ str_pad($order->invoice_id, 4, '0', STR_PAD_LEFT) }}
+                                    </td>
                                     <td>{{ $order->customer_name }}</td>
                                     <td>{{ \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') }}</td>
                                     <td>
@@ -179,7 +87,7 @@
                                 <tr>
                                     <td>
                                         {{-- Handle both Order and RecurringOrder --}}
-                                        {{ $order instanceof \App\Models\RecurringOrder ? $order->order_id . ' - ' . $order->id : $order->id }}                                    </td>
+                                    {{ str_pad($order instanceof \App\Models\RecurringOrder ? $order->invoice_id : $order->invoice_id, 4, '0', STR_PAD_LEFT) }}
                                     <td>
                                         {{-- Handle customer name from both sources --}}
                                         {{ $order instanceof \App\Models\RecurringOrder ? $order->order->customer_name : $order->customer_name }}
@@ -244,6 +152,7 @@
 
 @section('after_styles')
 @vite(['resources/scss/app.scss', 'resources/css/custom.css'])
+
 <style>
 
 
