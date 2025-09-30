@@ -5,7 +5,7 @@
             {{-- Page Header --}}
             <section class="header-operation container-fluid animated fadeIn d-flex mb-2 align-items-center justify-content-between d-print-none">
                 <div class="d-flex mb-2 align-items-baseline">
-                    <h1 class="text-capitalize mb-0">Order #{{ $order->id }}</h1>
+                    <h1 class="text-capitalize mb-0">Order #{{ str_pad($order instanceof \App\Models\RecurringOrder ? $order->invoice_id : $order->invoice_id, 4, '0', STR_PAD_LEFT) }}</h1>
                     <p class="ms-2 ml-2 mb-0">View your order details and information.</p>
                 </div>
                 <button class="btn btn-secondary btn-submission" onclick="hideOrderDetails()">
@@ -29,8 +29,8 @@
                         {{-- Customer & Order Info --}}
                         <div class="row">
                             <div class="form-group col-md-4">
-                                <label>Order Number</label>
-                                <input type="text" class="form-control" value="{{ $order->id }}" readonly>
+                                <label>Invoice Number</label>
+                                <input type="text" class="form-control" value="{{ str_pad($order instanceof \App\Models\RecurringOrder ? $order->invoice_id : $order->invoice_id, 4, '0', STR_PAD_LEFT) }}" readonly>
                             </div>
 
                             <div class="form-group col-md-4">

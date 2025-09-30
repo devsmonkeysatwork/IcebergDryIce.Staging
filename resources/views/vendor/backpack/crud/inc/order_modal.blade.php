@@ -15,7 +15,7 @@
 
             @if($showOrderId)
                 <div class="mb-2">
-                    <label class="form-label">Order #</label>
+                    <label class="form-label">INVOICE #</label>
                     <input id="modal-order-id" class="form-control" value="{{ str_pad($defaultValues['invoice_id'], 4, '0', STR_PAD_LEFT) }}" readonly>
                 </div>
             @endif
