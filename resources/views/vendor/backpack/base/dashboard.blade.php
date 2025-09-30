@@ -568,13 +568,6 @@
     .table.mb-3 {
         margin-bottom: 1rem;
     }
-    .select2-container .select2-selection--single{
-        height : 34px !important;
-        padding-top: 7px;
-    }
-    .select2-container--default .select2-selection--single .select2-selection__arrow{
-        top: 4px !important;
-    }
 
 </style>
 
