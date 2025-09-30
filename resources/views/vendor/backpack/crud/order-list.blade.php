@@ -34,7 +34,7 @@
                 Filter by
             </h3>
             <div class="row my-3 align-items-center">
-                <div class="col-sm-10">
+                <div class="col-sm-12">
                     <form action="{{ url()->current() }}" method="GET">
                         {{-- Preserve pagination parameter --}}
                         <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
@@ -55,19 +55,17 @@
                                 <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Paid</option>
                                 <option value="pending" {{ request('payment_status') == 'pending' ? 'selected' : '' }}>Pending</option>
                             </select>
-                            <select name="recurring" id="recurring">
+                            <select name="recurring" id="recurring" class="me-2">
                                 <option value="">Recurring</option>
                                 <option value="recurring" {{ request('recurring') == 'recurring' ? 'selected' : '' }}>Yes</option>
                                 <option value="non-recurring" {{ request('recurring') == 'non-recurring' ? 'selected' : '' }}>No</option>
                             </select>
                             <select name="customer_id" id="customer_id" class="form-control mx-2" style="width: 250px; border-radius: 3px "></select>
-                            <button type="submit" class="btn btn-primary">Apply</button>
+                            <button type="submit" class="btn btn-primary mx-2">Apply</button>
                         </div>
                     </form>
                 </div>
-                <div class="col-sm-2">
 
-                </div>
             </div>
 
 
@@ -275,10 +273,9 @@
             border-radius: 8px;
             border: 1px solid rgba(213, 213, 213, 1)
         }
-        form .select2.select2-container , .select2-container {
+        .filters form .select2.select2-container , .select2-container {
             width: 250px;
             border-radius: 8px;
-            margin: 0px 10px;
             border: 1px solid rgba(213, 213, 213, 1);
             background: white;
         }
