@@ -853,28 +853,36 @@ class OrderCrudController extends CrudController
 
 
     public function handlePaymentCallback(Request $request) {
-
-        $exact_ctr = $request->get('exact_ctr');
-//        dd($request->all());
         $responseCode = $request->get('x_response_code');
         $invoiceNumber = $request->get('x_invoice_num');
-        $invoice = Invoice::where('invoice_number', $invoiceNumber)->with('invoiceable')
+
+        $invoice = Invoice::where('invoice_number', $invoiceNumber)
+            ->with('invoiceable')
             ->where('payment_status', Invoice::PENDING)
             ->first();
+
+        if (!$invoice) {
+            return view('website.payment-result', [
+                'success' => false,
+                'message' => 'Invoice not found or already processed.',
+                'invoice_number' => $invoiceNumber ?? null,
+            ]);
+        }
+
         if ($responseCode == '1') {
+            // success
             $invoice->update([
                 'payment_status' => Invoice::PAID,
                 'transaction_json' => json_encode($request->all()),
-//                'paid_at' => now()
+                'paid_at' => now()
             ]);
+
             $invoiceable = $invoice->invoiceable;
 
             if ($invoiceable instanceof Order) {
-                // Update direct order
                 $invoiceable->update(['payment_status' => 'paid']);
                 Mail::to($invoiceable->email)->send(new OrderPlacedMail($invoiceable));
             } elseif ($invoiceable instanceof RecurringOrder) {
-                // Update recurring order
                 $invoiceable->update(['recurring_payment_status' => 1]);
                 $invoiceable->load('order');
                 if ($invoiceable->order) {
@@ -882,21 +890,29 @@ class OrderCrudController extends CrudController
                 }
             }
 
-
-
-
-            // Payment successful
-            return redirect()->route('customer.dashboard')->with('success', 'Payment completed successfully!');
+            return view('website.order.payment-result', [
+                'success' => true,
+                'message' => 'Payment completed successfully!',
+                'invoice_number' => $invoice->invoice_number,
+                'amount' => $request->get('x_amount') ?? null,
+                'transaction_id' => $request->get('x_trans_id') ?? null,
+            ]);
         } else {
-            // Payment failed
+            // failed
             $invoice->update([
                 'payment_status' => Invoice::FAILED,
                 'transaction_json' => json_encode($request->all()),
-//                'paid_at' => now()
+                'paid_at' => now()
             ]);
-            return redirect()->route('customer.dashboard')->with('error', 'Payment failed. Please try again.');
+
+            return view('website.order.payment-result', [
+                'success' => false,
+                'message' => 'Payment failed. Please try again.',
+                'invoice_number' => $invoice->invoice_number,
+            ]);
         }
     }
+
 
     /**
      * Update order via AJAX

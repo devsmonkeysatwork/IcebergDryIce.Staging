@@ -18,9 +18,11 @@
                         <input type="hidden" id="x_fp_hash" name="x_fp_hash" value="">
                         <input type="hidden" id="x_currency_code" name="x_currency_code" value="CAD">
                         <input type="hidden" id="x_show_form" name="x_show_form" value="PAYMENT_FORM">
-                        <input type="hidden" id="x_test_request" name="x_test_request" value="FALSE">
-                        <input type="hidden" id="x_po_num" name="x_po_num" value="3">
+                        <input type="hidden" id="x_test_request" name="x_test_request" value="False">
+{{--                        <input type="hidden" id="x_po_num" name="x_po_num" value="3">--}}
+                        <input type="hidden" id="x_return_url" name="x_return_url" value="">
                         <input type="hidden" id="x_invoice_num" name="x_invoice_num" value="">
+                        <input type="hidden" id="x_receipt_link_method" name="x_receipt_link_method" value="AUTO-GET">
 
                         <div class="col-8 px-4 my-3">
                             <h3 class="form-group-heading m-0"><i class="la la-cart-plus me-2"></i> Order</h3>
@@ -172,12 +174,12 @@
                 $('#contact-email').val(data.customer_email);
                 $('#amount').val(data.total_cost);
                 $('#invoice-id').val(data.invoice_num);
-                $('#origin-address').val(data.origin_address);
-                $('#destination-address').val(data.destination_address);
+                // $('#origin-address').val(data.origin_address);
+                // $('#destination-address').val(data.destination_address);
 
                 // Populate Exact hidden fields
                 $('#x_first_name').val(data.customer_name);
-                $('#x_invoice_num').val(data.id);
+                $('#x_invoice_num').val(data.invoice_num);
                 $('#x_email').val(data.customer_email);
                 $('#x_amount').val(data.total_cost);
             });
@@ -274,6 +276,8 @@
                     $('#x_fp_sequence').val(data.x_fp_sequence);
                     $('#x_fp_timestamp').val(data.x_fp_timestamp);
                     $('#x_fp_hash').val(data.x_fp_hash);
+                    $('#x_return_url').val(data.x_return_url);
+
                 } catch (error) {
                     console.error('Error generating Exact fields:', error);
                 }

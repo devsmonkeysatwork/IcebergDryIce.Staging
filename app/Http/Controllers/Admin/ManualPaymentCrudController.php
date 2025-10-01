@@ -159,6 +159,7 @@ class ManualPaymentCrudController extends CrudController
         $x_login = env('EXACT_LOGIN_ID');
         $transaction_key = env('EXACT_TRANSACTION_KEY');
         $x_currency_code = 'CAD';
+        $x_return_url = route('manual-payments.callback');
 
         // Generate security fields like in your PHP code
         srand(time());
@@ -174,9 +175,71 @@ class ManualPaymentCrudController extends CrudController
             'x_fp_timestamp' => $x_fp_timestamp,
             'x_fp_hash' => $x_fp_hash,
             'x_login' => $x_login,
-            'transaction_key' => $transaction_key
+            'transaction_key' => $transaction_key,
+            'x_return_url' => $x_return_url
         ]);
     }
+    public function handlePaymentCallback(Request $request) {
+        $responseCode = $request->get('x_response_code');
+        $invoiceNumber = $request->get('x_invoice_num');
+
+        $invoice = Invoice::where('invoice_number', $invoiceNumber)
+            ->with('invoiceable')
+            ->where('payment_status', Invoice::PENDING)
+            ->first();
+
+        if (!$invoice) {
+            return view('website.payment-result', [
+                'success' => false,
+                'message' => 'Invoice not found or already processed.',
+                'invoice_number' => $invoiceNumber ?? null,
+            ]);
+        }
+
+        if ($responseCode == '1') {
+            // success
+            $invoice->update([
+                'payment_status' => Invoice::PAID,
+                'transaction_json' => json_encode($request->all()),
+                'paid_at' => now()
+            ]);
+
+            $invoiceable = $invoice->invoiceable;
+
+            if ($invoiceable instanceof Order) {
+                $invoiceable->update(['payment_status' => 'paid']);
+                Mail::to($invoiceable->email)->send(new OrderPlacedMail($invoiceable));
+            } elseif ($invoiceable instanceof RecurringOrder) {
+                $invoiceable->update(['recurring_payment_status' => 1]);
+                $invoiceable->load('order');
+                if ($invoiceable->order) {
+                    Mail::to($invoiceable->order->email)->send(new OrderPlacedMail($invoiceable, 'recurring'));
+                }
+            }
+
+            return view('vendor.backpack.crud.payment-result', [
+                'success' => true,
+                'message' => 'Payment completed successfully!',
+                'invoice_number' => $invoice->invoice_number,
+                'amount' => $request->get('x_amount') ?? null,
+                'transaction_id' => $request->get('x_trans_id') ?? null,
+            ]);
+        } else {
+            // failed
+            $invoice->update([
+                'payment_status' => Invoice::FAILED,
+                'transaction_json' => json_encode($request->all()),
+                'paid_at' => now()
+            ]);
+
+            return view('vendor.backpack.crud.payment-result', [
+                'success' => false,
+                'message' => 'Payment failed. Please try again.',
+                'invoice_number' => $invoice->invoice_number,
+            ]);
+        }
+    }
+
 
     public function view($id)
     {

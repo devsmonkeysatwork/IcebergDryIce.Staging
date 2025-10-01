@@ -174,5 +174,7 @@ Route::group([
     Route::post('/generate-exact-fields', [ManualPaymentCrudController::class, 'generateExactFields'])
         ->name('generate-exact-fields');
 
+    Route::get('manual-payments/callback', [ManualPaymentCrudController::class, 'handlePaymentCallback'])->name('manual-payments.callback');
+
 });
 
