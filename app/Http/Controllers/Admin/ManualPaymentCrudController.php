@@ -116,7 +116,44 @@ class ManualPaymentCrudController extends CrudController
                 $paymentParams = $this->buildExactPaymentParams($invoice, $customerInfo);
 
                 // Create HTML form and auto-submit directly to Exact
-                $form = '<html><body>';
+                                $form = '<html><head>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        height: 100vh;
+                        background-color: #f8f9fa;
+                    }
+                    .loader {
+                        text-align: center;
+                    }
+                    .spinner {
+                        border: 4px solid #e9ecef;
+                        border-top: 4px solid #007bff;
+                        border-radius: 50%;
+                        width: 50px;
+                        height: 50px;
+                        animation: spin 1s linear infinite;
+                        margin: 0 auto 10px;
+                    }
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                    h2 {
+                        font-weight: normal;
+                        color: #333;
+                    }
+                </style>
+                </head><body>';
+                $form .= '<div class="loader">
+                    <div class="spinner"></div>
+                    <h2>Redirecting to payment gateway...</h2>
+                    <p>Please wait while we securely connect you.</p>
+                </div>';
+
                 $form .= '<form id="exactForm" method="POST" action="' . $paymentParams['payment_url'] . '">';
 
                 foreach ($paymentParams as $key => $value) {
@@ -126,7 +163,11 @@ class ManualPaymentCrudController extends CrudController
                 }
 
                 $form .= '</form>';
-                $form .= '<script>document.getElementById("exactForm").submit();</script>';
+                $form .= '<script>
+                    setTimeout(() => {
+                        document.getElementById("exactForm").submit();
+                    }, 1200);
+                </script>';
                 $form .= '</body></html>';
 
                 return response($form);
