@@ -118,9 +118,13 @@ Route::group([
 
     //Others
     Route::crud('manual-payments', 'ManualPaymentCrudController');
+
     Route::post('admin/manual-payments', [\App\Http\Controllers\Admin\ManualPaymentCrudController::class, 'store'])
         ->middleware(['web', 'admin']) // important!
         ->name('manual-payments.store');
+
+    Route::post('manual-payments/initiate', [ManualPaymentCrudController::class, 'initiatePayment'])->name('manual-payments.initiate');
+    Route::get('manual-payments/callback', [ManualPaymentCrudController::class, 'handlePaymentCallback'])->name('manual-payments.callback');
 
 
 
@@ -171,10 +175,7 @@ Route::group([
     Route::get('/customers/get-by-email', [OrderCrudController::class, 'getCustomerByEmail'])
         ->name('admin.customers.get-by-email');
 
-    Route::post('/generate-exact-fields', [ManualPaymentCrudController::class, 'generateExactFields'])
-        ->name('generate-exact-fields');
 
-    Route::get('manual-payments/callback', [ManualPaymentCrudController::class, 'handlePaymentCallback'])->name('manual-payments.callback');
 
 });
 

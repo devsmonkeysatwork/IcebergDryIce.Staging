@@ -48,7 +48,7 @@
                     @endif
 
                     <div class="mt-5">
-                        <a href="{{ route('customer.dashboard') }}" class="btn btn-primary btn-lg">
+                        <a href="{{ route('admin.dashboard') }}" class="btn btn-primary btn-lg">
                             <i class="la la-home me-2"></i>Go to Dashboard
                         </a>
                         @if(!$success)
