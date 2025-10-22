@@ -1188,7 +1188,7 @@ class OrderCrudController extends CrudController
             'saveButtonText' => 'Update Order',
             'showOrderId' => true,
             'showDeleteButton' => true,
-            'showPushButton' => true,
+            'showPushButton' => $order->status == Order::COMPLETED ? false : true,
             'products' => $orderProducts,
             'defaultValues' => [
                 'order_id' => $order->id,
