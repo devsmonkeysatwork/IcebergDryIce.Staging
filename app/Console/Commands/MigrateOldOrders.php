@@ -238,6 +238,7 @@ class MigrateOldOrders extends Command
             'delivery_cost' => $deliveryCost,
             'tax' => $tax,
             'total_cost' => $totalCost,
+            'push' => 1,
             'payment_status' => 'paid',
             'supplier_id' => null,
             'invoice_id' => null,
