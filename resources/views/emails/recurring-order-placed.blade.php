@@ -180,7 +180,7 @@
                                     <td style="font-family: Arial, sans-serif; font-size: 10px; line-height: 14px; color: #1A1C21; padding: 15px 5px; text-align: left; border-bottom: 1px solid #D7DAE0;">{{ $index + 1 }}</td>
                                     <td style="font-family: Arial, sans-serif; font-weight: bold; font-size: 10px; line-height: 14px; color: #1A1C21; padding: 15px 5px; text-align: left; border-bottom: 1px solid #D7DAE0;">{{ $item->product->product_name ?? 'Product' }}</td>
                                     <td style="font-family: Arial, sans-serif; font-size: 10px; line-height: 14px; color: #1A1C21; padding: 15px 5px; text-align: center; border-bottom: 1px solid #D7DAE0;">${{ number_format($item->unit_price, 2) }}</td>
-                                    <td style="font-family: Arial, sans-serif; font-size: 10px; line-height: 14px; color: #1A1C21; padding: 15px 5px; text-align: center; border-bottom: 1px solid #D7DAE0;">{{ $item->amount_of_items }}</td>
+                                    <td style="font-family: Arial, sans-serif; font-size: 10px; line-height: 14px; color: #1A1C21; padding: 15px 5px; text-align: center; border-bottom: 1px solid #D7DAE0;">{{ $item->amount_of_items }} {{ $item->product->unit }}</td>
                                     <td style="font-family: Arial, sans-serif; font-size: 10px; line-height: 14px; color: #5E6470; padding: 15px 5px; text-align: right; border-bottom: 1px solid #D7DAE0;">${{ number_format($item->total_price, 2) }}</td>
                                 </tr>
                                 <tr>
