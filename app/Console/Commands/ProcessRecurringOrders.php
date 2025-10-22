@@ -55,7 +55,7 @@ class ProcessRecurringOrders extends Command
 
                         // Attach invoice_id to recurring order
                         $recurringOrder->update([
-                            'invoice_id' => $invoice->id,
+                            'invoice_id' => $invoice->invoice_number,
                         ]);
 
                         DB::commit();
