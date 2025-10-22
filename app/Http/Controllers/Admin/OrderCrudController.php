@@ -1153,10 +1153,10 @@ class OrderCrudController extends CrudController
             $recurring_id = intval($request->query('recurring_id'));
             $order = Order::where('recurring', Order::RECURRING)
                 ->where('id', $id)
-                ->whereHas('recurringOrders', function ($query) {
-                    $query->where('status', 'open')
-                        ->where('scheduled_delivery_date', '>', now());
-                })
+//                ->whereHas('recurringOrders', function ($query) {
+//                    $query->where('status', 'open')
+//                        ->where('scheduled_delivery_date', '>', now());
+//                })
                 ->with(['recurringOrders' => function ($query) use ($recurring_id) {
                     $query->where('id',$recurring_id);
                 }])
@@ -1164,7 +1164,7 @@ class OrderCrudController extends CrudController
                 ->get()
                 ->first();
             $status = null;
-            if ($order->recurringOrders?->first()->novex_order_id) {
+            if ($order && $order->recurringOrders?->first()->novex_order_id) {
                 $cacheKey = 'order_status_' . $order->recurringOrders?->first()->novex_order_id;
                 $status = Cache::remember($cacheKey, now()->addHours(3), function () use ($order) {
                     return $this->getOrderStatus($order->recurringOrders?->first()->novex_order_id);
