@@ -9,6 +9,7 @@
         "backpack/crud": "^6.7",
         "backpack/permissionmanager": "^7.2",
         "backpack/theme-tabler": "^1.2",
+        "barryvdh/laravel-dompdf": "^3.1",
         "blade-ui-kit/blade-heroicons": "^2.4",
         "blade-ui-kit/blade-icons": "^1.6",
         "doctrine/dbal": "^4.2",

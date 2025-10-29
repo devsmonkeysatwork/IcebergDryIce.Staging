@@ -8,6 +8,7 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 
 class OrderPlacedMail extends Mailable
@@ -34,12 +35,25 @@ class OrderPlacedMail extends Mailable
             ? 'Payment Received – Your Invoice is Attached'
             : 'Your Order Has Been Placed';
 
-        return $this->subject($subject)
+        $mail = $this->subject($subject)
             ->view($view)
             ->with([
                 'order' => $this->order,
                 'invoice_number' =>  $this->order->invoice->invoice_number ?? null,
             ]);
+
+        if ($isPaid) {
+            $pdf = Pdf::loadView('emails.invoice-pdf', [
+                'order' => $this->order,
+                'invoice_number' => $this->order->invoice->invoice_number ?? null,
+            ])->setOption('isHtml5ParserEnabled', true)->setOption('isRemoteEnabled', true)->setOption('chroot', public_path());
+
+            $mail->attachData($pdf->output(), 'invoice.pdf', [
+                'mime' => 'application/pdf',
+            ]);
+        }
+
+        return $mail;
     }
 }
 
