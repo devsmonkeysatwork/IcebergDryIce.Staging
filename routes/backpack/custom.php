@@ -17,6 +17,12 @@ use App\Http\Controllers\Customer\CustomerProfileController;
 Route::get('/', function () {
     return view('welcome');
 });
+Route::get('/email-pdf', function () {
+
+    $order = \App\Models\Order::with('invoice')->whereId(25558)->first();
+    \Illuminate\Support\Facades\Mail::to('touseef@yopmail.com')->send(new \App\Mail\OrderPlacedMail($order));
+    return view('welcome');
+});
 
 
 Route::get('/dashboard', function () {
