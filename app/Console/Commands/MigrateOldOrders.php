@@ -10,6 +10,7 @@ use App\Models\OrderItem;
 use App\Models\RecurringOrder;
 use App\Models\Invoice;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class MigrateOldOrders extends Command
@@ -35,16 +36,16 @@ class MigrateOldOrders extends Command
             $this->migrateCustomers();
 
 //             Step 2: Migrate One-Time Orders
-            $this->info('Step 2: Migrating one-time orders...');
-            $this->migrateOneTimeOrders();
-
-            // Step 3: Migrate Recurring Parent Orders
-            $this->info('Step 3: Migrating recurring parent orders...');
-            $this->migrateRecurringParentOrders();
-
-            // Step 4: Migrate Recurring Instances
-            $this->info('Step 4: Migrating recurring instances...');
-            $this->migrateRecurringInstances();
+//            $this->info('Step 2: Migrating one-time orders...');
+//            $this->migrateOneTimeOrders();
+//
+//            // Step 3: Migrate Recurring Parent Orders
+//            $this->info('Step 3: Migrating recurring parent orders...');
+//            $this->migrateRecurringParentOrders();
+//
+//            // Step 4: Migrate Recurring Instances
+//            $this->info('Step 4: Migrating recurring instances...');
+//            $this->migrateRecurringInstances();
 
             DB::commit();
             $this->info('Migration completed successfully!');
@@ -71,31 +72,49 @@ class MigrateOldOrders extends Command
         $i = 0;
         foreach ($oldCustomers as $oldCustomer) {
             // Check if customer already exists by email
-            $customer = Customer::where('email', $oldCustomer->email)->first();
-            $newEmail = $oldCustomer->email;
-            if ($oldCustomer->email && $customer) {
-                $newEmail = $oldCustomer->login.'-'.$oldCustomer->email;
+            if($oldCustomer->email != null){
+                $customer = Customer::where('email', $oldCustomer->email)->first();
+                if (!$customer) {
+                    $customerAddress = DB::table(env('OLD_DB_DATABASE', 'old_database') . '.customer_addresses')
+                        ->where('customer_id', $oldCustomer->customerID)
+                        ->first();
+
+                    $customer = Customer::create([
+                        'name' => $oldCustomer->login,
+                        'email' => $oldCustomer->email ?? null,
+                        'password' => bcrypt($oldCustomer->password),
+                        'phone' => $customerAddress->phone ?? '',
+                        'address' => $customerAddress->address ?? '',
+                        'city' => $customerAddress->city ?? '',
+                        'postal_code' => $customerAddress->postal ?? '',
+                        'province' => $customerAddress->province ?? 'AB',
+                    ]);
+
+                    // Map old customer ID to new customer ID
+                    $this->customerIdMap[$oldCustomer->customerID] = $customer->id;
+                }else{
+                    Log::info(json_encode($oldCustomer));
+                }
             }else{
-                $newEmail = $oldCustomer->login.$i.'@test.com';
+                $customerAddress = DB::table(env('OLD_DB_DATABASE', 'old_database') . '.customer_addresses')
+                    ->where('customer_id', $oldCustomer->customerID)
+                    ->first();
+
+                $customer = Customer::create([
+                    'name' => $oldCustomer->login,
+                    'email' => $oldCustomer->email ?? null,
+                    'password' => bcrypt($oldCustomer->password),
+                    'phone' => $customerAddress->phone ?? '',
+                    'address' => $customerAddress->address ?? '',
+                    'city' => $customerAddress->city ?? '',
+                    'postal_code' => $customerAddress->postal ?? '',
+                    'province' => $customerAddress->province ?? 'AB',
+                ]);
+
+                // Map old customer ID to new customer ID
+                $this->customerIdMap[$oldCustomer->customerID] = $customer->id;
             }
 
-            $customerAddress = DB::table(env('OLD_DB_DATABASE', 'old_database') . '.customer_addresses')
-                ->where('customer_id', $oldCustomer->customerID)
-                ->first();
-
-            $customer = Customer::create([
-                'name' => $oldCustomer->login,
-                'email' => Str::lower(Str::replace(' ', '-', $newEmail)),
-                'password' => bcrypt($oldCustomer->password),
-                'phone' => $customerAddress->phone ?? '',
-                'address' => $customerAddress->address ?? '',
-                'city' => $customerAddress->city ?? '',
-                'postal_code' => $customerAddress->postal ?? '',
-                'province' => $customerAddress->province ?? 'AB',
-            ]);
-
-            // Map old customer ID to new customer ID
-            $this->customerIdMap[$oldCustomer->customerID] = $customer->id;
 
             $bar->advance();
             $i++;
@@ -108,10 +127,12 @@ class MigrateOldOrders extends Command
 
     private function migrateOneTimeOrders()
     {
+        $currentTimestamp = time();
         $oldOrders = DB::connection('old_mysql')
             ->table('orders')
             ->where('recurring', 0)
             ->where('recurringInstance', 0)
+            ->where('orderDate', '>', $currentTimestamp)
             ->get();
 
         $bar = $this->output->createProgressBar(count($oldOrders));
@@ -129,10 +150,12 @@ class MigrateOldOrders extends Command
 
     private function migrateRecurringParentOrders()
     {
+        $currentTimestamp = time();
         $oldOrders = DB::connection('old_mysql')
             ->table('orders')
             ->where('recurring', 1)
             ->where('recurringInstance', 0)
+            ->where('orderDate', '>', $currentTimestamp)
             ->get();
 
         $bar = $this->output->createProgressBar(count($oldOrders));
@@ -150,10 +173,12 @@ class MigrateOldOrders extends Command
 
     private function migrateRecurringInstances()
     {
+        $currentTimestamp = time();
         $oldInstances = DB::connection('old_mysql')
             ->table('orders')
             ->where('recurringInstance', 1)
-            ->orderBy('orderDate', 'asc')
+//            ->orderBy('orderDate', 'asc')
+            ->where('orderDate', '>', $currentTimestamp)
             ->get();
 
         $bar = $this->output->createProgressBar(count($oldInstances));

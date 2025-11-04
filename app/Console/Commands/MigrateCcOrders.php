@@ -40,8 +40,10 @@ class MigrateCcOrders extends Command
 
     private function migrateCcOrders()
     {
+        $currentTimestamp = time();
         $ccOrders = DB::table(env('OLD_DB_DATABASE', 'iceberg_db') . '.cc_orders')
             ->orderBy('order_date', 'asc')
+            ->where('order_date', '>', $currentTimestamp)
             ->get();
 
         $this->info('Found ' . count($ccOrders) . ' CC orders to migrate');

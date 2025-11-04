@@ -27,7 +27,7 @@ class CheckIfAdmin
      */
     private function checkIfUserIsAdmin($user)
     {
-        return ($user->email == 'admin@icebergdryice.com');
+        return ($user->email == 'admin@icebergdryice.com' || $user->email == 'developers@monkeysat.work');
 //        return true; // allow everyone for now
 
     }

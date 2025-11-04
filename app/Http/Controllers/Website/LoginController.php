@@ -26,6 +26,7 @@ class LoginController extends Controller
 
         // Try admin first
         if (Auth::guard('web')->attempt($credentials)) {
+            $request->session()->regenerate();
             return redirect()->intended('/admin/dashboard');
         }
 
