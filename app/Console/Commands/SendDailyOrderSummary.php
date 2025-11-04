@@ -18,7 +18,6 @@ class SendDailyOrderSummary extends Command
     {
         $today = Carbon::today();
         $nextWeek = $today->copy()->addWeek();
-        Log::info($today->copy()->addWeek()->format('Y-m-d'));
 
         // Get today's orders (single orders)
         $todayOrders = Order::whereDate('delivery_date', $today)
@@ -31,7 +30,6 @@ class SendDailyOrderSummary extends Command
             ->where('status', '=', RecurringOrder::OPEN)
             ->with(['order.items.product', 'order.customer'])
             ->get();
-        Log::info($nextRecurringOrders);
 
 
         Mail::send('emails.orders-summary', [

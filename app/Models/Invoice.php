@@ -57,7 +57,7 @@ class Invoice extends Model
     {
         $lastInvoice = self::orderBy('id', 'desc')->first();
 
-        $nextInvoiceId = $lastInvoice ? $lastInvoice->id + 1 : 1;
+        $nextInvoiceId = $lastInvoice ? $lastInvoice->id + 1 : 3000;
 
         return str_pad($nextInvoiceId, 4, '0', STR_PAD_LEFT);
     }
