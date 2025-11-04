@@ -15,6 +15,7 @@ return new class extends Migration
             $table->dropUnique(['email']);
             $table->string('phone')->nullable()->change();
             $table->string('email')->nullable()->change();
+            $table->enum('province', ['BC', 'AB'])->nullable()->change();
         });
     }
 
@@ -26,6 +27,7 @@ return new class extends Migration
         Schema::table('customers', function (Blueprint $table) {
             $table->string('phone')->nullable(false)->change();
             $table->string('email')->unique()->nullable(false)->change();
+            $table->enum('province', ['BC', 'AB'])->nullable(false)->change();
         });
     }
 };

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\InvoiceService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use App\Models\Customer;
@@ -36,16 +37,16 @@ class MigrateOldOrders extends Command
             $this->migrateCustomers();
 
 //             Step 2: Migrate One-Time Orders
-//            $this->info('Step 2: Migrating one-time orders...');
-//            $this->migrateOneTimeOrders();
-//
-//            // Step 3: Migrate Recurring Parent Orders
-//            $this->info('Step 3: Migrating recurring parent orders...');
-//            $this->migrateRecurringParentOrders();
-//
-//            // Step 4: Migrate Recurring Instances
-//            $this->info('Step 4: Migrating recurring instances...');
-//            $this->migrateRecurringInstances();
+            $this->info('Step 2: Migrating one-time orders...');
+            $this->migrateOneTimeOrders();
+
+            // Step 3: Migrate Recurring Parent Orders
+            $this->info('Step 3: Migrating recurring parent orders...');
+            $this->migrateRecurringParentOrders();
+
+            // Step 4: Migrate Recurring Instances
+            $this->info('Step 4: Migrating recurring instances...');
+            $this->migrateRecurringInstances();
 
             DB::commit();
             $this->info('Migration completed successfully!');
@@ -87,7 +88,7 @@ class MigrateOldOrders extends Command
                         'address' => $customerAddress->address ?? '',
                         'city' => $customerAddress->city ?? '',
                         'postal_code' => $customerAddress->postal ?? '',
-                        'province' => $customerAddress->province ?? 'AB',
+                        'province' => $customerAddress->province ?? null,
                     ]);
 
                     // Map old customer ID to new customer ID
@@ -108,7 +109,7 @@ class MigrateOldOrders extends Command
                     'address' => $customerAddress->address ?? '',
                     'city' => $customerAddress->city ?? '',
                     'postal_code' => $customerAddress->postal ?? '',
-                    'province' => $customerAddress->province ?? 'AB',
+                    'province' => $customerAddress->province ?? null,
                 ]);
 
                 // Map old customer ID to new customer ID
@@ -132,6 +133,7 @@ class MigrateOldOrders extends Command
             ->table('orders')
             ->where('recurring', 0)
             ->where('recurringInstance', 0)
+            ->where('cancelled', 0)
             ->where('orderDate', '>', $currentTimestamp)
             ->get();
 
@@ -153,6 +155,7 @@ class MigrateOldOrders extends Command
         $currentTimestamp = time();
         $oldOrders = DB::connection('old_mysql')
             ->table('orders')
+            ->where('cancelled', 0)
             ->where('recurring', 1)
             ->where('recurringInstance', 0)
             ->where('orderDate', '>', $currentTimestamp)
@@ -176,6 +179,7 @@ class MigrateOldOrders extends Command
         $currentTimestamp = time();
         $oldInstances = DB::connection('old_mysql')
             ->table('orders')
+            ->where('cancelled', 0)
             ->where('recurringInstance', 1)
 //            ->orderBy('orderDate', 'asc')
             ->where('orderDate', '>', $currentTimestamp)
@@ -201,6 +205,7 @@ class MigrateOldOrders extends Command
 
         if (!$newCustomerId) {
             $this->warn("Customer not found for order {$oldOrder->orderID}");
+//            Log::info(json_encode($oldOrder));
             return;
         }
 
@@ -212,9 +217,10 @@ class MigrateOldOrders extends Command
             $status = Order::CANCELLED;
         } elseif ($oldOrder->recurSkip == 1) {
             $status = Order::SKIP;
-        } elseif (strtotime($oldOrder->orderDate) < strtotime('-1 day')) {
-            $status = Order::COMPLETED;
         }
+//        elseif (strtotime($oldOrder->orderDate) < strtotime('-1 day')) {
+//            $status = Order::COMPLETED;
+//        }
 
         // Get delivery date
         $deliveryDate = $oldOrder->orderDate ? Carbon::createFromTimestamp($oldOrder->orderDate) : Carbon::now();
@@ -241,7 +247,7 @@ class MigrateOldOrders extends Command
         $order = Order::create([
             'customer_id' => $newCustomerId,
             'customer_name' => $customer->name,
-            'email' => $customer->email,
+            'email' => $customer->email??'',
             'phone' => $customer->phone ?? '',
             'amount_of_ice' => $iceAmount,
             'amount_of_boxes' => $boxAmount,
@@ -264,7 +270,7 @@ class MigrateOldOrders extends Command
             'tax' => $tax,
             'total_cost' => $totalCost,
             'push' => 1,
-            'payment_status' => 'paid',
+//            'payment_status' => 'paid',
             'supplier_id' => null,
             'invoice_id' => null,
         ]);
@@ -293,6 +299,8 @@ class MigrateOldOrders extends Command
                 'total_price' => $boxTotal,
             ]);
         }
+        $invoiceService = new InvoiceService();
+        $originalInvoice = $invoiceService->createInvoiceForOrder($order);
     }
 
     private function createRecurringInstanceFromOld($oldInstance)
@@ -302,6 +310,7 @@ class MigrateOldOrders extends Command
 
         if (!$newCustomerId) {
             $this->warn("Customer not found for recurring instance {$oldInstance->orderID}");
+            Log::info(json_encode($oldInstance));
             return;
         }
 
@@ -325,9 +334,10 @@ class MigrateOldOrders extends Command
         $status = RecurringOrder::OPEN;
         if ($oldInstance->cancelled == 1) {
             $status = RecurringOrder::CANCELLED;
-        } elseif (strtotime($oldInstance->orderDate) < strtotime('-1 day')) {
-            $status = RecurringOrder::COMPLETED;
         }
+//        elseif (strtotime($oldInstance->orderDate) < strtotime('-1 day')) {
+//            $status = RecurringOrder::COMPLETED;
+//        }
 
         // Get delivery date
         $deliveryDate = $oldInstance->orderDate ? Carbon::createFromTimestamp($oldInstance->orderDate) : Carbon::now();
@@ -342,6 +352,8 @@ class MigrateOldOrders extends Command
             'status' => $status,
             'recurring_payment_status' => 'pending',
         ]);
+        $invoiceService = new InvoiceService();
+        $invoice = $invoiceService->createInvoiceForRecurringOrder($recurringOrder);
     }
 
     /**

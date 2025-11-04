@@ -64,21 +64,21 @@ class MigrateCcOrders extends Command
     private function createOrderFromCc($ccOrder)
     {
         // Find or create customer by email
-        $customer = Customer::where('email', $ccOrder->email)->first();
-
-        if (!$customer) {
-            // Create customer from cc_order info
-            $customer = Customer::create([
-                'name' => $ccOrder->name,
-                'email' => $ccOrder->email,
-                'password' => bcrypt('password'),
-                'phone' => $ccOrder->phone ?? '',
-                'address' => $ccOrder->address ?? '',
-                'city' => $ccOrder->city ?? '',
-                'postal_code' => $ccOrder->postal ?? '',
-                'province' => $ccOrder->province && $ccOrder->province != '' ?$ccOrder->province : 'BC',
-            ]);
-        }
+//        $customer = Customer::where('email', $ccOrder->email)->first();
+//
+//        if (!$customer) {
+//            // Create customer from cc_order info
+//            $customer = Customer::create([
+//                'name' => $ccOrder->name,
+//                'email' => $ccOrder->email,
+//                'password' => bcrypt('password'),
+//                'phone' => $ccOrder->phone ?? '',
+//                'address' => $ccOrder->address ?? '',
+//                'city' => $ccOrder->city ?? '',
+//                'postal_code' => $ccOrder->postal ?? '',
+//                'province' => $ccOrder->province && $ccOrder->province != '' ?$ccOrder->province : 'BC',
+//            ]);
+//        }
 
         // Map payment status based on old status
         $paymentStatus = $ccOrder->status >= 2 ? 'paid' : 'pending';
@@ -112,7 +112,7 @@ class MigrateCcOrders extends Command
         $order = Order::create([
             'customer_id' => $customer->id,
             'customer_name' => $ccOrder->name,
-            'email' => $ccOrder->email,
+            'email' => $ccOrder->email??'',
             'phone' => $ccOrder->phone ?? '',
             'amount_of_ice' => $iceAmount,
             'amount_of_boxes' => $boxAmount,
@@ -126,7 +126,7 @@ class MigrateCcOrders extends Command
             'province' => $ccOrder->province && $ccOrder->province != '' ?$ccOrder->province : 'BC',
             'country' => $ccOrder->country ?? 'Canada',
             'pickup_delivery' => $ccOrder->pickup == 1 ? 'pickup' : 'delivery',
-            'status' => 'completed',
+            'status' => 'valid',
             'hazmat' => 0,
             'delivery_date' => $deliveryDate,
             'notes' => $this->buildCcOrderNotes($ccOrder),
@@ -134,7 +134,7 @@ class MigrateCcOrders extends Command
             'delivery_cost' => $delivCharge,
             'tax' => $totalTax,
             'total_cost' => $totalCost,
-            'payment_status' => 'paid',
+//            'payment_status' => 'paid',
             'supplier_id' => null,
             'invoice_id' => null,
             'push' => 1,

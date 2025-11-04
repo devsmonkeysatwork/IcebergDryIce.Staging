@@ -15,6 +15,7 @@ class RecurringOrder extends Model
         'scheduled_delivery_date',
         'status',
         'recurring_payment_status',
+        'invoice_id'
     ];
 
     protected $casts = [
