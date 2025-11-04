@@ -78,8 +78,8 @@ class DashboardController extends Controller
 
         $recurringFromOrders = Order::where('recurring', 'recurring')
             ->whereIn('status', [Order::VALID, Order::COMPLETED])
-            ->orderBy('recurring->scheduled_delivery_date', 'desc')
-//            ->take(15)
+            ->orderBy('delivery_date')
+            ->take(15)
             ->get();
 
         $recurringFromRecurringTable = RecurringOrder::where('status', RecurringOrder::OPEN)
@@ -89,14 +89,18 @@ class DashboardController extends Controller
                     ->whereIn('status', [Order::VALID]);
             })
             ->with(['order'])
-            ->orderBy('scheduled_delivery_date', 'desc')
-//            ->take(15)
+            ->orderBy('scheduled_delivery_date')
+            ->take(15)
             ->get();
 
         $allRecurringOrders = collect()
             ->merge($recurringFromOrders)
             ->merge($recurringFromRecurringTable)
-            ->sortByDesc('scheduled_delivery_date');
+            ->sortBy(function ($item) {
+                return $item instanceof RecurringOrder
+                    ? $item->scheduled_delivery_date
+                    : $item->delivery_date;
+            });
 
         return view('vendor.backpack.base.dashboard', compact(
             'manualOrders',
