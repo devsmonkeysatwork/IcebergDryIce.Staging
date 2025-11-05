@@ -43,6 +43,7 @@ class SendDailyOrderSummary extends Command
         });
 
         $this->info("Daily order summary sent to admin");
+        Log::info("Daily order summary sent to admin");
         return 0;
     }
 }
