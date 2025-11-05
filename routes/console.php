@@ -8,3 +8,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote')->hourly();
 
 \Illuminate\Support\Facades\Schedule::command('orders:process-recurring')->everyMinute();
+\Illuminate\Support\Facades\Schedule::command('orders:send-daily-summary')->everyMinute();
