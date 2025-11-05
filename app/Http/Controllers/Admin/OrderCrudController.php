@@ -581,6 +581,7 @@ class OrderCrudController extends CrudController
     {
         $x_login = env('EXACT_LOGIN_ID');
         $transaction_key = env('EXACT_TRANSACTION_KEY');
+        $payment_url = env('EXACT_PAYMENT_URL');
         $x_amount = number_format($order->total_cost, 2, '.', '');
         $x_invoice_num = $order->invoice->invoice_number;
         $x_description = 'Order #' . $order->id;
@@ -611,7 +612,7 @@ class OrderCrudController extends CrudController
             'x_fp_hash' => $x_fp_hash,
             'x_show_form' => 'PAYMENT_FORM',
             'x_test_request' => 'False',
-            'payment_url' => 'https://rpm.demo.e-xact.com/payment'
+            'payment_url' => $payment_url
         ];
     }
     /* Handle customer data for review form */
@@ -811,6 +812,7 @@ class OrderCrudController extends CrudController
     {
         $x_login = env('EXACT_LOGIN_ID');
         $transaction_key = env('EXACT_TRANSACTION_KEY');
+        $payment_url = env('EXACT_PAYMENT_URL');
         $x_amount = number_format($invoice->total_amount, 2, '.', '');
         $x_invoice_num = $invoice->invoice_number;
         $x_description = 'Invoice #' . $invoice->invoice_number;
@@ -847,7 +849,7 @@ class OrderCrudController extends CrudController
 //            'x_relay_response' => $x_relay_response,
 //            'x_receipt_link_method' => $x_receipt_link_method,
 //            'x_receipt_link_url' => $x_receipt_link_url,
-            'payment_url' => 'https://rpm.demo.e-xact.com/payment'
+            'payment_url' => $payment_url
         ];
     }
 

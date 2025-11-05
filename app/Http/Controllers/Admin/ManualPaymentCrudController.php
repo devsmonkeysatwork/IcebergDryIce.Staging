@@ -289,6 +289,7 @@ class ManualPaymentCrudController extends CrudController
     {
         $x_login = env('EXACT_LOGIN_ID');
         $transaction_key = env('EXACT_TRANSACTION_KEY');
+        $payment_url = env('EXACT_PAYMENT_URL');
         $x_amount = number_format($invoice->total_amount, 2, '.', '');
         $x_invoice_num = $invoice->invoice_number;
         $x_description = 'Invoice #' . $invoice->invoice_number;
@@ -317,7 +318,7 @@ class ManualPaymentCrudController extends CrudController
             'x_fp_hash' => $x_fp_hash,
             'x_show_form' => 'PAYMENT_FORM',
             'x_test_request' => 'False',
-            'payment_url' => 'https://rpm.demo.e-xact.com/payment'
+            'payment_url' => $payment_url
         ];
     }
 
