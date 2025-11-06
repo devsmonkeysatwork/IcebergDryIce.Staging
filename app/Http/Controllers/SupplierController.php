@@ -245,8 +245,8 @@ class SupplierController extends Controller
 
             $payload = [
                 'callerName' => 'Tyler',
-//                'reference' => 'ORDER_' . $order->id,
-                'reference' => 'ICEBERG_TESTING_ORDER',
+                'reference' => 'ORDER_' . $order->id,
+//                'reference' => 'ICEBERG_TESTING_ORDER',
                 'pickup' => [
                     'name' => $supplier->name,
                     'street' => $supplier->address,
@@ -272,8 +272,8 @@ class SupplierController extends Controller
                 ],
                 'serviceTypeId' => 4,
                 'vehicleTypeId' => 1,
-                'readyBy'=> "2050-10-10T15:00-07:00",
-                'instructions'=> "It is a test order.",
+                'readyBy'=> $order->delivery_date,
+                'instructions'=> "",
                 'packages' => [[
                     'typeId' => 122,
                     'length' => $dimensions,
