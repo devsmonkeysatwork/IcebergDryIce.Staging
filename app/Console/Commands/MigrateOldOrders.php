@@ -243,6 +243,15 @@ class MigrateOldOrders extends Command
         $tax = ($iceTotal * 0.05) + ($boxTotal * 0.12) + ($deliveryCost * 0.05);
         $totalCost = $subTotal + $deliveryCost + $tax;
 
+
+        if (empty($customer->address)) {
+            $customer->update([
+                'address' => $customer->address ?: ($oldOrder->address ?? ''),
+                'city' => $customer->city ?: ($oldOrder->city ?? ''),
+                'province' => $customer->province ?: ($oldOrder->province ?? ''),
+                'postal_code' => $customer->postal_code ?: ($oldOrder->postal_code ?? ''),
+            ]);
+        }
         // Create order
         $order = Order::create([
             'customer_id' => $newCustomerId,
@@ -274,6 +283,7 @@ class MigrateOldOrders extends Command
             'supplier_id' => null,
             'invoice_id' => null,
         ]);
+
 
         // Map old order ID to new order ID
         $this->orderIdMap[$oldOrder->orderID] = $order->id;
