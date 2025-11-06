@@ -42,7 +42,7 @@ class OrderPlacedMail extends Mailable
                 'invoice_number' =>  $this->order->invoice->invoice_number ?? null,
             ]);
 
-        if ($isPaid) {
+//        if ($isPaid) {
             $pdf = Pdf::loadView('emails.invoice-pdf', [
                 'order' => $this->order,
                 'invoice_number' => $this->order->invoice->invoice_number ?? null,
@@ -51,7 +51,7 @@ class OrderPlacedMail extends Mailable
             $mail->attachData($pdf->output(), 'invoice.pdf', [
                 'mime' => 'application/pdf',
             ]);
-        }
+//        }
 
         return $mail;
     }
