@@ -44,6 +44,12 @@
         ul li {
             margin: 5px 0;
         }
+        .section-header {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            font-size: 16px;
+            padding: 15px 12px !important;
+        }
     </style>
 </head>
 <body>
@@ -61,11 +67,10 @@
         </tr>
         </thead>
         <tbody>
-        @foreach($todayOrders as $order)
+        @forelse($todayOrders as $order)
             <tr>
                 <td>
                     <strong>{{ $order->customer->name }}</strong><br>
-{{--                    <small>{{ $order['email'] }}</small>--}}
                 </td>
                 <td>
                     <ul>
@@ -78,31 +83,36 @@
                     <strong>Phone:</strong> {{ $order->customer->phone }}
                 </td>
             </tr>
-        @endforeach
-        <tr>
-            <td colspan="3">
-                Future Orders due {{$nextWeek}}
-            </td>
-        </tr>
-        <tbody>
-        @foreach($nextRecurringOrders as $order)
+        @empty
             <tr>
-                <td>
-                    <strong>{{ $order->order?->customer?->name }}</strong><br>
-                    {{--                    <small>{{ $order['email'] }}</small>--}}
-                </td>
-                <td>
-                    <ul>
-                        @foreach($order->order?->items as $item)
-                            <li>{{ $item->product->product_name ?? 'Product' }} - {{ $item->amount_of_items }} units</li>
-                        @endforeach
-                    </ul>
-                </td>
-                <td>
-                    <strong>Phone:</strong> {{ $order->order?->customer->phone }}
+                <td colspan="3" style="text-align: center; color: #666;">No orders for today</td>
+            </tr>
+        @endforelse
+
+        @if($nextRecurringOrders->count() > 0)
+            <tr>
+                <td colspan="3" class="section-header">
+                    Future Recurring Orders due {{ $nextWeek }}
                 </td>
             </tr>
-        @endforeach
+            @foreach($nextRecurringOrders as $order)
+                <tr>
+                    <td>
+                        <strong>{{ $order->order?->customer?->name }}</strong><br>
+                    </td>
+                    <td>
+                        <ul>
+                            @foreach($order->order?->items as $item)
+                                <li>{{ $item->product->product_name ?? 'Product' }} - {{ $item->amount_of_items }} units</li>
+                            @endforeach
+                        </ul>
+                    </td>
+                    <td>
+                        <strong>Phone:</strong> {{ $order->order?->customer->phone }}
+                    </td>
+                </tr>
+            @endforeach
+        @endif
         </tbody>
     </table>
 </div>
