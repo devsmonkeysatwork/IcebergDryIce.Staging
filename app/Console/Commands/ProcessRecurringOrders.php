@@ -60,7 +60,7 @@ class ProcessRecurringOrders extends Command
 
                         DB::commit();
 
-                        $order = RecurringOrder::with(['invoice', 'order'])
+                        $order = RecurringOrder::with(['invoice', 'order', 'items'])
                             ->where('id', $recurringOrder->id)
                             ->first();
 
