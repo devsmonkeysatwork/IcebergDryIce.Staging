@@ -24,6 +24,7 @@ class Order extends Model
         'customer_name',
         'email',
         'phone',
+        'address_id',
         'amount_of_ice',
         'amount_of_boxes',
         'origin',
@@ -79,7 +80,6 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
-    // FIX: Corrected the polymorphic relationship
     public function invoice()
     {
         return $this->morphOne(Invoice::class, 'invoiceable');
@@ -97,5 +97,33 @@ class Order extends Model
             ->where('scheduled_delivery_date', '>', now())
             ->orderBy('scheduled_delivery_date')
             ->first();
+    }
+
+    // ✅ RENAMED: Changed from address() to customerAddress()
+    public function customerAddress()
+    {
+        return $this->belongsTo(CustomerAddress::class, 'address_id');
+    }
+
+    /**
+     * Get formatted delivery address
+     */
+    public function getDeliveryAddressAttribute()
+    {
+        // Check if order uses address relationship
+        if ($this->address_id && $this->relationLoaded('customerAddress') && $this->customerAddress) {
+            return $this->customerAddress->full_address;
+        }
+
+        // Fallback to legacy inline address fields
+        $parts = [
+            $this->address, // Now this correctly refers to the column
+            $this->unit ? "Unit {$this->unit}" : null,
+            $this->city,
+            $this->province,
+            $this->postal_code
+        ];
+
+        return implode(', ', array_filter($parts));
     }
 }

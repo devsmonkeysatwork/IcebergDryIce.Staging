@@ -68,6 +68,28 @@ class Customer extends Authenticatable
     }
 
 
+    public function addresses()
+    {
+        return $this->hasMany(CustomerAddress::class)->active()->orderBy('is_default', 'desc');
+    }
+
+    /**
+     * Get the default address
+     */
+    public function defaultAddress()
+    {
+        return $this->hasOne(CustomerAddress::class)->where('is_default', 1)->where('is_active', 1);
+    }
+
+    /**
+     * Get all active addresses
+     */
+    public function activeAddresses()
+    {
+        return $this->hasMany(CustomerAddress::class)->where('is_active', 1);
+    }
+
+
 
 
     public function getPaymentStatusBadge()

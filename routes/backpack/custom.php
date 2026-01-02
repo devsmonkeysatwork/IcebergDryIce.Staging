@@ -157,6 +157,26 @@ Route::group([
     'namespace' => 'App\Http\Controllers\Admin',
 ], function () {
 
+    Route::get('customers/{customer}/addresses', [OrderCrudController::class, 'getCustomerAddresses']);
+    Route::post('customers/{customer}/addresses', [OrderCrudController::class, 'store']);
+
+    Route::get('customers/{customer}/addresses',
+        [CustomersCrudController::class, 'getCustomerAddresses']);
+
+    Route::post('customers/{customer}/addresses',
+        [CustomersCrudController::class, 'addAddress']);
+
+    Route::put('customers/{customer}/addresses/{address}',
+        [CustomersCrudController::class, 'updateAddress']);
+
+    Route::delete('customers/{customer}/addresses/{address}',
+        [CustomersCrudController::class, 'deleteAddress']);
+
+    Route::post('customers/{customer}/addresses/{address}/set-default',
+        [CustomersCrudController::class, 'setDefaultAddress']);
+
+
+
     Route::post('orders/ajax-create', [OrderCrudController::class, 'ajaxCreate']);
 
     Route::put('orders/{id}/ajax-update', [OrderCrudController::class, 'updateOrderAjax'])
@@ -177,5 +197,7 @@ Route::group([
 
 
 
+
 });
+
 

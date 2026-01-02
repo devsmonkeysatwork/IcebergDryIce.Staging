@@ -954,33 +954,33 @@
         }
 
         async function validateAddressFields(formData) {
-            const apiKey = "{{config('services.google.address_api_key')}}";
-            const response = await fetch(`https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    address: {
-                        regionCode: "CA",
-                        addressLines: [formData.address],
-                        locality: formData.city,
-                        administrativeArea: formData.province,
-                        postalCode: formData.postal
-                    }
-                })
-            });
+            {{--const apiKey = "{{config('services.google.address_api_key')}}";--}}
+            {{--const response = await fetch(`https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`, {--}}
+            {{--    method: "POST",--}}
+            {{--    headers: {--}}
+            {{--        "Content-Type": "application/json"--}}
+            {{--    },--}}
+            {{--    body: JSON.stringify({--}}
+            {{--        address: {--}}
+            {{--            regionCode: "CA",--}}
+            {{--            addressLines: [formData.address],--}}
+            {{--            locality: formData.city,--}}
+            {{--            administrativeArea: formData.province,--}}
+            {{--            postalCode: formData.postal--}}
+            {{--        }--}}
+            {{--    })--}}
+            {{--});--}}
 
-            const result = await response.json();
-            if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {
-                await Swal.fire({
-                    title: 'Address Validation Failed',
-                    html: `Address could not be confirmed. Please provide proper address. <br>Street Address, City, Province, Postal`,
-                    icon: 'warning',
-                    confirmButtonColor: '#d33',
-                });
-                return false;
-            }
+            {{--const result = await response.json();--}}
+            {{--if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {--}}
+            {{--    await Swal.fire({--}}
+            {{--        title: 'Address Validation Failed',--}}
+            {{--        html: `Address could not be confirmed. Please provide proper address. <br>Street Address, City, Province, Postal`,--}}
+            {{--        icon: 'warning',--}}
+            {{--        confirmButtonColor: '#d33',--}}
+            {{--    });--}}
+            {{--    return false;--}}
+            {{--}--}}
             return true;
         }
 

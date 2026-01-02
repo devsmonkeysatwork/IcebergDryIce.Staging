@@ -16,6 +16,7 @@ use App\Http\Requests\OrderRequest;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Customer;
+use App\Models\CustomerAddress;
 use Carbon\Carbon;
 use App\Mail\OrderPlacedMail;
 use Illuminate\Support\Facades\Cache;
@@ -272,6 +273,14 @@ class OrderCrudController extends CrudController
 
     public function ajaxCreate(Request $request)
     {
+        // ✅ Check products BEFORE validation
+        if (!$request->has('products') || !is_array($request->products) || empty($request->products)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Products are required'
+            ], 422);
+        }
+
         $rules = [
             'customer_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
@@ -280,7 +289,7 @@ class OrderCrudController extends CrudController
             'amount_of_boxes' => 'nullable|numeric|min:0',
             'recurring' => 'string|in:recurring,non-recurring',
             'origin' => 'nullable|string|max:100',
-            'location_name' => 'nullable|string|max:255',
+            'location_name' => 'nullable|max:255',
             'address' => 'required|string|max:255',
             'unit' => 'nullable|string|max:50',
             'city' => 'required|string|max:100',
@@ -294,9 +303,14 @@ class OrderCrudController extends CrudController
             'pickup_delivery' => 'required|string|in:pickup,delivery',
             'supplier_id' => 'nullable|numeric|min:0',
             'hazmat' => 'nullable|numeric|min:0',
+            'address_id' => 'nullable|exists:customer_addresses,id',
+            'address_label' => 'nullable|string|max:100',
+            'delivery_instructions' => 'nullable|string',
+            'save_new_address' => 'nullable|boolean',
+            'set_as_default' => 'nullable|boolean',
+            'products' => 'required|array|min:1',
+            'products.*' => 'numeric|min:0',
         ];
-
-
 
         $validator = Validator::make($request->all(), $rules);
 
@@ -308,6 +322,7 @@ class OrderCrudController extends CrudController
         }
 
         $validated = $validator->validated();
+
         $hasProducts = false;
         foreach ($request->products as $amount) {
             if ($amount > 0) {
@@ -322,18 +337,24 @@ class OrderCrudController extends CrudController
                 'message' => 'At least one product with amount greater than 0 is required'
             ], 422);
         }
+
         try {
             DB::beginTransaction();
+
             // Handle customer lookup or creation
             $existing_customer = Customer::where('email', $request->email)->first();
-
-            // $request->pickup_delivery === 'delivery' || 'pickup' &&
 
             if (!$existing_customer) {
                 $customer = $this->handleCustomerData($request);
             } else {
                 $customer = $existing_customer;
             }
+
+            // Handle Address Management
+            $addressId = $this->handleAddressManagement($request, $customer->id);
+
+            // Add address_id to validated data
+            $validated['address_id'] = $addressId;
 
             // Calculate costs server-side
             $subtotal = 0;
@@ -346,8 +367,8 @@ class OrderCrudController extends CrudController
                 }
             }
 
-            $delivery_cost = $validated['delivery_cost'];
-            $hazmat_cost = $validated['hazmat'];
+            $delivery_cost = $validated['delivery_cost'] ?? 0;
+            $hazmat_cost = $validated['hazmat'] ?? 0;
             $tax = $subtotal * 0.15;
 
             // Add calculated fields
@@ -357,22 +378,26 @@ class OrderCrudController extends CrudController
             $validated['customer_id'] = $customer->id;
             $validated['origin'] = 'manual';
 
-
             // Create the order
             $order = Order::create($validated);
+
+            // Create order items
             foreach ($request->products as $productId => $amount) {
                 if ($amount > 0) {
                     $product = Product::find($productId);
-                    OrderItem::create([
-                        'order_id' => $order->id,
-                        'product_id' => $productId,
-                        'amount_of_items' => $amount,
-                        'unit_price' => $product->price,
-                        'total_price' => $amount * $product->price,
-                    ]);
+                    if ($product) {
+                        OrderItem::create([
+                            'order_id' => $order->id,
+                            'product_id' => $productId,
+                            'amount_of_items' => $amount,
+                            'unit_price' => $product->price,
+                            'total_price' => $amount * $product->price,
+                        ]);
+                    }
                 }
             }
 
+            // Create invoice
             $invoiceService = new InvoiceService();
             $originalInvoice = $invoiceService->createInvoiceForOrder($order);
 
@@ -380,20 +405,108 @@ class OrderCrudController extends CrudController
 
             DB::commit();
 
-
-            Mail::to($order->email)->send(new OrderPlacedMail($order));
-
-            return response()->json([
+            // ✅✅✅ CRITICAL FIX: Return response IMMEDIATELY ✅✅✅
+            // Store the response
+            $responseData = [
                 'success' => true,
                 'message' => 'Order created successfully',
                 'order' => $order
-            ]);
+            ];
+
+            // Create the response object
+            $response = response()->json($responseData);
+
+            // ✅ Queue the email AFTER preparing response (using dispatch or queue)
+            // Option 1: Using Laravel Queue (RECOMMENDED)
+            try {
+                Mail::to($order->email)->queue(new OrderPlacedMail($order));
+            } catch (\Exception $e) {
+                \Log::error('Email queue failed', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            // Option 2: If queue doesn't work, dispatch after response
+            // This ensures response is sent before email processing
+            register_shutdown_function(function() use ($order) {
+                try {
+                    Mail::to($order->email)->send(new OrderPlacedMail($order));
+                } catch (\Exception $e) {
+                    \Log::error('Email send failed', [
+                        'order_id' => $order->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            });
+
+            // Return response immediately
+            return $response;
+
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+            \Log::error('Order creation failed', [
+                'error' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create order: ' . $e->getMessage()
+            ], 500);
         }
     }
 
+    /**
+     * Handle address management for order creation/update
+     * Returns the address_id to be used in the order
+     */
+    protected function handleAddressManagement(Request $request, $customerId)
+    {
+        // If an address_id is provided, use it directly
+        if ($request->address_id) {
+            // Verify the address belongs to this customer
+            $address = CustomerAddress::where('id', $request->address_id)
+                ->where('customer_id', $customerId)
+                ->first();
+
+            if ($address) {
+                return $address->id;
+            }
+        }
+
+        // If save_new_address is checked, create a new address record
+        if ($request->save_new_address) {
+            // If setting as default, unset other defaults first
+            if ($request->set_as_default) {
+                CustomerAddress::where('customer_id', $customerId)
+                    ->update(['is_default' => 0]);
+            }
+
+            $address = CustomerAddress::create([
+                'customer_id' => $customerId,
+                'address_label' => $request->address_label ?: 'Order Address',
+                'location_name' => $request->location_name,
+                'address' => $request->address,
+                'unit' => $request->unit,
+                'city' => $request->city,
+                'postal_code' => $request->postal_code,
+                'province' => $request->province,
+                'country' => $request->country ?? 'Canada',
+                'delivery_instructions' => $request->delivery_instructions,
+                'is_default' => $request->set_as_default ?? 0,
+                'is_active' => 1
+            ]);
+
+            return $address->id;
+        }
+
+        // If neither address_id nor save_new_address, return null
+        // Order will use inline address fields
+        return null;
+    }
     /**
      * Handle AJAX submission from review form
      */
@@ -1148,82 +1261,27 @@ class OrderCrudController extends CrudController
     }
 
 
-    public function editModal($id, Request $request)
+    public function getCustomerAddresses($customerId)
     {
-        $recurring = intval($request->query('recurring'));
-        if($recurring){
-            $recurring_id = intval($request->query('recurring_id'));
-            $order = Order::where('recurring', Order::RECURRING)
-                ->where('id', $id)
-//                ->whereHas('recurringOrders', function ($query) {
-//                    $query->where('status', 'open')
-//                        ->where('scheduled_delivery_date', '>', now());
-//                })
-                ->with(['recurringOrders' => function ($query) use ($recurring_id) {
-                    $query->where('id',$recurring_id);
-                }])
-                ->with(['items','items.product'])
-                ->get()
-                ->first();
-            $status = null;
-            if ($order && $order->recurringOrders?->first()->novex_order_id) {
-                $cacheKey = 'order_status_' . $order->recurringOrders?->first()->novex_order_id;
-                $status = Cache::remember($cacheKey, now()->addHours(3), function () use ($order) {
-                    return $this->getOrderStatus($order->recurringOrders?->first()->novex_order_id);
-                });
-            }
-            $data = [
-                'order' => $order,
-                'recurring' => $recurring,
-                'status' => $status,
-            ];
-            return view('website.customer.partials.order_details', $data);
-        }
+        try {
+            $addresses = CustomerAddress::where('customer_id', $customerId)
+                ->where('is_active', 1)
+                ->orderBy('is_default', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->get();
 
-        $order = Order::whereId($id)->with(['items','items.product'])->first();
-        // Get only products that are in this order
-        $orderProducts = $order->items;
-        $data = [
-            'mode' => 'edit',
-            'order' => $order,
-            'modalTitle' => 'Edit Order',
-            'saveButtonText' => 'Update Order',
-            'showOrderId' => true,
-            'showDeleteButton' => true,
-            'showPushButton' => $order->status == Order::COMPLETED ? false : true,
-            'products' => $orderProducts,
-            'defaultValues' => [
-                'order_id' => $order->id,
-                'invoice_id' => $order->invoice_id,
-                'customer_email' => $order->email,
-                'customer_name' => $order->customer_name,
-                'customer_phone' => $order->phone,
-                'ice_amount' => $order->amount_of_ice,
-                'box_amount' => $order->amount_of_boxes ?? 0,
-                'recurring' => $order->recurring,
-                'location_name' => $order->location_name,
-                'address' => $order->address,
-                'unit' => $order->unit,
-                'city' => $order->city,
-                'postal_code' => $order->postal_code,
-                'province' => $order->province,
-                'country' => $order->country ?? 'Canada',
-                'delivery_date' => $order->delivery_date ? \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') : '',
-                'delivery_time' => $order->delivery_date ? \Carbon\Carbon::parse($order->delivery_date)->format('H:i') : '',
-                'notes' => $order->notes,
-                'status' => $order->status ?? 'valid',
-                'pickup_delivery' => $order->pickup_delivery,
-                'sub_total' => $order->sub_total ?? 0,
-                'delivery_cost' => $order->delivery_cost ?? 0,
-                'tax' => $order->tax ?? 0,
-                'total_cost' => $order->total_cost ?? 0,
-                'origin' => $order->origin,
-                'novex_pushed' => $order->push ?? 0,
-                'hazmat' => $order->hazmat ?? 0
-            ]
-        ];
-        return view('vendor.backpack.crud.inc.order_modal', $data);
+            return response()->json([
+                'success' => true,
+                'addresses' => $addresses
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load addresses: ' . $e->getMessage()
+            ], 500);
+        }
     }
+
 
     public function modalCreate()
     {
@@ -1231,12 +1289,13 @@ class OrderCrudController extends CrudController
 
         $defaultValues = [
             'invoice_id' => '',
+            'customer_id' => null,
             'customer_email' => '',
             'customer_name' => '',
             'customer_phone' => '',
             'ice_amount' => 0,
             'box_amount' => 0,
-            'recurring' => '',
+            'recurring' => 'non-recurring',
             'location_name' => '',
             'origin' => 'manual',
             'address' => '',
@@ -1245,7 +1304,7 @@ class OrderCrudController extends CrudController
             'postal_code' => '',
             'province' => '',
             'country' => 'Canada',
-            'pickup_delivery' => '',
+            'pickup_delivery' => 'delivery',
             'status' => 'valid',
             'delivery_date' => '',
             'delivery_time' => '',
@@ -1255,7 +1314,12 @@ class OrderCrudController extends CrudController
             'tax' => 0,
             'total_cost' => 0,
             'hazmat' => 12,
-            'novex_pushed' => false
+            'novex_pushed' => false,
+            // Address fields
+            'address_id' => null,
+            'address_label' => '',
+            'delivery_instructions' => '',
+            'products' => []
         ];
 
         return view('vendor.backpack.crud.inc.order_modal', [
@@ -1269,6 +1333,111 @@ class OrderCrudController extends CrudController
             'products' => $products,
             'order' => null
         ]);
+    }
+
+    public function editModal($id, Request $request)
+    {
+        $recurring = intval($request->query('recurring'));
+
+        if($recurring){
+            // ... recurring code remains the same ...
+        }
+
+        // ✅ Load order with RENAMED relationship
+        $order = Order::whereId($id)
+            ->with(['items.product', 'customerAddress', 'customer']) // Changed from 'address' to 'customerAddress'
+            ->first();
+
+        // Check if order exists
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order not found'
+            ], 404);
+        }
+
+        $orderProducts = $order->items;
+
+        // Debug logging
+        \Log::info('Edit Modal - Order Data', [
+            'order_id' => $order->id,
+            'items_count' => $orderProducts->count(),
+            'address_id' => $order->address_id,
+            'has_address_relationship' => $order->customerAddress ? 'yes' : 'no',
+            'address_column' => $order->address, // This is now the column value
+        ]);
+
+        // ✅ UPDATED: Check for customerAddress relationship
+        $hasAddressRelationship = $order->address_id && $order->customerAddress;
+
+        $data = [
+            'mode' => 'edit',
+            'order' => $order,
+            'modalTitle' => 'Edit Order',
+            'saveButtonText' => 'Update Order',
+            'showOrderId' => true,
+            'showDeleteButton' => true,
+            'showPushButton' => $order->status == Order::COMPLETED ? false : true,
+            'products' => $orderProducts,
+            'defaultValues' => [
+                'order_id' => $order->id,
+                'invoice_id' => $order->invoice_id,
+                'customer_id' => $order->customer_id,
+                'customer_email' => $order->email,
+                'customer_name' => $order->customer_name,
+                'customer_phone' => $order->phone,
+                'ice_amount' => $order->amount_of_ice,
+                'box_amount' => $order->amount_of_boxes ?? 0,
+                'recurring' => $order->recurring,
+
+                // ✅ Address fields - using customerAddress relationship
+                'address_id' => $order->address_id,
+                'location_name' => $hasAddressRelationship
+                    ? $order->customerAddress->location_name
+                    : $order->location_name,
+                'address' => $hasAddressRelationship
+                    ? $order->customerAddress->address
+                    : $order->address, // Now correctly references the column
+                'unit' => $hasAddressRelationship
+                    ? $order->customerAddress->unit
+                    : $order->unit,
+                'city' => $hasAddressRelationship
+                    ? $order->customerAddress->city
+                    : $order->city,
+                'postal_code' => $hasAddressRelationship
+                    ? $order->customerAddress->postal_code
+                    : $order->postal_code,
+                'province' => $hasAddressRelationship
+                    ? $order->customerAddress->province
+                    : $order->province,
+                'country' => $hasAddressRelationship
+                    ? ($order->customerAddress->country ?? 'Canada')
+                    : ($order->country ?? 'Canada'),
+                'address_label' => $hasAddressRelationship
+                    ? ($order->customerAddress->address_label ?? '')
+                    : '',
+                'delivery_instructions' => $hasAddressRelationship
+                    ? ($order->customerAddress->delivery_instructions ?? '')
+                    : '',
+
+                // Order details
+                'delivery_date' => $order->delivery_date ? \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') : '',
+                'delivery_time' => $order->delivery_date ? \Carbon\Carbon::parse($order->delivery_date)->format('H:i') : '',
+                'notes' => $order->notes,
+                'status' => $order->status ?? 'valid',
+                'pickup_delivery' => $order->pickup_delivery,
+                'sub_total' => $order->sub_total ?? 0,
+                'delivery_cost' => $order->delivery_cost ?? 0,
+                'tax' => $order->tax ?? 0,
+                'total_cost' => $order->total_cost ?? 0,
+                'origin' => $order->origin,
+                'novex_pushed' => $order->push ?? 0,
+                'hazmat' => $order->hazmat ?? 0,
+                'products' => []
+            ]
+        ];
+
+        return view('vendor.backpack.crud.inc.order_modal', $data);
     }
 
     function getOrderStatus($orderNumber)

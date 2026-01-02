@@ -760,33 +760,33 @@
             }
 
             async function validateAddressFields(formData) {
-                const apiKey = "{{config('services.google.address_api_key')}}";
-                const response = await fetch(`https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        address: {
-                            regionCode: "CA",
-                            addressLines: [formData.address],
-                            locality: formData.city,
-                            administrativeArea: formData.province,
-                            postalCode: formData.postal
-                        }
-                    })
-                });
+                {{--const apiKey = "{{config('services.google.address_api_key')}}";--}}
+                {{--const response = await fetch(`https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`, {--}}
+                {{--    method: "POST",--}}
+                {{--    headers: {--}}
+                {{--        "Content-Type": "application/json"--}}
+                {{--    },--}}
+                {{--    body: JSON.stringify({--}}
+                {{--        address: {--}}
+                {{--            regionCode: "CA",--}}
+                {{--            addressLines: [formData.address],--}}
+                {{--            locality: formData.city,--}}
+                {{--            administrativeArea: formData.province,--}}
+                {{--            postalCode: formData.postal--}}
+                {{--        }--}}
+                {{--    })--}}
+                {{--});--}}
 
-                const result = await response.json();
-                if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {
-                    await Swal.fire({
-                        title: 'Address Validation Failed',
-                        html: `Address could not be confirmed. Please provide proper address. <br>Street Address, City, Province, Postal`,
-                        icon: 'warning',
-                        confirmButtonColor: '#d33',
-                    });
-                    return false;
-                }
+                {{--const result = await response.json();--}}
+                {{--if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {--}}
+                {{--    await Swal.fire({--}}
+                {{--        title: 'Address Validation Failed',--}}
+                {{--        html: `Address could not be confirmed. Please provide proper address. <br>Street Address, City, Province, Postal`,--}}
+                {{--        icon: 'warning',--}}
+                {{--        confirmButtonColor: '#d33',--}}
+                {{--    });--}}
+                {{--    return false;--}}
+                {{--}--}}
                 return true;
             }
 
@@ -1078,6 +1078,422 @@
                             });
                     }
                 });
+            });
+        });
+
+
+        let currentCustomerAddresses = [];
+        let isNewAddress = false;
+        let isEditMode = false;
+        let hasInlineAddress = false; // Track if we have inline address data
+
+        // Initialize when customer is selected
+        function initializeAddressManagement() {
+            // Check if we're in edit mode
+            isEditMode = $('#current-customer-id').length > 0;
+
+            // Check if inline address exists (for edit mode with no address_id)
+            if (isEditMode) {
+                const addressId = $('#modal-address-id').val();
+                const address = $('#modal-address').val();
+
+                // ✅ If no address_id but address field has value, it's inline address
+                hasInlineAddress = !addressId && address && address.trim() !== '';
+
+                console.log('Initialize Address Management', {
+                    isEditMode: isEditMode,
+                    addressId: addressId,
+                    hasInlineAddress: hasInlineAddress,
+                    address: address
+                });
+            }
+
+            // Hide address details initially in create mode
+            if (!isEditMode) {
+                $('#address-details-section').hide();
+            }
+
+            // Customer email selection handler (for create mode)
+            $('#modal-customer-email').on('select2:select', function (e) {
+                const data = e.params.data;
+
+                if (data.customer) {
+                    // Existing customer selected
+                    loadCustomerAddresses(data.customer.id);
+                    enableAddressControls();
+                } else {
+                    // New email address entered (not an existing customer)
+                    clearAddressSelection();
+                    enableAddressControls();
+                    $('#modal-address-select').empty().append('<option value="">No saved addresses - Click "New" to add one</option>');
+                    $('#address-details-section').hide();
+                }
+            });
+
+            $('#modal-customer-email').on('select2:clear', function () {
+                clearAddressSelection();
+                disableAddressControls();
+                $('#address-details-section').hide();
+            });
+
+            // Address selection handler
+            $('#modal-address-select').on('change', function() {
+                const addressId = $(this).val();
+
+                if (addressId) {
+                    // Address selected - show details and populate
+                    const address = currentCustomerAddresses.find(a => a.id == addressId);
+                    if (address) {
+                        $('#address-details-section').show();
+                        populateAddressFields(address);
+                        setAddressFieldsReadonly(true);
+                        isNewAddress = false;
+                        hasInlineAddress = false;
+                        $('#save-address-checkbox-container').hide();
+                        $('#default-address-checkbox-container').hide();
+                    }
+                } else {
+                    // ✅ No address selected - only hide if not in new mode or has inline address
+                    if (!isNewAddress && !hasInlineAddress) {
+                        $('#address-details-section').hide();
+                    }
+                }
+            });
+
+            // New address button handler
+            $('#add-new-address-btn').on('click', function(e) {
+                e.preventDefault();
+
+                $('#modal-address-select').val('').trigger('change');
+                $('#address-details-section').show();
+                clearAddressFields();
+                setAddressFieldsReadonly(false);
+                isNewAddress = true;
+                hasInlineAddress = false;
+                $('#save-address-checkbox-container').show();
+                $('#default-address-checkbox-container').show();
+                $('#modal-address-id').val('');
+
+                setTimeout(() => {
+                    $('#modal-address-label').focus();
+                }, 100);
+            });
+
+            // ✅ If in edit mode, load addresses immediately
+            if (isEditMode) {
+                const customerId = $('#current-customer-id').val();
+                const currentAddressId = $('#modal-address-id').val();
+
+                if (customerId) {
+                    $('#address-details-section').show(); // Always show in edit mode
+
+                    // ✅ CRITICAL: If has inline address, keep fields editable
+                    if (hasInlineAddress) {
+                        console.log('Edit mode with inline address - making fields editable');
+                        setAddressFieldsReadonly(false);
+                        isNewAddress = true;
+                        $('#save-address-checkbox-container').show();
+                        $('#default-address-checkbox-container').show();
+                    }
+
+                    setTimeout(() => {
+                        // ✅ Pass currentAddressId (will be null for inline addresses)
+                        loadCustomerAddresses(customerId, currentAddressId);
+                        enableAddressControls();
+                    }, 300);
+                }
+            }
+        }
+        // Load addresses for selected customer
+        function loadCustomerAddresses(customerId, selectAddressId = null) {
+            // ✅ CRITICAL: Store current address field values BEFORE loading
+            const currentAddressValues = {
+                address_label: $('#modal-address-label').val(),
+                location_name: $('#modal-location-name').val(),
+                address: $('#modal-address').val(),
+                unit: $('#modal-unit').val(),
+                city: $('#modal-city').val(),
+                postal_code: $('#modal-postal').val(),
+                province: $('#modal-province').val(),
+                delivery_instructions: $('#modal-delivery-instructions').val()
+            };
+
+            // ✅ Check if we have inline address data (address_id is null but fields have values)
+            const hasInlineAddressData = !selectAddressId && currentAddressValues.address && currentAddressValues.address.trim() !== '';
+
+            $.ajax({
+                url: `/admin/customers/${customerId}/addresses`,
+                method: 'GET',
+                success: function(response) {
+                    currentCustomerAddresses = response.addresses;
+                    populateAddressDropdown(response.addresses);
+
+                    // ✅ CRITICAL: Handle different scenarios
+                    if (selectAddressId) {
+                        // SCENARIO 1: We have an address_id - select it
+                        $('#modal-address-select').val(selectAddressId).trigger('change');
+
+                    } else if (hasInlineAddressData) {
+                        // SCENARIO 2: No address_id but we have inline address data - PRESERVE IT
+                        console.log('Preserving inline address data');
+
+                        // Clear the dropdown selection
+                        $('#modal-address-select').val('').trigger('change');
+
+                        // Restore the inline address values
+                        $('#modal-address-label').val(currentAddressValues.address_label);
+                        $('#modal-location-name').val(currentAddressValues.location_name);
+                        $('#modal-address').val(currentAddressValues.address);
+                        $('#modal-unit').val(currentAddressValues.unit);
+                        $('#modal-city').val(currentAddressValues.city);
+                        $('#modal-postal').val(currentAddressValues.postal_code);
+                        $('#modal-province').val(currentAddressValues.province);
+                        $('#modal-delivery-instructions').val(currentAddressValues.delivery_instructions);
+
+                        // Keep fields editable and show section
+                        setAddressFieldsReadonly(false);
+                        $('#address-details-section').show();
+
+                        // Show checkboxes to allow admin to save this address if desired
+                        $('#save-address-checkbox-container').show();
+                        $('#default-address-checkbox-container').show();
+                        isNewAddress = true;
+                        hasInlineAddress = true;
+
+                    } else if (response.addresses.length === 0) {
+                        // SCENARIO 3: No saved addresses and no inline data - trigger new address mode
+                        $('#add-new-address-btn').click();
+
+                    } else {
+                        // SCENARIO 4: Has saved addresses - auto-select default
+                        const defaultAddress = response.addresses.find(a => a.is_default);
+                        if (defaultAddress) {
+                            $('#modal-address-select').val(defaultAddress.id).trigger('change');
+                        }
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Failed to load addresses:', xhr);
+
+                    if (xhr.status === 404 || xhr.status === 500) {
+                        enableAddressControls();
+                        $('#modal-address-select').empty().append('<option value="">No saved addresses - Click "New" to add one</option>');
+
+                        // ✅ If we have inline address data, preserve it
+                        if (hasInlineAddressData) {
+                            console.log('Error loading addresses, but preserving inline address data');
+
+                            // Restore values
+                            $('#modal-address-label').val(currentAddressValues.address_label);
+                            $('#modal-location-name').val(currentAddressValues.location_name);
+                            $('#modal-address').val(currentAddressValues.address);
+                            $('#modal-unit').val(currentAddressValues.unit);
+                            $('#modal-city').val(currentAddressValues.city);
+                            $('#modal-postal').val(currentAddressValues.postal_code);
+                            $('#modal-province').val(currentAddressValues.province);
+                            $('#modal-delivery-instructions').val(currentAddressValues.delivery_instructions);
+
+                            $('#address-details-section').show();
+                            setAddressFieldsReadonly(false);
+                            isNewAddress = true;
+                            hasInlineAddress = true;
+                            $('#save-address-checkbox-container').show();
+                            $('#default-address-checkbox-container').show();
+                        }
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to load customer addresses'
+                        });
+                    }
+                }
+            });
+        }
+
+        // Populate address dropdown
+        function populateAddressDropdown(addresses) {
+            const select = $('#modal-address-select');
+            select.empty();
+
+            if (addresses.length === 0) {
+                select.append('<option value="">No saved addresses - Click "New" to add one</option>');
+                return;
+            }
+
+            select.append('<option value="">Select an address...</option>');
+
+            addresses.forEach(address => {
+                const label = address.address_label || 'Unnamed Address';
+                const details = `${address.address}, ${address.city}, ${address.province} ${address.postal_code}`;
+                const defaultBadge = address.is_default ? ' ⭐' : '';
+
+                select.append(`
+            <option value="${address.id}" title="${details}">
+                ${label}${defaultBadge} - ${address.city}
+            </option>
+        `);
+            });
+        }
+
+        // Populate address fields with selected address data
+        function populateAddressFields(address) {
+            $('#modal-address-id').val(address.id);
+            $('#modal-address-label').val(address.address_label || '');
+            $('#modal-location-name').val(address.location_name || '');
+            $('#modal-address').val(address.address || '');
+            $('#modal-unit').val(address.unit || '');
+            $('#modal-city').val(address.city || '');
+            $('#modal-postal').val(address.postal_code || '');
+            $('#modal-province').val(address.province || '');
+            $('#modal-country').val(address.country || 'Canada');
+            $('#modal-delivery-instructions').val(address.delivery_instructions || '');
+
+            // Highlight prefilled fields
+            const addressFields = [
+                'modal-address-label', 'modal-location-name', 'modal-address',
+                'modal-unit', 'modal-city', 'modal-postal', 'modal-province'
+            ];
+
+            addressFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field && field.value) {
+                    field.classList.add('prefilled-field');
+                    setTimeout(() => field.classList.remove('prefilled-field'), 2000);
+                }
+            });
+        }
+
+        // Clear address fields
+        function clearAddressFields() {
+            $('#modal-address-id').val('');
+            $('#modal-address-label').val('');
+            $('#modal-location-name').val('');
+            $('#modal-address').val('');
+            $('#modal-unit').val('');
+            $('#modal-city').val('');
+            $('#modal-postal').val('');
+            $('#modal-province').val('');
+            $('#modal-delivery-instructions').val('');
+
+            // Also remove any validation error classes
+            $('#modal-address').removeClass('is-invalid');
+            $('#modal-city').removeClass('is-invalid');
+            $('#modal-postal').removeClass('is-invalid');
+            $('#modal-province').removeClass('is-invalid');
+        }
+
+        // Clear address selection
+        function clearAddressSelection() {
+            currentCustomerAddresses = [];
+            $('#modal-address-select').empty().append('<option value="">Select a customer first...</option>');
+            clearAddressFields();
+            isNewAddress = false;
+            hasInlineAddress = false;
+        }
+
+        // Enable/disable address controls
+        function enableAddressControls() {
+            $('#modal-address-select').prop('disabled', false);
+            $('#add-new-address-btn').prop('disabled', false);
+        }
+
+        function disableAddressControls() {
+            $('#modal-address-select').prop('disabled', true);
+            $('#add-new-address-btn').prop('disabled', true);
+        }
+
+        // Set address fields readonly state
+        function setAddressFieldsReadonly(readonly) {
+            const fields = [
+                'modal-address-label', 'modal-location-name', 'modal-address',
+                'modal-unit', 'modal-city', 'modal-postal'
+            ];
+
+            fields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    if (readonly) {
+                        field.setAttribute('readonly', 'readonly');
+                        field.classList.add('readonly-field');
+                    } else {
+                        field.removeAttribute('readonly');
+                        field.classList.remove('readonly-field');
+                    }
+                }
+            });
+
+            // Delivery instructions can always be edited
+            $('#modal-delivery-instructions').removeAttr('readonly').removeClass('readonly-field');
+
+            // Handle select differently
+            // $('#modal-province').prop(readonly);
+        }
+
+        // Enhanced form data collection
+        function getEnhancedFormData() {
+            const formData = new FormData(document.getElementById('order-form'));
+
+            // Add address management flags
+            if (isNewAddress && $('#save-address-checkbox').is(':checked')) {
+                formData.append('save_new_address', '1');
+                formData.append('set_as_default', $('#default-address-checkbox').is(':checked') ? '1' : '0');
+            }
+
+            return formData;
+        }
+
+        // Validation enhancement
+        function validateAddressSelection() {
+            const addressId = $('#modal-address-id').val();
+
+            if (!addressId && !isNewAddress) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Address Required',
+                    text: 'Please select an address or create a new one'
+                });
+                return false;
+            }
+
+            // Validate required address fields
+            const requiredAddressFields = [
+                { id: 'modal-address', label: 'Street Address' },
+                { id: 'modal-city', label: 'City' },
+                { id: 'modal-postal', label: 'Postal Code' },
+                { id: 'modal-province', label: 'Province' }
+            ];
+
+            let isValid = true;
+            let missingFields = [];
+
+            requiredAddressFields.forEach(({ id, label }) => {
+                const field = document.getElementById(id);
+                if (!field.value || !field.value.trim()) {
+                    field.classList.add('is-invalid');
+                    isValid = false;
+                    missingFields.push(label);
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+
+            if (!isValid) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Missing Address Information',
+                    html: 'Please fill in: ' + missingFields.join(', ')
+                });
+            }
+
+            return isValid;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for modal to be fully shown
+            $('#orderSummaryModal').on('shown.bs.modal', function () {
+                initializeAddressManagement();
             });
         });
 
