@@ -1340,7 +1340,30 @@ class OrderCrudController extends CrudController
         $recurring = intval($request->query('recurring'));
 
         if($recurring){
-            // ... recurring code remains the same ...
+            $recurring_id = intval($request->query('recurring_id'));
+            $order = Order::where('recurring', Order::RECURRING)
+                ->where('id', $id)
+                ->with(['recurringOrders' => function ($query) use ($recurring_id) {
+                    $query->where('id',$recurring_id);
+                }])
+                ->with(['items','items.product'])
+                ->get()
+                ->first();
+
+            $status = null;
+            if ($order && $order->recurringOrders?->first()->novex_order_id) {
+                $cacheKey = 'order_status_' . $order->recurringOrders?->first()->novex_order_id;
+                $status = Cache::remember($cacheKey, now()->addHours(3), function () use ($order) {
+                    return $this->getOrderStatus($order->recurringOrders?->first()->novex_order_id);
+                });
+            }
+
+            $data = [
+                'order' => $order,
+                'recurring' => $recurring,
+                'status' => $status,
+            ];
+            return view('website.customer.partials.order_details', $data);
         }
 
         // ✅ Load order with RENAMED relationship
