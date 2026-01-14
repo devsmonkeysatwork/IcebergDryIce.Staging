@@ -5,7 +5,7 @@
             {{-- Page Header --}}
             <section class="header-operation container-fluid animated fadeIn d-flex mb-2 align-items-center justify-content-between d-print-none">
                 <div class="d-flex mb-2 align-items-baseline">
-                    <h1 class="text-capitalize mb-0">Order #{{ str_pad($order instanceof \App\Models\RecurringOrder ? $order->invoice_id : $order->invoice_id, 4, '0', STR_PAD_LEFT) }}</h1>
+                    <h1 class="text-capitalize mb-0">Order #{{ str_pad($recurring ? $order->recurringOrders->first()->invoice_id : $order->invoice_id, 4, '0', STR_PAD_LEFT) }}</h1>
                     <p class="ms-2 ml-2 mb-0">View your order details and information.</p>
                 </div>
                 <button class="btn btn-secondary btn-submission" onclick="hideOrderDetails()">
@@ -17,20 +17,15 @@
             <div class="card order-details-card">
                 <div class="row">
                     <div class="col-md-12 px-4">
-{{--                        <div class="d-flex justify-content-between align-items-center mb-4">--}}
-{{--                            <h3 class="form-group-heading m-0">--}}
-{{--                                <i class="la la-shopping-cart me-2"></i> Order Information--}}
-{{--                            </h3>--}}
-{{--                            <button class="btn btn-secondary btn-submission" onclick="hideOrderDetails()">--}}
-{{--                                <i class="la la-arrow-left me-2"></i> Back to Orders--}}
-{{--                            </button>--}}
-{{--                        </div>--}}
-
                         {{-- Customer & Order Info --}}
                         <div class="row">
                             <div class="form-group col-md-4">
                                 <label>Invoice Number</label>
-                                <input type="text" class="form-control" value="{{ str_pad($order instanceof \App\Models\RecurringOrder ? $order->invoice_id : $order->invoice_id, 4, '0', STR_PAD_LEFT) }}" readonly>
+                                @if($recurring)
+                                    <input type="text" class="form-control" value="{{ $order->recurringOrders->first()->invoice_id }}" readonly>
+                                @else
+                                    <input type="text" class="form-control" value="{{ $order->invoice_id }}" readonly>
+                                @endif
                             </div>
 
                             <div class="form-group col-md-4">
@@ -60,13 +55,17 @@
                             <div class="form-group col-md-4">
                                 <label>Status</label>
                                 <div class="form-control d-flex align-items-center" style="background-color: #f8f9fa;">
+                                    @php
+                                        // Get status from recurring table if it's a recurring order
+                                        $orderStatus = $recurring ? $order->recurringOrders->first()->status : $order->status;
+                                    @endphp
                                     <span class="badge
-                                        @if($order->status == 'completed') badge-success
-                                        @elseif($order->status == 'pending') badge-warning
-                                        @elseif($order->status == 'cancelled') badge-danger
+                                        @if($orderStatus == 'completed') badge-success
+                                        @elseif($orderStatus == 'pending') badge-warning
+                                        @elseif($orderStatus == 'cancelled') badge-danger
                                         @else badge-secondary
                                         @endif">
-                                        {{ ucfirst($order->status) }}
+                                        {{ ucfirst($orderStatus) }}
                                     </span>
                                 </div>
                             </div>
@@ -161,9 +160,15 @@
                             <div class="form-group col-md-4">
                                 <label>Payment Status</label>
                                 <div class="form-control d-flex align-items-center" style="background-color: #f8f9fa;">
-                                    <span class="badge
-                                        @if($order->payment_status == 1) bg-success @elseif($order->payment_status == 0) bg-danger @else badge-secondary @endif">
-                                        {{ $order->payment_status? 'PAID' : 'UNPAID' }}
+                                    @php
+                                        // Get payment status from recurring table if it's a recurring order
+                                        $paymentStatus = $recurring
+                                            ? $order->recurringOrders->first()->recurring_payment_status
+                                            : $order->payment_status;
+                                        $isPaid = $paymentStatus == 'paid' || $paymentStatus == 1;
+                                    @endphp
+                                    <span class="badge {{ $isPaid ? 'bg-success' : 'bg-danger' }}">
+                                        {{ $isPaid ? 'PAID' : 'UNPAID' }}
                                     </span>
                                 </div>
                             </div>

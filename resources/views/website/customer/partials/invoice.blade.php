@@ -1,3 +1,4 @@
+{{-- Order Details Partial View (order_details.blade.php) --}}
 <div class="invoice-container">
     <!-- Header -->
     <div class="d-flex invoice-header justify-content-between">
@@ -12,10 +13,18 @@
             </div>
         </div>
         <div class="invoice-meta">
-            <span class="payment-status {{ $order->payment_status ? 'paid' : 'unpaid' }}">
-                {{ $order->payment_status ? 'PAID' : 'UNPAID' }}
+            @php
+                $paymentStatus = ($order->is_recurring_instance ?? false)
+                    ? $order->recurring_payment_status
+                    : optional($order->invoice_display)->payment_status;
+            @endphp
+            <span class="payment-status {{ $paymentStatus === 'paid' ? 'paid' : 'unpaid' }}">
+                {{ $paymentStatus === 'paid' ? 'PAID' : 'UNPAID' }}
             </span>
-            <h2>Invoice <span class="fw-bold">#{{ $order->invoice->invoice_number ?? 'N/A' }}</span></h2>
+            <h2>Invoice <span class="fw-bold">#{{ ($order->is_recurring_instance ?? false) ? $order->recurring_invoice_number : (optional($order->invoice_display)->invoice_number ?? 'N/A') }}</span></h2>
+            @if($order->is_recurring_instance ?? false)
+                <span class="badge badge-info mt-2">Recurring Order</span>
+            @endif
         </div>
     </div>
 
@@ -30,10 +39,22 @@
         </div>
         <div>
             <p class="label">Invoice Date</p>
-            <p class="value">{{ $order->created_at->format('d.m.Y') }}</p>
+            <p class="value">
+                @if($order->is_recurring_instance ?? false)
+                    {{ $order->recurring_created_at->format('d.m.Y') }}
+                @else
+                    {{ $order->created_at->format('d.m.Y') }}
+                @endif
+            </p>
 
-            <p class="label">Due Date</p>
-            <p class="value">{{ $order->delivery_date ? \Carbon\Carbon::parse($order->delivery_date)->format('d.m.Y') : 'N/A' }}</p>
+            <p class="label">{{ ($order->is_recurring_instance ?? false) ? 'Scheduled Delivery' : 'Due Date' }}</p>
+            <p class="value">
+                @if($order->is_recurring_instance ?? false)
+                    {{ \Carbon\Carbon::parse($order->recurring_delivery_date)->format('d.m.Y') }}
+                @else
+                    {{ $order->delivery_date ? \Carbon\Carbon::parse($order->delivery_date)->format('d.m.Y') : 'N/A' }}
+                @endif
+            </p>
         </div>
         <div class="amount-box">
             <span>Amount</span>
@@ -96,6 +117,12 @@
             <h4>Notes</h4>
             <p>{{ $order->notes }}</p>
         @endif
+
+        @if($order->is_recurring_instance ?? false)
+            <div class="alert alert-info mt-3">
+                <strong>Recurring Order:</strong> This is an automatically generated recurring order instance.
+            </div>
+        @endif
     </div>
 
     <!-- Footer -->
@@ -114,3 +141,68 @@
         </div>
     </div>
 </div>
+
+<style>
+    .order-details-card {
+        padding: 25px;
+        background: white;
+        border-radius: 20px;
+        margin-top: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: none;
+    }
+
+    .order-items-table {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .order-items-table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .order-items-table td {
+        vertical-align: middle;
+    }
+
+    .total-cost {
+        font-weight: bold;
+        background-color: #e8f5e8 !important;
+        color: #155724;
+    }
+
+    .badge {
+        font-size: 0.875em;
+        padding: 0.375rem 0.75rem;
+    }
+
+    .form-control[readonly] {
+        background-color: #f8f9fa;
+        opacity: 1;
+    }
+
+    @media print {
+        .btn-submission {
+            display: none;
+        }
+
+        .order-details-card {
+            box-shadow: none;
+            border: 1px solid #dee2e6;
+        }
+    }
+</style>
+
+<script>
+    function hideOrderDetails() {
+        const container = document.getElementById('order-details-container');
+        const ordersContainer = document.getElementById('orders-list-container');
+
+        container.style.display = 'none';
+        ordersContainer.style.display = 'block';
+    }
+</script>

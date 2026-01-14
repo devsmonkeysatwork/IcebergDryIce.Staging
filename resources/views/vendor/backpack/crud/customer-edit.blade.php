@@ -119,7 +119,7 @@
                     <div class="col-md-12 px-4">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h3 class="form-group-heading m-0">
-                                <i class="la la-map-marked-alt me-2"></i> Additional Addresses
+                                <i class="la la-map-marked-alt me-2"></i>  Addresses
                             </h3>
                             <button type="button" class="btn btn-primary btn-sm" onclick="showAddAddressModal()">
                                 <i class="la la-plus"></i> Add New Address

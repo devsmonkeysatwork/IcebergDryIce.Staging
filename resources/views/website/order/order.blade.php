@@ -869,9 +869,30 @@
 
         // Modified nextFromLocation function (simplified)
         async function nextFromLocation() {
+            var checkDate = check_date();
+            var companyError = check_company_name();
+            var contactError = check_contact();
+            var phoneError = check_phone();
+            var emailError = check_email();
+            var deliveryError = check_delivery();
+            var addressError = '';
 
-                await showTab('review');
+            // Run address validation
+            if (checkDate === '' && companyError === '' && contactError === '' && phoneError === '' && emailError === '' && deliveryError === '') {
+                addressError = await check_address();
+            }
 
+            // Only proceed if ALL validations pass (empty string means no error)
+            if (checkDate === '' && addressError === '' && companyError === '' && contactError === '' && phoneError === '' && emailError === '' && deliveryError === '') {
+                showTab('review');
+            } else {
+                // Show an alert indicating validation failed
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Validation Error',
+                    text: 'Please fix all errors before proceeding to review.'
+                });
+            }
         }
 
 
@@ -968,36 +989,36 @@
             }
 
             // If basic validation passes, proceed with API validation
-            if (error_msg === '') {
-                try {
-                    // Call the Google Address Validation API
-                    const result = await validateAddress({
-                        address: address.trim(),
-                        city: city.trim(),
-                        province: prov.trim(),
-                        postal: postal.trim()
-                    });
-
-                    // Check if address is invalid according to Google API
-                    if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {
-                        error_msg = 'Address could not be confirmed by validation service. Please verify your address details.';
-
-                        // Show SweetAlert warning
-                        Swal.fire({
-                            title: 'Address Validation',
-                            html: `Address could not be confirmed. Please provide proper address. <br>Street Address, City, Province, Postal`,
-                            icon: 'warning',
-                            showCancelButton: false,
-                            confirmButtonColor: '#d33',
-                        });
-                    }
-
-                } catch (error) {
-                    console.error('Address validation API error:', error);
-                    // Don't block submission if API fails, just log the error
-                    console.warn('Address validation service temporarily unavailable, proceeding with basic validation only.');
-                }
-            }
+            // if (error_msg === '') {
+            //     try {
+            //         // Call the Google Address Validation API
+            //         const result = await validateAddress({
+            //             address: address.trim(),
+            //             city: city.trim(),
+            //             province: prov.trim(),
+            //             postal: postal.trim()
+            //         });
+            //
+            //         // Check if address is invalid according to Google API
+            //         if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {
+            //             error_msg = 'Address could not be confirmed by validation service. Please verify your address details.';
+            //
+            //             // Show SweetAlert warning
+            //             Swal.fire({
+            //                 title: 'Address Validation',
+            //                 html: `Address could not be confirmed. Please provide proper address. <br>Street Address, City, Province, Postal`,
+            //                 icon: 'warning',
+            //                 showCancelButton: false,
+            //                 confirmButtonColor: '#d33',
+            //             });
+            //         }
+            //
+            //     } catch (error) {
+            //         console.error('Address validation API error:', error);
+            //         // Don't block submission if API fails, just log the error
+            //         console.warn('Address validation service temporarily unavailable, proceeding with basic validation only.');
+            //     }
+            // }
 
             // Set the message based on validation results
             if (error_msg === '')
@@ -1214,8 +1235,14 @@
 
         function check_contact() {
             var error_msg = '';
-            if (document.getElementById('email').value === '' && document.getElementById('phone').value === '')
-                error_msg += 'Please enter an email or phone number so we can contact you if there is any trouble with your order.';
+            var email = document.getElementById('email').value.trim();
+            var phone = document.getElementById('phone').value.trim();
+
+            // Require BOTH email AND phone
+            if (email === '' || phone === '') {
+                error_msg = 'Please enter both email and phone number so we can contact you if there is any trouble with your order.';
+            }
+
             set_msg('phone_notes', error_msg, true);
             return error_msg;
         }
@@ -1277,202 +1304,60 @@
 
         // 1. Fix the populateReview function to properly handle dynamic products
         function populateReview() {
+            console.log('🎯 populateReview() started');
+
             const getValue = (id) => document.getElementById(id)?.value.trim() || '';
 
-            // Get all product quantity inputs using the correct selector
-            const productInputs = document.querySelectorAll('[name^="product["][name$="[quantity]"]');
+            // ... product calculation code ...
 
-            let subtotal = 0;
-            let orderSummary = '';
-            let orderCosts = '';
-
-            // Clear existing product hidden fields
-            const productHiddenContainer = document.getElementById('product-hidden-fields');
-            if (productHiddenContainer) {
-                productHiddenContainer.innerHTML = '';
-            }
-
-            let itemIndex = 0;
-
-            productInputs.forEach(input => {
-                // Extract product ID from name attribute: product[123][quantity]
-                const match = input.name.match(/product\[(\d+)\]\[quantity\]/);
-                if (!match) return;
-
-                const productId = match[1];
-                const quantity = parseFloat(input.value) || 0;
-
-                if (quantity > 0) {
-                    // Get product cost and name from the DOM
-                    const costInput = document.querySelector(`[name="product[${productId}][cost]"]`);
-                    const totalPrice = parseFloat(costInput?.value) || 0;
-
-                    // Get product name from the table row
-                    const productRow = input.closest('tr');
-                    const productNameCell = productRow?.querySelector('td:first-child');
-                    const productName = productNameCell?.textContent.trim() || `Product ${productId}`;
-
-                    // Build summary
-                    orderSummary += `<font color="#00f"><b>${quantity}</b></font> ${productName}<br>`;
-                    orderCosts += `$${totalPrice.toFixed(2)}<br>`;
-                    subtotal += totalPrice;
-
-                    const unitPrice = parseFloat(input.getAttribute('data-unit-price')) || 0;
-                    // Create hidden fields for this product
-                    if (productId === '1') {
-                        document.getElementById('hidden_amount_of_ice').value = quantity;
-                    } else if (productId === '2') {
-                        document.getElementById('hidden_amount_of_boxes').value = quantity;
-                    }
-
-                    if (productHiddenContainer) {
-                        const hiddenFields = `
-                <input type="hidden" name="items[${itemIndex}][product_id]" value="${productId}">
-                <input type="hidden" name="items[${itemIndex}][amount_of_items]" value="${quantity}">
-                <input type="hidden" name="items[${itemIndex}][unit_price]" value="${unitPrice.toFixed(2)}">
-                <input type="hidden" name="items[${itemIndex}][total_price]" value="${totalPrice.toFixed(2)}">
-                `;
-                        productHiddenContainer.innerHTML += hiddenFields;
-                    }
-
-                    itemIndex++;
-                }
-            });
-
-            // Summary & cost display
-            orderSummary += '<b>Sub Total</b>';
-            orderCosts += `$${subtotal.toFixed(2)}`;
-
-            document.getElementById('order-summary').innerHTML = orderSummary;
-            document.getElementById('order-costs').innerHTML = orderCosts;
-
-            // Handle delivery type and calculate delivery cost
+            // Check delivery type
             const deliveryType = document.getElementById('delivery_type')?.value;
+            console.log('🚚 Delivery Type:', deliveryType);
+
             const pickupDeliveryInput = document.querySelector('[name="pickup_delivery"]');
             const deliveryCostElement = document.getElementById('delivery-cost');
 
             let deliveryCost = 0;
 
             if (deliveryType === 'pickup') {
-                // Set delivery cost to 0 for pickup
+                console.log('📦 PICKUP selected - setting cost to $0');
                 deliveryCost = 0;
                 if (pickupDeliveryInput) pickupDeliveryInput.value = 'pickup';
                 if (deliveryCostElement) deliveryCostElement.textContent = '$0.00';
-
-                // Continue with the rest of the calculations
                 calculateTotalsAndFinalize(subtotal, deliveryCost);
             } else if (deliveryType === 'delivery') {
+                console.log('🚚 DELIVERY selected - calling getDeliveryQuoteForReview()');
                 if (pickupDeliveryInput) pickupDeliveryInput.value = 'delivery';
+
                 getDeliveryQuoteForReview()
                     .then(quoteTotal => {
-                        deliveryCost = quoteTotal || 0.00; // Fallback to default delivery cost
+                        console.log('✅ Quote received:', quoteTotal);
+                        deliveryCost = quoteTotal || 0.00;
                         if (deliveryCostElement) deliveryCostElement.textContent = `$${deliveryCost.toFixed(2)}`;
-                        // Continue with the rest of the calculations
                         calculateTotalsAndFinalize(subtotal, deliveryCost);
                     })
                     .catch(error => {
-                        console.error('Error getting delivery quote:', error);
-                        deliveryCost = 0.00; // Fallback to default delivery cost
+                        console.error('❌ Error getting delivery quote:', error);
+                        deliveryCost = 0.00;
                         if (deliveryCostElement) deliveryCostElement.textContent = `$${deliveryCost.toFixed(2)}`;
-                        // Continue with the rest of the calculations
                         calculateTotalsAndFinalize(subtotal, deliveryCost);
                     });
-                return; // Exit early as calculations will be done in the promise
+                return;
             } else {
-                // Default case - use standard delivery cost
+                console.log('⚠️ No delivery type or unknown type:', deliveryType);
                 deliveryCost = 0.00;
                 if (pickupDeliveryInput) pickupDeliveryInput.value = deliveryCost.toFixed(2);
                 if (deliveryCostElement) deliveryCostElement.textContent = `$${deliveryCost.toFixed(2)}`;
-
                 calculateTotalsAndFinalize(subtotal, deliveryCost);
-            }
-
-            function calculateTotalsAndFinalize(subtotal, delivery) {
-                // Delivery, Tax & Total
-                const hazmat = 12.00;
-                const tax = (subtotal + delivery) * 0.15;
-                const total = subtotal + delivery + tax + hazmat;
-
-                document.getElementById('tax-total').innerHTML =
-                    `$${tax.toFixed(2)}<br><hr><b>$${total.toFixed(2)}</b>`;
-
-                // Set cost hidden fields
-                document.getElementById('hidden_hazmat').value = hazmat.toFixed(2);
-                document.getElementById('hidden_subtotal').value = subtotal.toFixed(2);
-                document.getElementById('hidden_tax').value = tax.toFixed(2);
-                document.getElementById('hidden_total_cost').value = total.toFixed(2);
-                document.getElementById('hidden_delivery_cost').value = delivery.toFixed(2);
-
-                // Continue with the rest of the original function
-                populateLocationAndContactInfo();
-            }
-
-            function populateLocationAndContactInfo() {
-                // Location
-                const company = getValue('company');
-                const address = getValue('address');
-                const city = getValue('city');
-                const province = getValue('province');
-                const postal = getValue('postal');
-                let locationHtml = '';
-                if (company && company !== 'Residence') locationHtml += `<b>${company}</b><br>`;
-                if (address) locationHtml += `${address}<br>`;
-                if (city || province || postal) {
-                    locationHtml += city;
-                    if (province) locationHtml += `, ${province}`;
-                    if (postal) locationHtml += ` ${postal}`;
-                }
-                document.getElementById('delivery-location').innerHTML = locationHtml || 'No address provided';
-
-                // Delivery Date
-                const month = getValue('month');
-                const day = getValue('day');
-                const year = getValue('year');
-                const monthNames = [
-                    "January", "February", "March", "April", "May", "June",
-                    "July", "August", "September", "October", "November", "December"
-                ];
-                const dateHtml = (month && day && year)
-                    ? `${monthNames[month - 1]} ${day}, ${year}`
-                    : 'No date selected';
-
-                document.getElementById('delivery-date').innerHTML = dateHtml;
-                document.getElementById('hidden_delivery_date').value = (month && day && year)
-                    ? `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
-                    : '';
-
-                // Contact Info
-                const name = getValue('name');
-                const phone = getValue('phone');
-                const email = getValue('email');
-                let contactHtml = '';
-                if (name) contactHtml += `<b>${name}</b><br>`;
-                if (phone) contactHtml += `Phone: ${phone}<br>`;
-                if (email) contactHtml += `Email: ${email}`;
-                document.getElementById('contact-info').innerHTML = contactHtml || 'No contact info';
-
-                // Notes
-                const notes = getValue('notes');
-                document.getElementById('order-notes').innerHTML = notes || 'No special notes';
-
-                // Hidden fields for order data
-                document.getElementById('hidden_customer_name').value = name;
-                document.getElementById('hidden_email').value = email;
-                document.getElementById('hidden_phone').value = phone;
-                document.getElementById('hidden_location_name').value = company;
-                document.getElementById('hidden_address').value = address;
-                document.getElementById('hidden_city').value = city;
-                document.getElementById('hidden_postal_code').value = postal;
-                document.getElementById('hidden_province').value = province;
-                document.getElementById('hidden_notes').value = notes;
             }
         }
 
         // Integrated delivery quote function for the review
         async function getDeliveryQuoteForReview() {
+            console.log('🚀 getDeliveryQuoteForReview() started');
+
             const getValue = (id) => document.getElementById(id)?.value.trim() || '';
 
-            // Get form values
             const formData = {
                 address: getValue('address'),
                 city: getValue('city'),
@@ -1486,40 +1371,68 @@
                 unit: getValue('unit') || ''
             };
 
-            // Check required address fields for delivery calculation
+            console.log('📋 Form Data collected:', formData);
+
             const requiredAddressFields = [formData.address, formData.city, formData.province, formData.postal];
             if (!requiredAddressFields.every(val => val && val.trim())) {
-                console.log('Missing required address fields for delivery calculation');
+                console.error('❌ Missing required address fields');
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Missing Address Information',
+                    text: 'Please provide complete address details including street, city, province, and postal code.',
+                    confirmButtonColor: '#d33'
+                });
+
                 throw new Error('Missing required address fields');
             }
 
-            console.log('Starting delivery quote request for review...');
+            console.log('✅ Address fields validated');
+            console.log('🔍 Fetching closest supplier...');
 
             try {
-                // Get closest supplier first
                 const supplierResponse = await fetch(`/test-closest-supplier?street=${encodeURIComponent(formData.address)}&city=${encodeURIComponent(formData.city)}&province=${encodeURIComponent(formData.province)}`);
 
+                console.log('📡 Supplier response status:', supplierResponse.status);
+
                 if (!supplierResponse.ok) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Supplier Service Error',
+                        text: 'Unable to connect to supplier service. Please try again later.',
+                        confirmButtonColor: '#d33'
+                    });
                     throw new Error(`Supplier API returned ${supplierResponse.status}`);
                 }
 
                 const supplierData = await supplierResponse.json();
+                console.log('📦 Supplier Data received:', supplierData);
 
-                if (!supplierData.closest_supplier || !supplierData.closest_supplier.id) {
-                    throw new Error('No supplier found in response');
+                // Check if supplier was found
+                if (!supplierData.closest_supplier || !supplierData.closest_supplier.id || supplierData.message === 'No supplier found') {
+                    console.error('❌ No supplier found in response');
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Service Area Not Available',
+                        html: `We're sorry, but we currently don't deliver to this location:<br><br>
+                       <strong>${formData.address}, ${formData.city}, ${formData.province} ${formData.postal}</strong><br><br>
+                       Please verify your address or contact us for delivery options.`,
+                        confirmButtonColor: '#d33',
+                        confirmButtonText: 'Go Back'
+                    });
+
+                    throw new Error('No supplier found for this location');
                 }
 
-
-
                 const supplier = supplierData.closest_supplier;
+                console.log('✅ Supplier found:', supplier);
 
                 // Update supplier_id if element exists
                 const supplierIdElement = document.getElementById('hidden_supplier_id');
                 if (supplierIdElement) {
                     supplierIdElement.value = supplier.id;
                 }
-
-                document.getElementById('hidden_customer_name').value = name;
 
                 // Get delivery quote
                 const quotePayload = {
@@ -1538,9 +1451,9 @@
                     weight: formData.iceAmount
                 };
 
-                // console.log('Quote payload being sent:', quotePayload);
-                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+                console.log('💰 Requesting quote with payload:', quotePayload);
 
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
                 const quoteResponse = await fetch('/get-delivery-quote', {
                     method: 'POST',
@@ -1552,40 +1465,56 @@
                     body: JSON.stringify(quotePayload)
                 });
 
-                // console.log('CSRF Token found:', csrfToken ? 'Yes' : 'No');
-                // console.log('Quote response status:', quoteResponse.status);
-                // console.log('Quote response headers:', quoteResponse.headers);
+                console.log('📡 Quote response status:', quoteResponse.status);
 
                 const responseText = await quoteResponse.text();
-                // console.log('Quote response text:', responseText);
+                console.log('📄 Quote response text:', responseText);
 
                 if (!quoteResponse.ok) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Quote Service Error',
+                        text: 'Unable to calculate delivery cost. Please try again.',
+                        confirmButtonColor: '#d33'
+                    });
                     throw new Error(`Quote API returned ${quoteResponse.status}: ${responseText}`);
                 }
 
                 let quoteData;
                 try {
                     quoteData = JSON.parse(responseText);
+                    console.log('💵 Quote data parsed:', quoteData);
                 } catch (e) {
-                    console.error('Failed to parse JSON:', e);
+                    console.error('❌ Failed to parse JSON:', e);
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'System Error',
+                        text: 'Invalid response from quote service. Please contact support.',
+                        confirmButtonColor: '#d33'
+                    });
+
                     throw new Error('Invalid JSON response from quote API');
                 }
 
                 if (quoteData.success && quoteData.total) {
-                    // console.log('Quote successful for review, total:', quoteData.total);
+                    console.log('✅ Quote successful, total:', quoteData.total);
                     return parseFloat(quoteData.total);
                 } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Quote Failed',
+                        text: quoteData.error || 'Unable to calculate delivery cost for this location.',
+                        confirmButtonColor: '#d33'
+                    });
                     throw new Error(quoteData.error || 'Quote failed');
                 }
 
             } catch (error) {
-                console.error('Error in getDeliveryQuoteForReview:', error);
+                console.error('💥 Error in getDeliveryQuoteForReview:', error);
                 throw error;
             }
         }
-
-
-
         // Handle form submission with AJAX
 
         document.getElementById('orderForm').addEventListener('submit', function(e) {

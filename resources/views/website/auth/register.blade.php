@@ -131,30 +131,30 @@
             return data;
         }
 
-        document.querySelector("form").addEventListener("submit", async function (e) {
-            e.preventDefault();
-            const address = document.getElementById("address").value.trim();
-            const city = document.getElementById("city").value.trim();
-            const province = document.getElementById("province").value.trim();
-            const postal = document.getElementById("postal").value.trim();
-
-            const result = await validateAddress({ address, city, province, postal });
-            console.log(result);
-            // Check if address is invalid
-            if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {
-                const suggestions = result.result.address.formattedAddress;
-
-                Swal.fire({
-                    title: 'Address Validation',
-                    html: `Address could not be confirmed. Please provide proper address. <br>Street Address, City, Province, Postal`,
-                    icon: 'warning',
-                    showCancelButton: false,
-                    confirmButtonColor: '#d33',
-                });
-            } else {
-                this.submit();
-            }
-        });
+        // document.querySelector("form").addEventListener("submit", async function (e) {
+        //     e.preventDefault();
+        //     const address = document.getElementById("address").value.trim();
+        //     const city = document.getElementById("city").value.trim();
+        //     const province = document.getElementById("province").value.trim();
+        //     const postal = document.getElementById("postal").value.trim();
+        //
+        //     const result = await validateAddress({ address, city, province, postal });
+        //     console.log(result);
+        //     // Check if address is invalid
+        //     if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {
+        //         const suggestions = result.result.address.formattedAddress;
+        //
+        //         Swal.fire({
+        //             title: 'Address Validation',
+        //             html: `Address could not be confirmed. Please provide proper address. <br>Street Address, City, Province, Postal`,
+        //             icon: 'warning',
+        //             showCancelButton: false,
+        //             confirmButtonColor: '#d33',
+        //         });
+        //     } else {
+        //         this.submit();
+        //     }
+        // });
 
 
 

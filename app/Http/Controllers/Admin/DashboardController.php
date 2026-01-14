@@ -33,7 +33,7 @@ class DashboardController extends Controller
             ->map(function($recurring) {
                 return [
                     'id' => $recurring->order->id,
-                    'invoice_id' => $recurring->invoice_id, // Use invoice_id from RecurringOrder table
+                    'invoice_id' => $recurring->invoice_id,
                     'customer_name' => $recurring->order->customer_name,
                     'delivery_date' => $recurring->scheduled_delivery_date,
                     'status' => $recurring->status,
@@ -58,15 +58,14 @@ class DashboardController extends Controller
             ->take(15)
             ->values();
 
+        // REMOVED the date filter here too for consistency
         $recurringOrders = RecurringOrder::where('status', RecurringOrder::OPEN)
-            ->where('scheduled_delivery_date', '>', now())
             ->whereHas('order', function ($query) {
                 $query->where('recurring', 'recurring')
                     ->whereIn('status', [Order::VALID, Order::COMPLETED]);
             })
             ->with(['order'])
-            ->orderBy('scheduled_delivery_date')
-            ->latest()
+            ->orderBy('invoice_id', 'desc')
             ->take(15)
             ->get();
 
@@ -76,31 +75,29 @@ class DashboardController extends Controller
             ->take(15)
             ->get();
 
+        // Get recurring orders from Orders table
         $recurringFromOrders = Order::where('recurring', 'recurring')
             ->whereIn('status', [Order::VALID, Order::COMPLETED])
-            ->orderBy('delivery_date')
-            ->take(15)
             ->get();
 
+        // Get recurring orders from RecurringOrder table - REMOVED DATE FILTER
         $recurringFromRecurringTable = RecurringOrder::where('status', RecurringOrder::OPEN)
-            ->where('scheduled_delivery_date', '>', now())
             ->whereHas('order', function ($query) {
                 $query->where('recurring', 'recurring')
-                    ->whereIn('status', [Order::VALID]);
+                    ->whereIn('status', [Order::VALID, Order::COMPLETED]); // Changed to include COMPLETED
             })
             ->with(['order'])
-            ->orderBy('scheduled_delivery_date')
-            ->take(15)
             ->get();
 
+        // Merge and sort by invoice_id
         $allRecurringOrders = collect()
             ->merge($recurringFromOrders)
             ->merge($recurringFromRecurringTable)
-            ->sortBy(function ($item) {
-                return $item instanceof RecurringOrder
-                    ? $item->scheduled_delivery_date
-                    : $item->delivery_date;
-            });
+            ->sortByDesc(function($item) {
+                return (int) ($item->invoice_id ?? 0);
+            })
+            ->take(15)
+            ->values();
 
         return view('vendor.backpack.base.dashboard', compact(
             'manualOrders',

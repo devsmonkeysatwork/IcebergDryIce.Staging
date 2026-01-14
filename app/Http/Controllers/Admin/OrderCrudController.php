@@ -127,7 +127,7 @@ class OrderCrudController extends CrudController
         $allOrders = collect()
             ->merge($orders)
             ->merge($recurringOrders)
-            ->sortByDesc('delivery_date');
+            ->sortByDesc('invoice_id');
 
         // Manual pagination
         $total = $allOrders->count();
@@ -1363,6 +1363,7 @@ class OrderCrudController extends CrudController
                 'recurring' => $recurring,
                 'status' => $status,
             ];
+//            dd($data);
             return view('website.customer.partials.order_details', $data);
         }
 

@@ -131,70 +131,115 @@
 
                                 @if($orders->count() > 0)
                                     <div class="table-responsive">
-                                        <table class="table table-striped">
+                                        <table class="table">
                                             <thead>
                                             <tr>
-                                                <th>Order #</th>
-                                                <th>Customer Name</th>
+                                                <th>Invoice #</th>
+                                                <th>Date</th>
                                                 <th>Delivery Date</th>
                                                 <th>Status</th>
                                                 <th>Total</th>
-                                                <th>Origin</th>
-                                                <th>Recurring</th>
-                                                <th>Payment</th>
+                                                <th>Payment Status</th>
                                                 <th>Actions</th>
                                             </tr>
                                             </thead>
                                             <tbody>
                                             @foreach($orders as $order)
-                                                <tr>
-                                                    <td>{{ str_pad($order->invoice_id, 4, '0', STR_PAD_LEFT) }}</td>
-                                                    <td>{{ $order->customer_name }}</td>
-                                                    <td>{{ \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') }}</td>
+                                                <tr class="{{ $order instanceof \App\Models\RecurringOrder ? 'table-secondary' : '' }}">
                                                     <td>
-                                                        <span class="badge
-                                                            @if($order->status == \App\Models\Order::COMPLETED) bg-success
-                                                            @elseif($order->status == \App\Models\Order::VALID) bg-primary
-                                                            @elseif($order->status == \App\Models\Order::CANCELLED) bg-warning
-                                                            @endif">
-                                                            {{ ucfirst($order->status) }}
-                                                        </span>
+                                                        @if($order instanceof \App\Models\RecurringOrder)
+                                                            <i class="la la-repeat me-1 text-info"></i>
+                                                        @endif
+                                                        {{ str_pad($order->invoice_id, 4, '0', STR_PAD_LEFT) }}
+                                                        @if($order instanceof \App\Models\RecurringOrder)
+                                                            <small class="badge badge-info ms-1">Recurring</small>
+                                                        @endif
                                                     </td>
-                                                    <td>${{ number_format($order->total_cost, 2) }}</td>
-                                                    <td>{{ $order->origin }}</td>
+                                                    <td>{{ $order->created_at->format('Y-m-d') }}</td>
                                                     <td>
-                                                        @if($order->recurring == \App\Models\Order::RECURRING)
-                                                            <span class="badge badge-info">Yes</span>
+                                                        @if($order instanceof \App\Models\RecurringOrder)
+                                                            {{ \Carbon\Carbon::parse($order->scheduled_delivery_date)->format('Y-m-d') }}
                                                         @else
-                                                            <span class="badge badge-secondary">No</span>
+                                                            {{ $order->delivery_date ? \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') : 'N/A' }}
                                                         @endif
                                                     </td>
                                                     <td>
-                                                        <span class="text-uppercase badge
-                                                           @if(optional($order->invoice)->payment_status === 'paid')
-                                                                bg-success
-                                                            @elseif(optional($order->invoice)->payment_status === 'pending')
-                                                                bg-danger
-                                                            @else
-                                                                badge-secondary
-                                                            @endif">
-                                                            {{ optional($order->invoice)->payment_status ?: 'no invoice' }}
-                                                        </span>
+                    <span class="text-uppercase badge
+                        @if($order->status == \App\Models\Order::COMPLETED || $order->status == 'completed') bg-success
+                        @elseif($order->status == \App\Models\Order::VALID || $order->status == 'open') bg-primary
+                        @else badge-secondary @endif">
+                        {{ ucfirst($order->status) }}
+                    </span>
                                                     </td>
                                                     <td>
-                                                        <button class="btn btn-sm btn-primary btn-view la la-eye fs-2"
-                                                                data-order-id="{{ $order->id }}">
-                                                        </button>
-                                                        @if(optional($order->invoice)->payment_status === 'pending')
-                                                            <button class="btn btn-sm btn-success pay-your-order fs-4" data-id="{{ $order->invoice_id }}">
-                                                                <i class="las la-credit-card mx-2"></i>Pay Now
+                                                        @if($order instanceof \App\Models\RecurringOrder)
+                                                            ${{ number_format($order->order->total_cost, 2) }}
+                                                        @else
+                                                            ${{ number_format($order->total_cost, 2) }}
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                    <span class="text-uppercase badge
+                       @if(optional($order->invoice)->payment_status === 'paid')
+                            bg-success
+                        @elseif(optional($order->invoice)->payment_status === 'pending')
+                            bg-danger
+                        @else
+                            badge-secondary
+                        @endif">
+                        {{ optional($order->invoice)->payment_status ?: 'no invoice' }}
+                    </span>
+                                                    </td>
+                                                    <td>
+                                                        @if($order instanceof \App\Models\RecurringOrder)
+                                                            {{-- Recurring Order Actions --}}
+                                                            <button class="btn btn-sm btn-primary btn-view la la-eye fs-2"
+                                                                    data-order-id="{{ $order->order_id }}"
+                                                                    data-recurring="1"
+                                                                    data-recurring-id="{{ $order->id }}">
                                                             </button>
+{{--                                                            <button class="btn btn-sm btn-primary view-invoice mx-2"--}}
+{{--                                                                    data-id="{{ $order->id }}"--}}
+{{--                                                                    data-is-recurring="1">--}}
+{{--                                                                <i class="las la-file-invoice fs-2"></i>--}}
+{{--                                                            </button>--}}
+                                                            @if(optional($order->invoice)->payment_status === 'pending')
+                                                                <button class="btn btn-sm btn-success pay-your-order fs-4" data-id="{{ $order->invoice->id }}">
+                                                                    <i class="las la-credit-card mx-2"></i>Pay Now
+                                                                </button>
+                                                            @elseif(optional($order->invoice)->payment_status === \App\Models\Invoice::FAILED)
+                                                                <button class="btn btn-sm btn-secondary pay-your-order fs-4" data-id="{{ $order->invoice->id }}">
+                                                                    <i class="las la-credit-card mx-2"></i>Try again
+                                                                </button>
+                                                            @endif
+                                                        @else
+                                                            {{-- Regular Order Actions --}}
+                                                            <button class="btn btn-sm btn-primary btn-view la la-eye fs-2"
+                                                                    data-order-id="{{ $order->id }}"
+                                                                    data-recurring="0"
+                                                                    data-recurring-id="0">
+                                                            </button>
+{{--                                                            <button class="btn btn-sm btn-primary view-invoice mx-2"--}}
+{{--                                                                    data-id="{{ $order->id }}"--}}
+{{--                                                                    data-is-recurring="0">--}}
+{{--                                                                <i class="las la-file-invoice fs-2"></i>--}}
+{{--                                                            </button>--}}
+                                                            @if(optional($order->invoice)->payment_status === 'pending')
+                                                                <button class="btn btn-sm btn-success pay-your-order fs-4" data-id="{{ $order->invoice_id }}">
+                                                                    <i class="las la-credit-card mx-2"></i>Pay Now
+                                                                </button>
+                                                            @elseif(optional($order->invoice)->payment_status === \App\Models\Invoice::FAILED)
+                                                                <button class="btn btn-sm btn-secondary pay-your-order fs-4" data-id="{{ $order->invoice_id }}">
+                                                                    <i class="las la-credit-card mx-2"></i>Try again
+                                                                </button>
+                                                            @endif
                                                         @endif
                                                     </td>
                                                 </tr>
                                             @endforeach
                                             </tbody>
                                         </table>
+
                                     </div>
 
                                     {{-- Pagination section --}}
@@ -219,10 +264,10 @@
                                         </div>
                                         <div class="col-md-6">
                                             <div class="float-end pagination">
-                                                {{-- Pagination links --}}
-                                                @if($isPaginated)
-                                                    {{ $orders->appends(request()->except('page'))->links() }}
-                                                @endif
+{{--                                                --}}{{-- Pagination links --}}
+{{--                                                @if($isPaginated)--}}
+{{--                                                    {{ $orders->appends(request()->except('page'))->links() }}--}}
+{{--                                                @endif--}}
                                             </div>
                                         </div>
                                     </div>
@@ -265,20 +310,22 @@
             document.querySelectorAll('.btn-view').forEach(function (btn) {
                 btn.addEventListener('click', function () {
                     const orderId = this.dataset.orderId;
-                    console.log('Clicked View for Order ID:', orderId);
+                    const recurring = this.dataset.recurring ?? 0;
+                    const recurringId = this.dataset.recurringId ?? 0;
+                    console.log('Clicked View for Order ID:', orderId, 'Recurring:', recurring, 'Recurring ID:', recurringId);
 
                     // Hide orders list and show details container
                     ordersContainer.style.display = 'none';
                     detailsContainer.style.display = 'block';
 
                     // Add loading state
-                    contentDiv.innerHTML = '<div class="container"><div class="text-center py-4"><div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div><p class="mt-2">Loading Order #' + orderId + '...</p></div></div>';
+                    contentDiv.innerHTML = '<div class="container"><div class="text-center py-4"><div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div><p class="mt-2">Loading Order...</p></div></div>';
 
                     // Scroll to top
                     window.scrollTo({ top: 0, behavior: 'smooth' });
 
                     // Fetch order details
-                    fetch(`/customer/order-details/${orderId}`)
+                    fetch(`/customer/order-details/${orderId}?recurring=${recurring}&recurring_id=${recurringId}`)
                         .then(response => {
                             if (!response.ok) {
                                 throw new Error('Network response was not ok');
@@ -295,14 +342,31 @@
                 });
             });
 
-            // Global function to hide order details (called from the details view)
+            // Invoice button click handler
+            $(document).on('click', '.view-invoice', function () {
+                const orderId = $(this).data('id');
+                const isRecurring = $(this).data('is-recurring') ?? 0;
+
+                $.ajax({
+                    url: `/customer/invoice/${orderId}?is_recurring=${isRecurring}`,
+                    type: 'GET',
+                    success: function (response) {
+                        $('#invoice-modal-body').html(response.html);
+                        $('#invoiceModal').modal('show');
+                    },
+                    error: function (xhr) {
+                        alert('Failed to load invoice. Please try again.');
+                    }
+                });
+            });
+
+            // Global function to hide order details
             window.hideOrderDetails = function() {
                 detailsContainer.style.display = 'none';
                 ordersContainer.style.display = 'block';
                 contentDiv.innerHTML = '';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             };
-
         });
 
         $(document).ready(function() {
@@ -379,3 +443,16 @@
 
     </script>
 @endsection
+<div class="modal fade" id="invoiceModal" tabindex="-1" role="dialog" aria-labelledby="invoiceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Invoice</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="invoice-modal-body">
+                <!-- Invoice content will be injected here -->
+            </div>
+        </div>
+    </div>
+</div>

@@ -8,8 +8,10 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Customer;
 use App\Models\CustomerAddress;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use App\Mail\CustomerRegisteredMail;
 use Illuminate\Support\Facades\Mail;
+
 use Illuminate\Validation\Rule;
 
 class CustomerRegisterController extends Controller
