@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\RecurringOrder;
 use App\Services\InvoiceService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -15,16 +14,14 @@ use Carbon\Carbon;
 class MigrateOrdersForExistingCustomers extends Command
 {
     protected $signature = 'migrate:existing-customer-orders';
-    protected $description = 'Migrate all future orders for customers currently in the database';
+    protected $description = 'Migrate recurring parent orders (day-based) for existing customers';
 
-    private $orderIdMap = [];
     private $migratedOrders = 0;
-    private $migratedRecurringInstances = 0;
     private $errorCount = 0;
 
     public function handle()
     {
-        $this->info("Starting migration of future orders for existing customers...");
+        $this->info("Starting migration of recurring parent orders...");
 
         try {
             $customerIds = Customer::pluck('id')->toArray();
@@ -38,19 +35,8 @@ class MigrateOrdersForExistingCustomers extends Command
 
             DB::beginTransaction();
 
-            $currentTimestamp = time();
-
-            // Step 1: Migrate future one-time orders
-            $this->info("\nStep 1: Migrating future one-time orders...");
-            $this->migrateFutureOneTimeOrders($customerIds, $currentTimestamp);
-
-            // Step 2: Migrate recurring parent orders (by day)
-            $this->info("\nStep 2: Migrating recurring parent orders...");
-            $this->migrateFutureRecurringParents($customerIds);
-
-            // Step 3: Migrate future recurring instances
-            $this->info("\nStep 3: Migrating future recurring instances...");
-            $this->migrateFutureRecurringInstances($customerIds, $currentTimestamp);
+            // Migrate recurring parent orders (day-based only)
+            $this->migrateRecurringParentOrders($customerIds);
 
             DB::commit();
 
@@ -61,16 +47,14 @@ class MigrateOrdersForExistingCustomers extends Command
                 ['Metric', 'Count'],
                 [
                     ['Customers Found', count($customerIds)],
-                    ['Orders Migrated', $this->migratedOrders],
-                    ['Recurring Instances Migrated', $this->migratedRecurringInstances],
+                    ['Recurring Parent Orders Migrated', $this->migratedOrders],
                     ['Errors', $this->errorCount],
                 ]
             );
 
-            Log::info('Existing customer orders migration completed', [
+            Log::info('Recurring parent orders migration completed', [
                 'customers_count' => count($customerIds),
                 'orders_migrated' => $this->migratedOrders,
-                'recurring_instances_migrated' => $this->migratedRecurringInstances,
                 'errors' => $this->errorCount,
             ]);
 
@@ -80,7 +64,7 @@ class MigrateOrdersForExistingCustomers extends Command
             $this->error('Line: ' . $e->getLine());
             $this->error('File: ' . $e->getFile());
 
-            Log::error('Existing customer orders migration failed', [
+            Log::error('Recurring parent orders migration failed', [
                 'error' => $e->getMessage(),
                 'line' => $e->getLine(),
                 'file' => $e->getFile(),
@@ -92,38 +76,9 @@ class MigrateOrdersForExistingCustomers extends Command
         return 0;
     }
 
-    private function migrateFutureOneTimeOrders($customerIds, $currentTimestamp)
+    private function migrateRecurringParentOrders($customerIds)
     {
-        $oldOrders = DB::connection('old_mysql')
-            ->table('orders')
-            ->whereIn('customerID', $customerIds)
-            ->where('recurring', 0)
-            ->where('recurringInstance', 0)
-            ->where('cancelled', 0)
-            ->where('orderDate', '>', $currentTimestamp)
-            ->get();
-
-        $this->info("Found {$oldOrders->count()} future one-time orders to migrate.");
-
-        if ($oldOrders->isEmpty()) {
-            return;
-        }
-
-        $bar = $this->output->createProgressBar(count($oldOrders));
-        $bar->start();
-
-        foreach ($oldOrders as $oldOrder) {
-            $this->createOrderFromOld($oldOrder, Order::NON_RECURRING);
-            $bar->advance();
-        }
-
-        $bar->finish();
-        $this->newLine();
-    }
-
-    private function migrateFutureRecurringParents($customerIds)
-    {
-        // For recurring orders, use orderDay instead of orderDate
+        // Get recurring parent orders with orderDay set
         $oldOrders = DB::connection('old_mysql')
             ->table('orders')
             ->whereIn('customerID', $customerIds)
@@ -134,7 +89,7 @@ class MigrateOrdersForExistingCustomers extends Command
             ->where('orderDay', '!=', '')
             ->get();
 
-        $this->info("Found {$oldOrders->count()} recurring parent orders to migrate.");
+        $this->info("Found {$oldOrders->count()} recurring parent orders (day-based) to migrate.");
 
         if ($oldOrders->isEmpty()) {
             return;
@@ -144,7 +99,7 @@ class MigrateOrdersForExistingCustomers extends Command
         $bar->start();
 
         foreach ($oldOrders as $oldOrder) {
-            $this->createOrderFromOld($oldOrder, Order::RECURRING);
+            $this->createRecurringParentOrder($oldOrder);
             $bar->advance();
         }
 
@@ -152,35 +107,7 @@ class MigrateOrdersForExistingCustomers extends Command
         $this->newLine();
     }
 
-    private function migrateFutureRecurringInstances($customerIds, $currentTimestamp)
-    {
-        $oldInstances = DB::connection('old_mysql')
-            ->table('orders')
-            ->whereIn('customerID', $customerIds)
-            ->where('cancelled', 0)
-            ->where('recurringInstance', 1)
-            ->where('orderDate', '>', $currentTimestamp)
-            ->get();
-
-        $this->info("Found {$oldInstances->count()} future recurring instances to migrate.");
-
-        if ($oldInstances->isEmpty()) {
-            return;
-        }
-
-        $bar = $this->output->createProgressBar(count($oldInstances));
-        $bar->start();
-
-        foreach ($oldInstances as $oldInstance) {
-            $this->createRecurringInstanceFromOld($oldInstance);
-            $bar->advance();
-        }
-
-        $bar->finish();
-        $this->newLine();
-    }
-
-    private function createOrderFromOld($oldOrder, $recurringType)
+    private function createRecurringParentOrder($oldOrder)
     {
         try {
             $customer = Customer::find($oldOrder->customerID);
@@ -191,6 +118,14 @@ class MigrateOrdersForExistingCustomers extends Command
                 return;
             }
 
+            // Get supplier_id from old database
+            $oldCustomer = DB::connection('old_mysql')
+                ->table('login')
+                ->where('customerID', $oldOrder->customerID)
+                ->first();
+
+            $supplierId = $oldCustomer->supply_location ?? null;
+
             // Determine status
             $status = Order::VALID;
             if ($oldOrder->cancelled == 1) {
@@ -199,18 +134,14 @@ class MigrateOrdersForExistingCustomers extends Command
                 $status = Order::SKIP;
             }
 
-            // Get delivery date based on order type
-            if ($recurringType === Order::RECURRING && !empty($oldOrder->orderDay)) {
-                // For recurring orders, use the day name to get next occurrence
-                $deliveryDate = $this->getNextOccurrenceOfDay($oldOrder->orderDay);
-            } elseif (!empty($oldOrder->orderDate) && $oldOrder->orderDate > 0) {
-                // For non-recurring orders, use the timestamp
-                $deliveryDate = Carbon::createFromTimestamp($oldOrder->orderDate);
-            } else {
+            // Get next delivery date based on orderDay
+            if (empty($oldOrder->orderDay)) {
                 $this->errorCount++;
-                Log::warning("Invalid date for order {$oldOrder->orderID}");
+                Log::warning("No orderDay for recurring order {$oldOrder->orderID}");
                 return;
             }
+
+            $deliveryDate = $this->getNextOccurrenceOfDay($oldOrder->orderDay);
 
             // Calculate costs
             $iceAmount = (float)$oldOrder->count;
@@ -227,7 +158,7 @@ class MigrateOrdersForExistingCustomers extends Command
             $tax = ($iceTotal * 0.05) + ($boxTotal * 0.12) + ($deliveryCost * 0.05);
             $totalCost = $subTotal + $deliveryCost + $tax;
 
-            // Create order
+            // Create recurring parent order
             $order = Order::create([
                 'customer_id' => $customer->id,
                 'customer_name' => $customer->name,
@@ -236,7 +167,7 @@ class MigrateOrdersForExistingCustomers extends Command
                 'amount_of_ice' => $iceAmount,
                 'amount_of_boxes' => $boxAmount,
                 'origin' => 'manual',
-                'recurring' => $recurringType,
+                'recurring' => Order::RECURRING,
                 'location_name' => '',
                 'address' => $customer->address ?? '',
                 'unit' => '',
@@ -254,12 +185,9 @@ class MigrateOrdersForExistingCustomers extends Command
                 'tax' => $tax,
                 'total_cost' => $totalCost,
                 'push' => 1,
-                'supplier_id' => null,
+                'supplier_id' => $supplierId,
                 'invoice_id' => null,
             ]);
-
-            // Map old order ID to new order ID for recurring instances
-            $this->orderIdMap[$oldOrder->orderID] = $order->id;
 
             // Create order items
             if ($iceAmount > 0) {
@@ -288,71 +216,20 @@ class MigrateOrdersForExistingCustomers extends Command
 
             $this->migratedOrders++;
 
+            Log::info('Migrated recurring parent order', [
+                'old_order_id' => $oldOrder->orderID,
+                'new_order_id' => $order->id,
+                'customer_id' => $customer->id,
+                'order_day' => $oldOrder->orderDay,
+                'delivery_date' => $deliveryDate->toDateString(),
+                'supplier_id' => $supplierId,
+            ]);
+
         } catch (\Exception $e) {
             $this->errorCount++;
-            Log::error('Failed to migrate order', [
+            Log::error('Failed to migrate recurring parent order', [
                 'old_order_id' => $oldOrder->orderID,
                 'customer_id' => $oldOrder->customerID,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-        }
-    }
-
-    private function createRecurringInstanceFromOld($oldInstance)
-    {
-        try {
-            // Extract parent order ID
-            $parentOrderId = $this->extractParentOrderId($oldInstance->notes);
-            if (!$parentOrderId) {
-                $this->errorCount++;
-                Log::warning("Could not find parent order ID for instance {$oldInstance->orderID}");
-                return;
-            }
-
-            // Get new parent order ID from the mapping
-            $newParentOrderId = $this->orderIdMap[$parentOrderId] ?? null;
-
-            if (!$newParentOrderId) {
-                $this->errorCount++;
-                Log::warning("Parent order not found for instance {$oldInstance->orderID} (parent: {$parentOrderId})");
-                return;
-            }
-
-            // Determine status
-            $status = RecurringOrder::OPEN;
-            if ($oldInstance->cancelled == 1) {
-                $status = RecurringOrder::CANCELLED;
-            }
-
-            // Get delivery date from timestamp
-            if (!empty($oldInstance->orderDate) && $oldInstance->orderDate > 0) {
-                $deliveryDate = Carbon::createFromTimestamp($oldInstance->orderDate);
-            } else {
-                $this->errorCount++;
-                Log::warning("Invalid date for recurring instance {$oldInstance->orderID}");
-                return;
-            }
-
-            // Create recurring order
-            $recurringOrder = RecurringOrder::create([
-                'order_id' => $newParentOrderId,
-                'scheduled_delivery_date' => $deliveryDate,
-                'status' => $status,
-                'recurring_payment_status' => 'pending',
-            ]);
-
-            // Create invoice
-            $invoiceService = new InvoiceService();
-            $invoiceService->createInvoiceForRecurringOrder($recurringOrder);
-
-            $this->migratedRecurringInstances++;
-
-        } catch (\Exception $e) {
-            $this->errorCount++;
-            Log::error('Failed to migrate recurring instance', [
-                'old_instance_id' => $oldInstance->orderID,
-                'customer_id' => $oldInstance->customerID,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -378,14 +255,6 @@ class MigrateOrdersForExistingCustomers extends Command
 
         // Get next occurrence of this day (not including today)
         return Carbon::now()->next($dayConstant);
-    }
-
-    private function extractParentOrderId($notes)
-    {
-        if (preg_match('/Instance of Order#\s*(\d+)/i', $notes, $matches)) {
-            return (int)$matches[1];
-        }
-        return null;
     }
 
     private function extractBoxAmount($notes)
