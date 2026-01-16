@@ -163,24 +163,24 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     async function validateAddress(addressObj) {
-        const apiKey = "{{config('services.google.address_api_key')}}";
-        const response = await fetch(`https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                address: {
-                    regionCode: "CA", // For Canada
-                    addressLines: [addressObj.address],
-                    locality: addressObj.city,
-                    administrativeArea: addressObj.province,
-                    postalCode: addressObj.postal
-                }
-            })
-        });
+        {{--const apiKey = "{{config('services.google.address_api_key')}}";--}}
+        {{--const response = await fetch(`https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`, {--}}
+        {{--    method: "POST",--}}
+        {{--    headers: {--}}
+        {{--        "Content-Type": "application/json"--}}
+        {{--    },--}}
+        {{--    body: JSON.stringify({--}}
+        {{--        address: {--}}
+        {{--            regionCode: "CA", // For Canada--}}
+        {{--            addressLines: [addressObj.address],--}}
+        {{--            locality: addressObj.city,--}}
+        {{--            administrativeArea: addressObj.province,--}}
+        {{--            postalCode: addressObj.postal--}}
+        {{--        }--}}
+        {{--    })--}}
+        {{--});--}}
 
-        const data = await response.json();
+        // const data = await response.json();
         return data;
     }
 
@@ -195,19 +195,19 @@
             const result = await validateAddress({ address, city, province, postal });
             console.log(result);
             // Check if address is invalid
-            if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {
-                const suggestions = result.result.address.formattedAddress;
-
-                Swal.fire({
-                    title: 'Address Validation',
-                    html: `Address could not be confirmed. Please provide proper address. <br>Street Address, City, Province, Postal`,
-                    icon: 'warning',
-                    showCancelButton: false,
-                    confirmButtonColor: '#d33',
-                });
-            } else {
+            // if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {
+            //     const suggestions = result.result.address.formattedAddress;
+            //
+            //     Swal.fire({
+            //         title: 'Address Validation',
+            //         html: `Address could not be confirmed. Please provide proper address. <br>Street Address, City, Province, Postal`,
+            //         icon: 'warning',
+            //         showCancelButton: false,
+            //         confirmButtonColor: '#d33',
+            //     });
+            // } else {
                 document.querySelector("#customer_form").submit();
-            }
+            // }
         });
     });
 </script>
