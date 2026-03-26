@@ -1318,6 +1318,7 @@
             const deliveryCostElement = document.getElementById('delivery-cost');
 
             let deliveryCost = 0;
+            let subtotal = 0;
 
             if (deliveryType === 'pickup') {
                 console.log('📦 PICKUP selected - setting cost to $0');
