@@ -1352,6 +1352,86 @@
             }
         }
 
+        function calculateTotalsAndFinalize(subtotal, delivery) {
+            // Delivery, Tax & Total
+            const hazmat = 12.00;
+            const tax = (subtotal + delivery) * 0.15;
+            const total = subtotal + delivery + tax + hazmat;
+
+            document.getElementById('tax-total').innerHTML =
+                `$${tax.toFixed(2)}<br><hr><b>$${total.toFixed(2)}</b>`;
+
+            // Set cost hidden fields
+            document.getElementById('hidden_hazmat').value = hazmat.toFixed(2);
+            document.getElementById('hidden_subtotal').value = subtotal.toFixed(2);
+            document.getElementById('hidden_tax').value = tax.toFixed(2);
+            document.getElementById('hidden_total_cost').value = total.toFixed(2);
+            document.getElementById('hidden_delivery_cost').value = delivery.toFixed(2);
+
+            // Continue with the rest of the original function
+            populateLocationAndContactInfo();
+        }
+
+        function populateLocationAndContactInfo() {
+            // Location
+            const company = getValue('company');
+            const address = getValue('address');
+            const city = getValue('city');
+            const province = getValue('province');
+            const postal = getValue('postal');
+            let locationHtml = '';
+            if (company && company !== 'Residence') locationHtml += `<b>${company}</b><br>`;
+            if (address) locationHtml += `${address}<br>`;
+            if (city || province || postal) {
+                locationHtml += city;
+                if (province) locationHtml += `, ${province}`;
+                if (postal) locationHtml += ` ${postal}`;
+            }
+            document.getElementById('delivery-location').innerHTML = locationHtml || 'No address provided';
+
+            // Delivery Date
+            const month = getValue('month');
+            const day = getValue('day');
+            const year = getValue('year');
+            const monthNames = [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            ];
+            const dateHtml = (month && day && year)
+                ? `${monthNames[month - 1]} ${day}, ${year}`
+                : 'No date selected';
+
+            document.getElementById('delivery-date').innerHTML = dateHtml;
+            document.getElementById('hidden_delivery_date').value = (month && day && year)
+                ? `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+                : '';
+
+            // Contact Info
+            const name = getValue('name');
+            const phone = getValue('phone');
+            const email = getValue('email');
+            let contactHtml = '';
+            if (name) contactHtml += `<b>${name}</b><br>`;
+            if (phone) contactHtml += `Phone: ${phone}<br>`;
+            if (email) contactHtml += `Email: ${email}`;
+            document.getElementById('contact-info').innerHTML = contactHtml || 'No contact info';
+
+            // Notes
+            const notes = getValue('notes');
+            document.getElementById('order-notes').innerHTML = notes || 'No special notes';
+
+            // Hidden fields for order data
+            document.getElementById('hidden_customer_name').value = name;
+            document.getElementById('hidden_email').value = email;
+            document.getElementById('hidden_phone').value = phone;
+            document.getElementById('hidden_location_name').value = company;
+            document.getElementById('hidden_address').value = address;
+            document.getElementById('hidden_city').value = city;
+            document.getElementById('hidden_postal_code').value = postal;
+            document.getElementById('hidden_province').value = province;
+            document.getElementById('hidden_notes').value = notes;
+        }
+
         // Integrated delivery quote function for the review
         async function getDeliveryQuoteForReview() {
             console.log('🚀 getDeliveryQuoteForReview() started');
