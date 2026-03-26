@@ -1374,6 +1374,7 @@
         }
 
         function populateLocationAndContactInfo() {
+            const getValue = (id) => document.getElementById(id)?.value.trim() || '';
             // Location
             const company = getValue('company');
             const address = getValue('address');
