@@ -181,7 +181,7 @@
         {{--});--}}
 
         // const data = await response.json();
-        return data;
+        // return data;
     }
 
     document.addEventListener('DOMContentLoaded', function() {
