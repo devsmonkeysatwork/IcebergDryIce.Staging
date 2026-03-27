@@ -1308,31 +1308,86 @@
 
             const getValue = (id) => document.getElementById(id)?.value.trim() || '';
 
-            // ... product calculation code ...
+            // ✅ Calculate subtotal from all products
+            let subtotal = 0;
+            let summaryHtml = '';
+            let costsHtml = '';
+            let totalIceAmount = 0;
+            let productHiddenFields = '';
+            let itemIndex = 0;
 
-            // Check delivery type
+            const productInputs = document.querySelectorAll('[name^="product["][name$="[quantity]"]');
+
+            productInputs.forEach(input => {
+                const match = input.name.match(/product\[(\d+)\]\[quantity\]/);
+                if (!match) return;
+
+                const productId = match[1];
+                const quantity = parseFloat(input.value) || 0;
+
+                if (quantity <= 0) return; // Skip zero quantity products
+
+                // Get product name from order tab row
+                const productRow = input.closest('tr');
+                const productNameCell = productRow?.querySelector('td:first-child');
+                const productName = productNameCell?.textContent.trim() || `Product ${productId}`;
+
+                // Get unit price from data attribute
+                const unitPrice = parseFloat(input.getAttribute('data-unit-price')) || 0;
+
+                // Get cost from cost input
+                const costInput = document.getElementById(`product_cost_${productId}`);
+                const cost = parseFloat(costInput?.value) || (quantity * unitPrice);
+
+                subtotal += cost;
+                totalIceAmount += quantity;
+
+                // Build review display rows
+                summaryHtml += `<div>${productName} x ${quantity}</div>`;
+                costsHtml += `<div>$${cost.toFixed(2)}</div>`;
+
+                // ✅ Build hidden fields matching backend: items[index][product_id], items[index][amount_of_items], etc.
+                productHiddenFields += `
+            <input type="hidden" name="items[${itemIndex}][product_id]" value="${productId}">
+            <input type="hidden" name="items[${itemIndex}][amount_of_items]" value="${quantity}">
+            <input type="hidden" name="items[${itemIndex}][unit_price]" value="${unitPrice.toFixed(2)}">
+            <input type="hidden" name="items[${itemIndex}][total_price]" value="${cost.toFixed(2)}">
+        `;
+
+                itemIndex++;
+            });
+
+            // ✅ Inject into review display
+            document.getElementById('order-summary').innerHTML = summaryHtml || '<div>No products selected</div>';
+            document.getElementById('order-costs').innerHTML = costsHtml;
+
+            // ✅ Inject product hidden fields into form
+            document.getElementById('product-hidden-fields').innerHTML = productHiddenFields;
+
+            // ✅ Set ice amount hidden field
+            document.getElementById('hidden_amount_of_ice').value = totalIceAmount;
+
+            console.log('🧮 Subtotal:', subtotal, '| Items:', itemIndex, '| Total Ice:', totalIceAmount);
+
+            // Handle delivery type
             const deliveryType = document.getElementById('delivery_type')?.value;
-            console.log('🚚 Delivery Type:', deliveryType);
-
             const pickupDeliveryInput = document.querySelector('[name="pickup_delivery"]');
             const deliveryCostElement = document.getElementById('delivery-cost');
 
             let deliveryCost = 0;
-            let subtotal = 0;
 
             if (deliveryType === 'pickup') {
-                console.log('📦 PICKUP selected - setting cost to $0');
-                deliveryCost = 0;
                 if (pickupDeliveryInput) pickupDeliveryInput.value = 'pickup';
                 if (deliveryCostElement) deliveryCostElement.textContent = '$0.00';
                 calculateTotalsAndFinalize(subtotal, deliveryCost);
+
             } else if (deliveryType === 'delivery') {
-                console.log('🚚 DELIVERY selected - calling getDeliveryQuoteForReview()');
                 if (pickupDeliveryInput) pickupDeliveryInput.value = 'delivery';
 
-                getDeliveryQuoteForReview()
+                // ✅ Now set hidden_amount_of_ice BEFORE calling getDeliveryQuoteForReview
+                // so it reads the correct value
+                getDeliveryQuoteForReview(totalIceAmount)
                     .then(quoteTotal => {
-                        console.log('✅ Quote received:', quoteTotal);
                         deliveryCost = quoteTotal || 0.00;
                         if (deliveryCostElement) deliveryCostElement.textContent = `$${deliveryCost.toFixed(2)}`;
                         calculateTotalsAndFinalize(subtotal, deliveryCost);
@@ -1344,10 +1399,10 @@
                         calculateTotalsAndFinalize(subtotal, deliveryCost);
                     });
                 return;
+
             } else {
-                console.log('⚠️ No delivery type or unknown type:', deliveryType);
                 deliveryCost = 0.00;
-                if (pickupDeliveryInput) pickupDeliveryInput.value = deliveryCost.toFixed(2);
+                if (pickupDeliveryInput) pickupDeliveryInput.value = '0.00';
                 if (deliveryCostElement) deliveryCostElement.textContent = `$${deliveryCost.toFixed(2)}`;
                 calculateTotalsAndFinalize(subtotal, deliveryCost);
             }
