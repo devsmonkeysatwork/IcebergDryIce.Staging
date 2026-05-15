@@ -1,0 +1,247 @@
+/*// Import Bootstrap functions first*/
+/*@import "~bootstrap/scss/functions";*/
+
+/*// Override Bootstrap variables*/
+/*primary: #0256C5;*/
+
+/*// Import Bootstrap*/
+/*@import "~bootstrap/scss/bootstrap";*/
+
+body {
+  background-color: var(--tblr-body-bg);
+  color: var(--tblr-body-color);
+}
+
+.navbar .nav-link {
+  display: flex;
+}
+
+.container-fluid h2 .title {
+  font-weight: 700;
+}
+
+.container-fluid.header {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 24px 20px;
+}
+
+.container-fluid .btn-add {
+  padding: 8px 16px;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.row.flex-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.row.flex-row > .col-md-3 {
+  flex: 1;
+  min-width: 250px;
+  display: flex;
+}
+
+.card {
+  flex: 1;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  background-color: var(--tblr-body-bg-subtle);
+}
+
+.card-header {
+  --bs-bg-opacity: 1 !important;
+  background-color: rgba(var(--bs-dark-rgb), 1);
+  color: var(--tblr-secondary-text-emphasis);
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
+
+.card-body {
+  background-color: var(--tblr-card-body);
+  position: relative;
+  padding: 24px 32px 16px;
+  text-align: left;
+  height: 130px;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.card-body h3 {
+  font-weight: 700;
+}
+
+.card-body .card-text {
+  color: var(--tblr-card-text);
+  font-size: 14px;
+  transform: translateY(-40%);
+}
+
+.card.dashboard .card-body .card-text.stat {
+  position: absolute;
+  bottom: 5px;
+  left: 32px;
+  font-size: 16px;
+  width: fit-content;
+}
+
+.card-body .card-text span {
+  color: var(--tblr-success);
+  margin-right: 4px;
+}
+
+.card .card-body.inventory {
+  height: fit-content;
+  padding: 16px 64px;
+}
+
+.card .card-body .stat {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  align-items: center;
+  text-align: center;
+}
+
+.card .card-body .stat.right {
+  flex-direction: column;
+}
+
+.card .card-body .stat h5 {
+  display: flex;
+  flex-direction: column;
+  text-transform: uppercase;
+  font-size: 12px
+}
+
+.card .card-body .stat h5 span {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.row .table-header {
+  font-weight: 500;
+}
+
+.row .table-head-wrapper {
+  overflow: hidden;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
+
+.row table {
+  width: 100%;
+  margin-bottom: 0;
+  border-collapse: separate;
+  border-spacing: 0 15px;
+}
+
+.row table thead tr {
+  --bs-bg-opacity: 1 !important;
+  background-color: rgba(var(--bs-dark-rgb), 1) !important;
+  color: var(--tblr-secondary-text-emphasis);
+  text-transform: capitalize;
+  padding: 10px 0;
+}
+
+.row table thead tr th {
+  color: var(--tblr-secondary-text-emphasis);
+  text-transform: capitalize;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.row table th,
+.row table td {
+  font-size: 14px;
+  padding: 12px 15px;
+  vertical-align: middle;
+}
+
+.row table tbody tr {
+  background-color: var(--tblr-card-body);
+  color: var(--tblr-body-color);
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 10px 5px;
+}
+
+.row table tbody tr td {
+  padding: 15px;
+}
+
+.row table tbody tr:hover {
+  background-color: var(--tblr-secondary-bg-subtle);
+}
+
+.row .table.recurring {
+  margin-top: 38px;
+}
+
+.form-group.entries {
+  display: flex;
+  flex-direction: row-reverse;
+  float: inline-start;
+  gap: 5px;
+  font-size: 14px;
+}
+
+.form-group .form-control {
+  width: 62px;
+  height: 23.14px;
+  font-size: 14px;
+  padding: 0;
+}
+
+/* Status Colors */
+
+td.status {
+  text-transform: capitalize;
+  transform: translateY(10px);
+}
+
+.status.valid {
+  color: var(--tblr-success);
+  font-weight: bold;
+}
+
+.status.skip {
+  color: var(--tblr-warning);
+  font-weight: bold;
+}
+
+.status.cancelled {
+  color: var(--tblr-danger);
+  font-weight: bold;
+}
+
+.btn-add {
+  background-color: var(--tblr-primary);
+  border: none;
+  color: var(--tblr-light);
+  border-radius: 4px;
+}
+
+.btn-add:hover {
+  background-color: #0246a5;
+  color: var(--tblr-light);
+}
+
+
+@media (min-width: 1400px) {
+  .container-xxl,
+  .container-xl,
+  .container-lg,
+  .container-md,
+  .container-sm,
+  .container {
+    max-width: 1328px;
+  }
+}
+.w-100{
+    width: 100% !important;
+}
+
