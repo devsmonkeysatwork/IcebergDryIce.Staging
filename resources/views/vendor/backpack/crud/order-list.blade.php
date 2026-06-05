@@ -222,9 +222,9 @@
                 </div>
 
                 <div class="modal-footer">
-                    {{--                <a href="#" id="downloadInvoiceBtn" class="btn btn-success" target="_blank">--}}
-                    {{--                    <i class="fas fa-download"></i> Download PDF--}}
-                    {{--                </a>--}}
+                    <a href="#" id="downloadInvoiceBtn" class="btn btn-success" target="_blank">
+                        <i class="fas fa-download"></i> Download PDF
+                    </a>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
 
@@ -1685,7 +1685,7 @@
             const invoiceModal     = new bootstrap.Modal(document.getElementById('invoiceModal'));
             const invoiceModalBody = document.getElementById('invoiceModalBody');
             const invoiceLoader    = document.getElementById('invoiceLoader');
-            // const downloadBtn      = document.getElementById('downloadInvoiceBtn');
+            const downloadBtn      = document.getElementById('downloadInvoiceBtn');
 
             document.querySelectorAll('.view-invoice-btn').forEach(btn => {
                 btn.addEventListener('click', function () {
@@ -1696,7 +1696,7 @@
                     invoiceModalBody.innerHTML = '';
                     invoiceLoader.style.display = 'block';
                     invoiceModalBody.appendChild(invoiceLoader);
-                    // downloadBtn.href = `/admin/invoice/${invoiceId}/download`; // your PDF download route
+                    downloadBtn.href = `/admin/invoice/${invoiceId}/download`; // your PDF download route
 
                     invoiceModal.show();
 
