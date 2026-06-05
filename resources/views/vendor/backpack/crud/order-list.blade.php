@@ -144,6 +144,12 @@
                                                 data-order-id="{{ $order->id }}">
                                         </button>
                                     @endif
+                                    <button
+                                        class="btn btn-sm btn-outline-dark view-invoice-btn"
+                                        data-invoice-id="{{ $order->invoice->id }}"
+                                        data-url="{{ route('invoice.view', $order->invoice->id) }}">
+                                        <i class="las la-file-invoice-dollar"></i>
+                                    </button>
                                 </td>
                             </tr>
                         @endforeach
@@ -196,6 +202,35 @@
         </div>
     </div>
 
+
+    {{-- Invoice Modal --}}
+    <div class="modal fade" id="invoiceModal" tabindex="-1" aria-labelledby="invoiceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="invoiceModalLabel">Invoice</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-0" id="invoiceModalBody">
+                    {{-- Invoice HTML loads here --}}
+                    <div class="text-center py-5" id="invoiceLoader">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-2 text-muted">Loading invoice...</p>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    {{--                <a href="#" id="downloadInvoiceBtn" class="btn btn-success" target="_blank">--}}
+                    {{--                    <i class="fas fa-download"></i> Download PDF--}}
+                    {{--                </a>--}}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
 @endsection
 
 @section('after_styles')
@@ -368,7 +403,14 @@
             display: none;
         }
 
-
+        .view-invoice-btn{
+            width: 30px;
+            height: 30px;
+            border: 0px;
+        }
+        .view-invoice-btn i{
+            font-size: 27px;
+        }
 
     </style>
 
@@ -1634,6 +1676,56 @@
                     },
                     cache: true
                 }
+            });
+        });
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+            const invoiceModal     = new bootstrap.Modal(document.getElementById('invoiceModal'));
+            const invoiceModalBody = document.getElementById('invoiceModalBody');
+            const invoiceLoader    = document.getElementById('invoiceLoader');
+            // const downloadBtn      = document.getElementById('downloadInvoiceBtn');
+
+            document.querySelectorAll('.view-invoice-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const url        = this.dataset.url;
+                    const invoiceId  = this.dataset.invoiceId;
+
+                    // Reset modal state
+                    invoiceModalBody.innerHTML = '';
+                    invoiceLoader.style.display = 'block';
+                    invoiceModalBody.appendChild(invoiceLoader);
+                    // downloadBtn.href = `/admin/invoice/${invoiceId}/download`; // your PDF download route
+
+                    invoiceModal.show();
+
+                    fetch(url, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        }
+                    })
+                        .then(res => {
+                            if (!res.ok) throw new Error('Failed to load invoice');
+                            return res.text();
+                        })
+                        .then(html => {
+                            invoiceLoader.style.display = 'none';
+                            invoiceModalBody.innerHTML = html;
+                        })
+                        .catch(err => {
+                            invoiceModalBody.innerHTML = `
+                    <div class="alert alert-danger m-3">
+                        Failed to load invoice. Please try again.
+                    </div>`;
+                        });
+                });
+            });
+
+            // Clear modal content when closed to avoid stale data
+            document.getElementById('invoiceModal').addEventListener('hidden.bs.modal', function () {
+                invoiceModalBody.innerHTML = '';
             });
         });
 

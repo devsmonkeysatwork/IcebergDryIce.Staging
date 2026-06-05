@@ -55,10 +55,10 @@
                                             {{ $order['payment_status'] == 'paid' ? 'PAID' : 'PENDING' }}
                                         </span>
                                         <button
-                                            class="btn btn-sm btn-outline-primary view-invoice-btn"
+                                            class="btn btn-sm view-invoice-btn"
                                             data-invoice-id="{{ $order->invoice->id }}"
                                             data-url="{{ route('invoice.view', $order->invoice->id) }}">
-                                            <i class="fas fa-eye"></i> View Invoice
+                                            <i class="las la-file-invoice-dollar"></i>
                                         </button>
                                     </td>
                                 </tr>
@@ -131,10 +131,10 @@
                                         </span>
                                         @endif
                                             <button
-                                                class="btn btn-sm btn-outline-primary view-invoice-btn"
+                                                class="btn btn-sm view-invoice-btn"
                                                 data-invoice-id="{{ $order->invoice->id }}"
                                                 data-url="{{ route('invoice.view', $order->invoice->id) }}">
-                                                <i class="fas fa-eye"></i> View Invoice
+                                                <i class="las la-file-invoice-dollar"></i>
                                             </button>
                                     </td>
                                 </tr>
@@ -608,6 +608,14 @@
         margin-bottom: 1rem;
     }
 
+    .view-invoice-btn{
+        width: 30px;
+        height: 30px;
+        border: 0px;
+    }
+    .view-invoice-btn i{
+        font-size: 27px;
+    }
 </style>
 
 @endsection
