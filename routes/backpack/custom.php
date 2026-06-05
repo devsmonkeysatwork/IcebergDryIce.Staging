@@ -141,7 +141,7 @@ Route::group([
 
     // Invoice routes
     Route::get('/invoice/{invoice}/view', [OrderCrudController::class, 'viewInvoice'])->name('invoice.view');
-//    Route::get('/invoice/{invoice}/download', [OrderCrudController::class, 'downloadInvoice'])->name('invoice.download');
+    Route::get('/invoice/{invoice}/download', [OrderCrudController::class, 'downloadInvoice'])->name('invoice.download');
 });
 
 Route::post('/order/ajax-create-from-review', [OrderCrudController::class, 'ajaxCreateFromReview'])->name('orders.ajax-create-from-review');
