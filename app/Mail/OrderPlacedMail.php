@@ -35,7 +35,8 @@ class OrderPlacedMail extends Mailable
             ? 'Payment Received – Your Invoice is Attached'
             : 'Your Order Has Been Placed';
 
-        $mail = $this->subject($subject)
+        $mail = $this->from(env('MAIL_FROM_ADDRESS'), 'IcebergDryIce Invoice')
+            ->subject($subject)
             ->view($view)
             ->with([
                 'order' => $this->order,

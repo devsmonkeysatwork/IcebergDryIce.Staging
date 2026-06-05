@@ -11,6 +11,7 @@ use App\Models\RecurringOrder;
 use App\Models\StockMovement;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use App\Http\Requests\OrderRequest;
 use App\Models\Order;
@@ -1577,7 +1578,50 @@ class OrderCrudController extends CrudController
         }
     }
 
+    public function viewInvoice($invoiceId)
+    {
+        $invoice     = Invoice::findOrFail($invoiceId);
+        $invoiceable = $invoice->invoiceable;
 
+        // If it's a RecurringOrder, load its parent Order for email/customer data
+        if ($invoiceable instanceof \App\Models\RecurringOrder) {
+            $invoiceable->load('order'); // eager load the parent order
+            $order = $invoiceable->order;
+        } else {
+            $order = $invoiceable; // it's already an Order
+        }
 
+        if (request()->ajax()) {
+            return view('emails.invoice-pdf', [
+                'order'          => $order,
+                'invoice_number' => $invoice->invoice_number ?? null,
+                'invoiceable'    => $invoiceable, // pass recurring order too if needed in view
+            ])->render();
+        }
 
+        abort(403);
+    }
+
+    public function downloadInvoice($invoiceId)
+    {
+        $invoice     = Invoice::findOrFail($invoiceId);
+        $invoiceable = $invoice->invoiceable;
+
+        if ($invoiceable instanceof \App\Models\RecurringOrder) {
+            $invoiceable->load('order');
+            $order = $invoiceable->order;
+        } else {
+            $order = $invoiceable;
+        }
+
+        $pdf = Pdf::loadView('emails.invoice-pdf', [
+            'order'          => $order,
+            'invoice_number' => $invoice->invoice_number ?? null,
+            'invoiceable'    => $invoiceable,
+        ])->setOption('isHtml5ParserEnabled', true)
+            ->setOption('isRemoteEnabled', true)
+            ->setOption('chroot', public_path());
+
+        return $pdf->download('invoice-' . $invoice->invoice_number . '.pdf');
+    }
 }
