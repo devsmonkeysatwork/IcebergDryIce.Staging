@@ -140,7 +140,7 @@
                                                 onclick="loadRecurringOrderDetails(1,'{{ $order->order_id }}','{{ $order->id }}')">
                                         </button>
                                     @else
-                                        <button class="btn btn-primary btn-view la la-eye"
+                                        <button class="btn btn-primary btn-view la la-eye" data-origin="{{ $order->origin }}"
                                                 data-order-id="{{ $order->id }}">
                                         </button>
                                     @endif
@@ -558,183 +558,142 @@
             document.addEventListener('click', function(e) {
                 if (e.target.classList.contains('btn-view')) {
                     const orderId = e.target.dataset.orderId;
-                    loadModalContent('edit', orderId);
+                    const origin = e.target.dataset.origin;
+                    if(origin == 'online'){
+                        loadModalContent('edit', orderId, 'online')
+                    }else{
+                        loadModalContent('edit', orderId);
+                    }
                 }
             });
 
-            function loadModalContent(action, orderId = null) {
-                const url = action === 'edit'
-                    ? `/admin/orders/modal/${orderId}/edit`
-                    : '/admin/orders/modal/create';
-
-                document.getElementById('modal-content-container').innerHTML = `
-            <div class="modal-body text-center">
-                <div class="spinner-border" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-2">Loading...</p>
-            </div>`;
-
-                const modal = new bootstrap.Modal(summaryModal);
-                modal.show();
-
-                fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'text/html'
+            function loadModalContent(action, orderId = null, origin = 'manual') {
+                let url;
+                if (action === 'create') {
+                    url = '/admin/orders/manual/modal/create';
+                }
+                else
+                { // Editing existing order
+                    if (origin === 'online') {
+                        url = `/admin/orders/modal/${orderId}/edit`; }
+                    else {
+                        url = `/admin/orders/manual/modal/${orderId}/edit`;
                     }
-                })
-                    .then(response => {
-                        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                        return response.text();
-                    })
-                    .then(html => {
-                        document.getElementById('modal-content-container').innerHTML = html;
-                        isEditMode = action === 'edit';
-                        setTimeout(() => {
-                            initializeEmailSelect2();
-                            addCostCalculationListeners();
-                        }, 100);
-                    })
-                    .catch(error => {
-                        console.error('Error loading modal content:', error);
-                        document.getElementById('modal-content-container').innerHTML = `
-                <div class="modal-body text-center">
-                    <i class="la la-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
-                    <h5 class="mt-3">Error Loading Content</h5>
-                    <p>Unable to load modal content. Please try again.</p>
-                    <button class="btn btn-primary" onclick="loadModalContent('${action}', ${orderId})">Retry</button>
-                </div>`;
-                    });
-            }
+                }
 
-            function updateCostSummary() {
-                let productTotal = 0;
-                let productSummaryHtml = '';
+                $('#orderSummaryModal .modal-content').html(` <div class="text-center p-5"> <div class="spinner-border text-primary"></div> </div> `);
+                $('#orderSummaryModal').modal('show');
 
-                document.querySelectorAll('.product-amount').forEach(input => {
-                    const amount = parseFloat(input.value) || 0;
-                    const unitPrice = parseFloat(input.dataset.unitPrice) || 0;
-                    const productCost = amount * unitPrice;
-                    productTotal += productCost;
-
-                    if (amount > 0) {
-                        const productId = input.dataset.productId;
-                        const productName = document.querySelector('.label-'+productId).textContent;
-                        productSummaryHtml += `
-                    <p class="m-0 d-flex justify-content-between align-items-center">
-                        ${productName} (${amount} @ $${unitPrice.toFixed(2)}):
-                        <strong>$${productCost.toFixed(2)}</strong>
-                    </p>
-                `;
-                    }
-                });
-
-                const deliveryCost = parseFloat(document.getElementById('modal-delivery-cost').value) || 0;
-                const hazmatCost = parseFloat(document.getElementById('modal-hazmat-cost').value) || 0;
-                const deliveryFee = deliveryCost;
-                const subTotal = productTotal;
-                const taxRate = 0.15;
-                const tax = (subTotal + deliveryFee) * taxRate;
-                const total = subTotal + tax + deliveryFee + hazmatCost;
-
-                document.querySelector('.cost-summary-products').innerHTML = productSummaryHtml;
-                document.querySelector('.cost-summary-delivery').innerHTML = `Delivery:<strong>$${deliveryFee.toFixed(2)}</strong>`;
-                document.querySelector('.cost-summary-hazmat').innerHTML = `Hazmat:<strong>$${hazmatCost.toFixed(2)}</strong>`;
-                document.querySelector('.cost-summary-subtotal').innerHTML = `Sub-Total:<strong>$${subTotal.toFixed(2)}</strong>`;
-                document.querySelector('#modal-sub-total').value = subTotal.toFixed(2);
-                document.querySelector('.cost-summary-tax').innerHTML = `Tax (${(taxRate * 100).toFixed(0)}%):<strong>$${tax.toFixed(2)}</strong>`;
-                document.querySelector('#modal-tax').value = tax.toFixed(2);
-                document.querySelector('.cost-summary-total').innerHTML = `TOTAL:<strong>$${total.toFixed(2)}</strong>`;
-                document.querySelector('#modal-total-cost').value = total.toFixed(2);
-            }
-
-            function addCostCalculationListeners() {
-                document.querySelectorAll('.product-amount').forEach(input => {
-                    input.addEventListener('input', updateCostSummary);
+                $.get(url).done(function(response) {
+                    $('#orderSummaryModal .modal-content').html(response);
+                }).fail(function(xhr) { $('#orderSummaryModal .modal-content')
+                    .html(` <div class="p-4 text-center text-danger"> Failed to load order. </div> `);
+                    console.error(xhr);
                 });
             }
 
             function validateForm() {
-                const requiredFields = [
-                    {id: 'modal-customer-name', label: 'Customer Name'},
-                    {id: 'modal-customer-email', label: 'Customer Email'},
-                    {id: 'modal-customer-phone', label: 'Customer Phone'},
-                    {id: 'modal-recurring', label: 'Recurring Option'},
-                    {id: 'modal-address', label: 'Address'},
-                    {id: 'modal-city', label: 'City'},
-                    {id: 'modal-postal', label: 'Postal Code'},
-                    {id: 'modal-province', label: 'Province'},
-                    {id: 'modal-delivery-date', label: 'Delivery Date'}
+
+                const fields = [
+                    {
+                        element: document.getElementById('manual-customer-id'),
+                        label: 'Customer'
+                    },
+                    {
+                        element: document.getElementById('manual-product-id'),
+                        label: 'Product Type'
+                    },
+                    {
+                        element: document.querySelector('input[name="amount"]'),
+                        label: 'Amount (lbs/units)'
+                    },
+                    {
+                        element: document.querySelector('input[name="po_number"]'),
+                        label: 'PO #'
+                    },
+                    {
+                        element: document.getElementById('recurring-status'),
+                        label: 'Recurring'
+                    },
+                    {
+                        element: document.querySelector('input[name="delivery_date"]'),
+                        label: 'Date'
+                    },
+                    {
+                        element: document.querySelector('input[name="delivery_time"]'),
+                        label: 'Time'
+                    }
                 ];
 
                 let isValid = true;
                 let firstInvalidField = null;
                 let missingFields = [];
 
-                requiredFields.forEach(({id, label}) => {
-                    const field = document.getElementById(id);
-                    field.classList.remove('is-invalid');
-
-                    let fieldValue = field.value;
-                    if (id === 'modal-customer-email' && $('#modal-customer-email').hasClass('select2-hidden-accessible')) {
-                        fieldValue = $('#modal-customer-email').val();
+                // Clear previous validation
+                fields.forEach(({ element }) => {
+                    if (element) {
+                        element.classList.remove('is-invalid');
                     }
+                });
 
-                    if (!fieldValue || !fieldValue.toString().trim()) {
-                        field.classList.add('is-invalid');
+                // Validate regular fields
+                fields.forEach(({ element, label }) => {
+
+                    if (!element) return;
+
+                    const value = element.value?.trim();
+
+                    if (!value) {
+                        element.classList.add('is-invalid');
                         isValid = false;
-                        if (!firstInvalidField) firstInvalidField = field;
+
+                        if (!firstInvalidField) {
+                            firstInvalidField = element;
+                        }
+
                         missingFields.push(label);
                     }
                 });
 
-                // Phone number validation - exactly 10 digits
-                const phoneField = document.getElementById('modal-customer-phone');
-                const phoneValue = phoneField.value.replace(/\D/g, '');
-                if (phoneValue.length !== 10) {
-                    phoneField.classList.add('is-invalid');
+                // Validate Delivery/Pickup radio
+                const pickupDelivery = document.querySelector(
+                    'input[name="pickup_delivery"]:checked'
+                );
+
+                if (!pickupDelivery) {
                     isValid = false;
-                    if (!firstInvalidField) firstInvalidField = phoneField;
-                    if (!missingFields.includes("Customer Phone")) {
-                        missingFields.push("Customer Phone (Please valid 10 digits)");
+                    missingFields.push('Delivery or Pickup');
+                }
+
+                // Validate amount > 0
+                const amountField = document.querySelector('input[name="amount"]');
+
+                if (
+                    amountField &&
+                    (isNaN(amountField.value) || parseFloat(amountField.value) <= 0)
+                ) {
+                    amountField.classList.add('is-invalid');
+                    isValid = false;
+
+                    if (!firstInvalidField) {
+                        firstInvalidField = amountField;
+                    }
+
+                    if (!missingFields.includes('Amount (lbs/units)')) {
+                        missingFields.push('Amount (must be greater than 0)');
                     }
                 }
 
-                // Check if at least one product has amount > 0
-                const productAmounts = document.querySelectorAll('.product-amount');
-                let hasProducts = false;
-                productAmounts.forEach(input => {
-                    if (parseFloat(input.value) > 0) hasProducts = true;
-                });
+                if (!isValid) {
 
-                if (!hasProducts) {
-                    isValid = false;
-                    missingFields.push('At least one product with amount > 0');
-                }
-
-                // Email format validation
-                const emailField = document.getElementById('modal-customer-email');
-                let emailValue = emailField.value;
-                if ($('#modal-customer-email').hasClass('select2-hidden-accessible')) {
-                    emailValue = $('#modal-customer-email').val();
-                }
-
-                if (emailValue && !isValidEmail(emailValue)) {
-                    emailField.classList.add('is-invalid');
-                    isValid = false;
-                    if (!firstInvalidField) firstInvalidField = emailField;
-                    if (!missingFields.includes("Customer Email")) {
-                        missingFields.push("Customer Email (Invalid Format)");
+                    if (firstInvalidField) {
+                        firstInvalidField.focus();
                     }
-                }
 
-                if (!isValid && firstInvalidField) {
-                    firstInvalidField.focus();
                     Swal.fire({
                         title: 'Validation Error',
-                        html: 'Please fill in the following required field(s):<br><ul style="text-align: left;">' +
+                        html:
+                            'Please fill in the following required field(s):<br><ul style="text-align:left;">' +
                             missingFields.map(field => `<li>${field}</li>`).join('') +
                             '</ul>',
                         icon: 'warning',
@@ -743,165 +702,6 @@
                 }
 
                 return isValid;
-            }
-
-            function isValidEmail(email) {
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                return emailRegex.test(email);
-            }
-
-            // Validate address and get delivery cost before submission
-            async function validateAddressAndGetDeliveryCost() {
-                const formData = getFormData();
-
-                // Step 1: Validate Address
-                const addressValid = await validateAddressFields(formData);
-                if (!addressValid) {
-                    return null; // Address validation failed
-                }
-
-                // Step 2: Get Delivery Cost
-                try {
-                    const supplier = await getClosestSupplier(formData);
-                    const quoteData = await getDeliveryQuote(supplier, formData);
-
-                    if (quoteData.success && quoteData.total) {
-                        return quoteData.total;
-                    } else {
-                        const errorMessages = extractErrorMessages(quoteData);
-                        throw new Error(errorMessages);
-                    }
-                } catch (error) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Delivery Cost Error',
-                        text: error.message || 'Failed to get delivery cost',
-                        confirmButtonText: 'OK'
-                    });
-                    return null;
-                }
-            }
-
-            function getFormData() {
-                return {
-                    address: getInput('modal-address'),
-                    city: getInput('modal-city'),
-                    province: getInput('modal-province'),
-                    email: getInput('modal-customer-email'),
-                    name: getInput('modal-customer-name'),
-                    phone: getInput('modal-customer-phone'),
-                    iceAmount: parseFloat(getInput('modal-ice-amount')) || 1,
-                    postal: getInput('modal-postal'),
-                    locationName: getInput('modal-location-name'),
-                    unit: getInput('modal-unit') || ''
-                };
-            }
-
-            function getInput(id) {
-                return document.getElementById(id)?.value?.trim();
-            }
-
-            async function validateAddressFields(formData) {
-                {{--const apiKey = "{{config('services.google.address_api_key')}}";--}}
-                {{--const response = await fetch(`https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`, {--}}
-                {{--    method: "POST",--}}
-                {{--    headers: {--}}
-                {{--        "Content-Type": "application/json"--}}
-                {{--    },--}}
-                {{--    body: JSON.stringify({--}}
-                {{--        address: {--}}
-                {{--            regionCode: "CA",--}}
-                {{--            addressLines: [formData.address],--}}
-                {{--            locality: formData.city,--}}
-                {{--            administrativeArea: formData.province,--}}
-                {{--            postalCode: formData.postal--}}
-                {{--        }--}}
-                {{--    })--}}
-                {{--});--}}
-
-                {{--const result = await response.json();--}}
-                {{--if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {--}}
-                {{--    await Swal.fire({--}}
-                {{--        title: 'Address Validation Failed',--}}
-                {{--        html: `Address could not be confirmed. Please provide proper address. <br>Street Address, City, Province, Postal`,--}}
-                {{--        icon: 'warning',--}}
-                {{--        confirmButtonColor: '#d33',--}}
-                {{--    });--}}
-                {{--    return false;--}}
-                {{--}--}}
-                return true;
-            }
-
-            function getClosestSupplier(formData) {
-                const url = `/test-closest-supplier?street=${encodeURIComponent(formData.address)}&city=${encodeURIComponent(formData.city)}&province=${encodeURIComponent(formData.province)}`;
-
-                return fetch(url)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`Supplier API returned ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (!data.closest_supplier || !data.closest_supplier.id) {
-                            throw new Error('No supplier found in response');
-                        }
-
-                        const supplier = data.closest_supplier;
-
-                        if($('#supplier_id').length) {
-                            $('#supplier_id').val(supplier.id);
-                        }
-
-                        return supplier;
-                    });
-            }
-
-            function getDeliveryQuote(supplier, formData) {
-                const quotePayload = {
-                    supplier_id: supplier.id,
-                    delivery: {
-                        name: formData.locationName.trim() || 'N/A',
-                        street: formData.address.trim(),
-                        unit: formData.unit.trim() || '',
-                        city: formData.city.trim(),
-                        province: formData.province.trim(),
-                        postal_code: formData.postal.trim(),
-                        contact: formData.name.trim() || 'N/A',
-                        phone: formData.phone.trim() || 'N/A',
-                        email: formData.email.trim() || 'N/A'
-                    },
-                    weight: formData.iceAmount
-                };
-
-                return fetch('/get-delivery-quote', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(quotePayload)
-                }).then(response => response.json());
-            }
-
-            function extractErrorMessages(data) {
-                if (!data?.data?.problems) {
-                    return 'Quote failed';
-                }
-                const problems = data.data.problems;
-                const extractMessages = (problems) => {
-                    let messages = [];
-                    problems.forEach(problem => {
-                        if (problem.message) messages.push(problem.message);
-                        if (problem.problems) {
-                            messages = messages.concat(extractMessages(problem.problems));
-                        }
-                    });
-                    return messages;
-                };
-
-                return extractMessages(data.data.problems).join('\n');
             }
 
             // Handle Save/Update Button Click
@@ -917,53 +717,6 @@
 
                 // Store original text for reset
                 const originalText = saveBtn.innerHTML;
-
-                // Show validating state
-                saveBtn.innerHTML = '<i class="la la-spinner la-spin"></i> Validating...';
-                saveBtn.disabled = true;
-
-                // Validate address and get delivery cost
-                const deliveryCost = await validateAddressAndGetDeliveryCost();
-
-                if (deliveryCost === null) {
-                    // Validation failed, reset button
-                    saveBtn.innerHTML = originalText;
-                    saveBtn.disabled = false;
-                    return;
-                }
-
-                // Set the delivery cost
-                document.getElementById('modal-delivery-cost').value = deliveryCost.toFixed(2);
-
-                // Update cost summary with validated delivery cost
-                updateCostSummary();
-
-                // Show delivery cost confirmation to admin
-                const confirmResult = await Swal.fire({
-                    title: 'Delivery Cost Confirmed',
-                    html: `
-                <div class="text-start">
-                    <p class="mb-2">The delivery cost has been calculated:</p>
-                    <div class="alert alert-info">
-                        <strong>Delivery Cost: ${deliveryCost.toFixed(2)}</strong>
-                    </div>
-                    <p class="mb-0">Do you want to proceed with this order?</p>
-                </div>
-            `,
-                    icon: 'info',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Yes, proceed',
-                    cancelButtonText: 'Cancel'
-                });
-
-                // If admin cancels, reset button and stop
-                if (!confirmResult.isConfirmed) {
-                    saveBtn.innerHTML = originalText;
-                    saveBtn.disabled = false;
-                    return;
-                }
 
                 // Show saving state
                 saveBtn.innerHTML = mode === 'edit' ?

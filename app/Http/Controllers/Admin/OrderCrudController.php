@@ -274,6 +274,11 @@ class OrderCrudController extends CrudController
 
     public function ajaxCreate(Request $request)
     {
+
+        if($request->origin == 'manual'){
+            return $this->handleManualOrderCreate($request);
+        }
+
         // ✅ Check products BEFORE validation
         if (!$request->has('products') || !is_array($request->products) || empty($request->products)) {
             return response()->json([
@@ -419,27 +424,27 @@ class OrderCrudController extends CrudController
 
             // ✅ Queue the email AFTER preparing response (using dispatch or queue)
             // Option 1: Using Laravel Queue (RECOMMENDED)
-            try {
-                Mail::to($order->email)->queue(new OrderPlacedMail($order));
-            } catch (\Exception $e) {
-                \Log::error('Email queue failed', [
-                    'order_id' => $order->id,
-                    'error' => $e->getMessage()
-                ]);
-            }
+//            try {
+//                Mail::to($order->email)->queue(new OrderPlacedMail($order));
+//            } catch (\Exception $e) {
+//                \Log::error('Email queue failed', [
+//                    'order_id' => $order->id,
+//                    'error' => $e->getMessage()
+//                ]);
+//            }
 
             // Option 2: If queue doesn't work, dispatch after response
             // This ensures response is sent before email processing
-            register_shutdown_function(function() use ($order) {
-                try {
-                    Mail::to($order->email)->send(new OrderPlacedMail($order));
-                } catch (\Exception $e) {
-                    \Log::error('Email send failed', [
-                        'order_id' => $order->id,
-                        'error' => $e->getMessage()
-                    ]);
-                }
-            });
+//            register_shutdown_function(function() use ($order) {
+//                try {
+//                    Mail::to($order->email)->send(new OrderPlacedMail($order));
+//                } catch (\Exception $e) {
+//                    \Log::error('Email send failed', [
+//                        'order_id' => $order->id,
+//                        'error' => $e->getMessage()
+//                    ]);
+//                }
+//            });
 
             // Return response immediately
             return $response;
@@ -456,6 +461,87 @@ class OrderCrudController extends CrudController
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create order: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function handleManualOrderCreate(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'customer_id'      => 'required|exists:customers,id',
+            'product'       => 'required|exists:products,id',
+            'amount'           => 'required|numeric|min:1',
+            'pickup_delivery'  => 'required|in:pickup,delivery',
+            'po'        => 'nullable|string|max:255',
+            'recurring'        => 'required|in:recurring,non-recurring',
+            'delivery_date'    => 'required|date',
+            'delivery_time'    => 'required',
+            'notes'            => 'nullable|string',
+            'origin'           => 'nullable|string|max:100',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        try {
+
+            DB::beginTransaction();
+
+            $customer = Customer::findOrFail($request->customer_id);
+            $product  = Product::findOrFail($request->product);
+
+            $order = Order::create([
+                'customer_name' => isset($customer->name) ? $customer->name : null,
+                'email' => isset($customer->email) ? $customer->email : null,
+                'phone' => isset($customer->phone) ? $customer->phone : null,
+                'customer_id'      => $customer->id,
+                'pickup_delivery'  => $request->pickup_delivery,
+                'po'        => $request->po_number,
+                'recurring'        => $request->recurring,
+                'delivery_date'    => $request->delivery_date,
+                'delivery_time'    => $request->delivery_time,
+                'notes'            => $request->notes,
+                'origin'           => 'manual',
+                'status'           => 'valid',
+                'created_by' => auth()->user()->id,
+            ]);
+
+            OrderItem::create([
+                'order_id'         => $order->id,
+                'product_id'       => $product->id,
+                'amount_of_items'  => $request->amount,
+                'unit_price'       => $product->price,
+            ]);
+
+            $invoiceService = new InvoiceService();
+            $originalInvoice = $invoiceService->createInvoiceForOrder($order);
+
+            $order->load('invoice');
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order created successfully',
+                'order'   => $order->load('customer')
+            ]);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            \Log::error('Manual order creation failed', [
+                'message' => $e->getMessage(),
+                'line'    => $e->getLine(),
+                'file'    => $e->getFile(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
             ], 500);
         }
     }
@@ -565,28 +651,8 @@ class OrderCrudController extends CrudController
         DB::beginTransaction();
 
         try {
-            // Step 1: Handle customer
-//            $customer = $this->handleCustomerData($request);
-            $customer = null;
-
-
-            if ($request->input('pickup_delivery') === 'delivery' || 'pickup') {
-                // Check if customer already exists first
-
-                $existingCustomer = Customer::where('email', $request->input('email'))
-                    ->first();
-
-                if (!$existingCustomer) {
-                    // Step 1: Handle customer - only create new customer
-                    $customer = $this->handleCustomerData($request);
-                } else {
-                    // Use existing customer without updating address
-                    $customer = $existingCustomer;
-                }
-            }
             // Step 2: Create the order
             $order = Order::create([
-                'customer_id' => $customer->id,
                 'customer_name' => $validated['customer_name'],
                 'email' => $validated['email'],
                 'phone' => $validated['phone'],
@@ -650,7 +716,6 @@ class OrderCrudController extends CrudController
             DB::commit();
 
             Mail::to($order->email)->send(new OrderPlacedMail($order));
-
 
 //            $order->payment_status = 0;
 //            $order->save();
@@ -761,16 +826,6 @@ class OrderCrudController extends CrudController
         $data['customer_id'] = $customer->id;
 
         return Order::create($data);
-    }
-
-    protected function updateOrderData($data, $id)
-    {
-        $customer = $this->handleCustomerData($data);
-        $data['customer_id'] = $customer->id;
-
-        $order = Order::findOrFail($id);
-        $order->update($data);
-        return $order;
     }
 
     // Override store method to save order and customer
@@ -1039,6 +1094,9 @@ class OrderCrudController extends CrudController
      */
     public function updateOrderAjax(Request $request, $id)
     {
+        if($request->origin == 'manual'){
+            return $this->handleManualOrderUpdate($request, $id);
+        }
         try {
             $order = Order::findOrFail($id);
 
@@ -1181,6 +1239,113 @@ class OrderCrudController extends CrudController
             ], 500);
         }
     }
+
+
+    protected function handleManualOrderUpdate(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'customer_id'      => 'required|exists:customers,id',
+            'product'          => 'required|exists:products,id',
+            'amount'           => 'required|numeric|min:1',
+            'pickup_delivery'  => 'required|in:pickup,delivery',
+            'po_number'        => 'nullable|string|max:255',
+            'recurring'        => 'required|in:recurring,non-recurring',
+            'delivery_date'    => 'required|date',
+            'delivery_time'    => 'required',
+            'notes'            => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        try {
+
+            DB::beginTransaction();
+
+            $order = Order::findOrFail($id);
+
+            $customer = Customer::findOrFail($request->customer_id);
+            $product  = Product::findOrFail($request->product);
+
+            $order->update([
+                'customer_name'    => $customer->name ?? null,
+                'email'            => $customer->email ?? null,
+                'phone'            => $customer->phone ?? null,
+                'customer_id'      => $customer->id,
+                'pickup_delivery'  => $request->pickup_delivery,
+                'po'        => $request->po_number,
+                'recurring'        => $request->recurring,
+                'delivery_date'    => $request->delivery_date,
+                'delivery_time'    => $request->delivery_time,
+                'notes'            => $request->notes,
+                'updated_by'       => auth()->id(),
+            ]);
+
+            $orderItem = OrderItem::where('order_id', $order->id)->first();
+
+            if ($orderItem) {
+
+                $orderItem->update([
+                    'product_id'      => $product->id,
+                    'amount_of_items' => $request->amount,
+                    'unit_price'      => $product->price,
+                ]);
+
+            } else {
+
+                OrderItem::create([
+                    'order_id'        => $order->id,
+                    'product_id'      => $product->id,
+                    'amount_of_items' => $request->amount,
+                    'unit_price'      => $product->price,
+                ]);
+            }
+
+            // Regenerate invoice if needed
+            if ($order->invoice) {
+                $order->invoice->delete();
+            }
+
+            $invoiceService = new InvoiceService();
+            $invoiceService->createInvoiceForOrder($order->fresh());
+
+            $order->load([
+                'customer',
+                'invoice',
+                'items.product'
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order updated successfully',
+                'order'   => $order
+            ]);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            \Log::error('Manual order update failed', [
+                'order_id' => $id,
+                'message'  => $e->getMessage(),
+                'line'     => $e->getLine(),
+                'file'     => $e->getFile(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
     /**
      * Delete order via AJAX
      *
@@ -1283,6 +1448,84 @@ class OrderCrudController extends CrudController
         }
     }
 
+    public function manualCreateModal()
+    {
+        $customers = Customer::orderBy('name')->get();
+
+        $products = Product::all();
+
+        $defaultValues = [
+            'customer_id'      => null,
+            'product_id'       => null,
+            'amount'           => 1,
+            'pickup_delivery'  => 'delivery',
+            'po_number'        => '',
+            'recurring'        => 'non-recurring',
+            'delivery_date'    => now()->format('Y-m-d'),
+            'delivery_time'    => '',
+            'notes'            => '',
+        ];
+
+        return view(
+            'vendor.backpack.crud.inc.manual_order_modal',
+            [
+                'mode'            => 'create',
+                'modalTitle'      => 'Create Manual Order',
+                'saveButtonText'  => 'Create Order',
+                'customers'       => $customers,
+                'products'        => $products,
+                'defaultValues'   => $defaultValues,
+                'order'           => null,
+            ]
+        );
+    }
+
+    public function manualEditModal($id)
+    {
+        $order = Order::with([
+            'items.product',
+            'customer'
+        ])->findOrFail($id);
+
+        if ($order->origin !== 'manual') {
+            abort(404);
+        }
+
+        $customers = Customer::orderBy('name')->get();
+
+        $products = Product::all();
+
+        $item = $order->items->first();
+
+        $defaultValues = [
+            'customer_id'      => $order->customer_id,
+            'product_id'       => $item?->product_id,
+            'amount'           => $item?->amount_of_items ?? 1,
+            'pickup_delivery'  => $order->pickup_delivery,
+            'po_number'        => $order->po ?? '',
+            'recurring'        => $order->recurring,
+            'delivery_date'    => $order->delivery_date
+                ? \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d')
+                : '',
+            'delivery_time'    => $order->delivery_date
+                ? \Carbon\Carbon::parse($order->delivery_date)->format('H:i')
+                : '',
+            'notes'            => $order->notes,
+        ];
+
+        return view(
+            'vendor.backpack.crud.inc.manual_order_modal',
+            [
+                'mode'            => 'edit',
+                'modalTitle'      => 'Edit Manual Order',
+                'saveButtonText'  => 'Update Order',
+                'customers'       => $customers,
+                'products'        => $products,
+                'defaultValues'   => $defaultValues,
+                'order'           => $order,
+            ]
+        );
+    }
 
     public function modalCreate()
     {
@@ -1398,10 +1641,10 @@ class OrderCrudController extends CrudController
         $data = [
             'mode' => 'edit',
             'order' => $order,
-            'modalTitle' => 'Edit Order',
+            'modalTitle' => 'Edit CC Order',
             'saveButtonText' => 'Update Order',
             'showOrderId' => true,
-            'showDeleteButton' => true,
+            'showDeleteButton' => false,
             'showPushButton' => $order->status == Order::COMPLETED ? false : true,
             'products' => $orderProducts,
             'defaultValues' => [

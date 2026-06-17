@@ -31,6 +31,7 @@
                                 <th>Delivery Date</th>
                                 <th>Status</th>
                                 <th>Total</th>
+                                <th>Origin</th>
                                 <th>View</th>
                                 <th>Payment</th>
                             </tr>
@@ -46,9 +47,10 @@
                                     <td>
                                         <span class="badge {{ $order['status'] == 'completed' ? 'bg-success' : 'bg-secondary'  }}">{{ $order['status'] }}</span>
                                     </td>
-                                    <td>${{ $order->total_cost }}</td>
+                                    <td>${{ isset($order->total_cost) ? $order->total_cost : '0' }}</td>
+                                    <td>{{ $order['origin'] == 'manual' ? 'Manual' : 'CC'  }}</td>
                                     <td>
-                                        <button class="btn btn-primary btn-view la la-eye la-2x" title="View Order Details" data-order-id="{{ $order['id'] }})"><i class=""></i></button>
+                                        <button class="btn btn-primary btn-view la la-eye la-2x" title="View Order Details" data-order-id="{{ $order['id'] }}" data-origin="{{ $order['origin'] }}"><i class=""></i></button>
                                     </td>
                                     <td>
                                         <span class="badge {{$order['payment_status'] == 'paid' ? 'bg-success' : 'bg-danger'}}">
@@ -109,7 +111,10 @@
                                     </td>
                                     <td>
                                         {{-- Handle total cost from both sources --}}
-                                        ${{ $order instanceof \App\Models\RecurringOrder ? $order->order->total_cost : $order->total_cost }}
+                                        ${{ $order instanceof \App\Models\RecurringOrder
+                                            ? optional($order->order)->total_cost ?? 0
+                                            : $order->total_cost ?? 0
+                                        }}
                                     </td>
                                     <td>
                                         @if($order instanceof \App\Models\RecurringOrder)
@@ -117,7 +122,7 @@
                                                     onclick="loadRecurringOrderDetails(1,'{{ $order->order_id }}','{{ $order->id }}')">
                                             </button>
                                         @else
-                                            <button class="btn btn-primary btn-view la la-eye la-2x" data-order-id="{{ $order->id }}"></button>
+                                            <button class="btn btn-primary btn-view la la-eye la-2x" data-order-id="{{ $order->id }}" data-origin="{{ $order->origin }}"></button>
                                         @endif
                                     </td>
                                     <td>
@@ -195,7 +200,10 @@
 <style>
 
 
-
+    .container-xl{
+        width: 100% !important;
+        max-width: 100% !important;
+    }
     aside.navbar-vertical.navbar-expand-lg {
         margin-top: 110px;
     }
@@ -757,183 +765,142 @@
         document.addEventListener('click', function(e) {
             if (e.target.classList.contains('btn-view')) {
                 const orderId = e.target.dataset.orderId;
-                loadModalContent('edit', orderId);
+                const origin = e.target.dataset.origin;
+                if(origin == 'online'){
+                    loadModalContent('edit', orderId, 'online')
+                }else{
+                    loadModalContent('edit', orderId);
+                }
             }
         });
 
-        function loadModalContent(action, orderId = null) {
-            const url = action === 'edit'
-                ? `/admin/orders/modal/${orderId}/edit`
-                : '/admin/orders/modal/create';
-
-            document.getElementById('modal-content-container').innerHTML = `
-            <div class="modal-body text-center">
-                <div class="spinner-border" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-2">Loading...</p>
-            </div>`;
-
-            const modal = new bootstrap.Modal(summaryModal);
-            modal.show();
-
-            fetch(url, {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'text/html'
+        function loadModalContent(action, orderId = null, origin = 'manual') {
+            let url;
+            if (action === 'create') {
+                url = '/admin/orders/manual/modal/create';
+            }
+            else
+            { // Editing existing order
+                if (origin === 'online') {
+                    url = `/admin/orders/modal/${orderId}/edit`; }
+                else {
+                    url = `/admin/orders/manual/modal/${orderId}/edit`;
                 }
-            })
-                .then(response => {
-                    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    return response.text();
-                })
-                .then(html => {
-                    document.getElementById('modal-content-container').innerHTML = html;
-                    isEditMode = action === 'edit';
-                    setTimeout(() => {
-                        initializeEmailSelect2();
-                        addCostCalculationListeners();
-                    }, 100);
-                })
-                .catch(error => {
-                    console.error('Error loading modal content:', error);
-                    document.getElementById('modal-content-container').innerHTML = `
-                <div class="modal-body text-center">
-                    <i class="la la-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
-                    <h5 class="mt-3">Error Loading Content</h5>
-                    <p>Unable to load modal content. Please try again.</p>
-                    <button class="btn btn-primary" onclick="loadModalContent('${action}', ${orderId})">Retry</button>
-                </div>`;
+            }
+
+            $('#orderSummaryModal .modal-content').html(` <div class="text-center p-5"> <div class="spinner-border text-primary"></div> </div> `);
+            $('#orderSummaryModal').modal('show');
+
+            $.get(url).done(function(response) {
+                $('#orderSummaryModal .modal-content').html(response);
+                }).fail(function(xhr) { $('#orderSummaryModal .modal-content')
+                    .html(` <div class="p-4 text-center text-danger"> Failed to load order. </div> `);
+                    console.error(xhr);
                 });
         }
 
-        function updateCostSummary() {
-            let productTotal = 0;
-            let productSummaryHtml = '';
-
-            document.querySelectorAll('.product-amount').forEach(input => {
-                const amount = parseFloat(input.value) || 0;
-                const unitPrice = parseFloat(input.dataset.unitPrice) || 0;
-                const productCost = amount * unitPrice;
-                productTotal += productCost;
-
-                if (amount > 0) {
-                    const productId = input.dataset.productId;
-                    const productName = document.querySelector('.label-'+productId).textContent;
-                    productSummaryHtml += `
-                    <p class="m-0 d-flex justify-content-between align-items-center">
-                        ${productName} (${amount} @ $${unitPrice.toFixed(2)}):
-                        <strong>$${productCost.toFixed(2)}</strong>
-                    </p>
-                `;
-                }
-            });
-
-            const deliveryCost = parseFloat(document.getElementById('modal-delivery-cost').value) || 0;
-            const hazmatCost = parseFloat(document.getElementById('modal-hazmat-cost').value) || 0;
-            const deliveryFee = deliveryCost;
-            const subTotal = productTotal;
-            const taxRate = 0.15;
-            const tax = (subTotal + deliveryFee) * taxRate;
-            const total = subTotal + tax + deliveryFee + hazmatCost;
-
-            document.querySelector('.cost-summary-products').innerHTML = productSummaryHtml;
-            document.querySelector('.cost-summary-delivery').innerHTML = `Delivery:<strong>$${deliveryFee.toFixed(2)}</strong>`;
-            document.querySelector('.cost-summary-hazmat').innerHTML = `Hazmat:<strong>$${hazmatCost.toFixed(2)}</strong>`;
-            document.querySelector('.cost-summary-subtotal').innerHTML = `Sub-Total:<strong>$${subTotal.toFixed(2)}</strong>`;
-            document.querySelector('#modal-sub-total').value = subTotal.toFixed(2);
-            document.querySelector('.cost-summary-tax').innerHTML = `Tax (${(taxRate * 100).toFixed(0)}%):<strong>$${tax.toFixed(2)}</strong>`;
-            document.querySelector('#modal-tax').value = tax.toFixed(2);
-            document.querySelector('.cost-summary-total').innerHTML = `TOTAL:<strong>$${total.toFixed(2)}</strong>`;
-            document.querySelector('#modal-total-cost').value = total.toFixed(2);
-        }
-
-        function addCostCalculationListeners() {
-            document.querySelectorAll('.product-amount').forEach(input => {
-                input.addEventListener('input', updateCostSummary);
-            });
-        }
-
         function validateForm() {
-            const requiredFields = [
-                {id: 'modal-customer-name', label: 'Customer Name'},
-                {id: 'modal-customer-email', label: 'Customer Email'},
-                {id: 'modal-customer-phone', label: 'Customer Phone'},
-                {id: 'modal-recurring', label: 'Recurring Option'},
-                {id: 'modal-address', label: 'Address'},
-                {id: 'modal-city', label: 'City'},
-                {id: 'modal-postal', label: 'Postal Code'},
-                {id: 'modal-province', label: 'Province'},
-                {id: 'modal-delivery-date', label: 'Delivery Date'}
+
+            const fields = [
+                {
+                    element: document.getElementById('manual-customer-id'),
+                    label: 'Customer'
+                },
+                {
+                    element: document.getElementById('manual-product-id'),
+                    label: 'Product Type'
+                },
+                {
+                    element: document.querySelector('input[name="amount"]'),
+                    label: 'Amount (lbs/units)'
+                },
+                {
+                    element: document.querySelector('input[name="po_number"]'),
+                    label: 'PO #'
+                },
+                {
+                    element: document.querySelector('select[name="recurring"]'),
+                    label: 'Recurring'
+                },
+                {
+                    element: document.querySelector('input[name="delivery_date"]'),
+                    label: 'Date'
+                },
+                {
+                    element: document.querySelector('input[name="delivery_time"]'),
+                    label: 'Time'
+                }
             ];
 
             let isValid = true;
             let firstInvalidField = null;
             let missingFields = [];
 
-            requiredFields.forEach(({id, label}) => {
-                const field = document.getElementById(id);
-                field.classList.remove('is-invalid');
-
-                let fieldValue = field.value;
-                if (id === 'modal-customer-email' && $('#modal-customer-email').hasClass('select2-hidden-accessible')) {
-                    fieldValue = $('#modal-customer-email').val();
+            // Clear previous validation
+            fields.forEach(({ element }) => {
+                if (element) {
+                    element.classList.remove('is-invalid');
                 }
+            });
 
-                if (!fieldValue || !fieldValue.toString().trim()) {
-                    field.classList.add('is-invalid');
+            // Validate regular fields
+            fields.forEach(({ element, label }) => {
+
+                if (!element) return;
+
+                const value = element.value?.trim();
+
+                if (!value) {
+                    element.classList.add('is-invalid');
                     isValid = false;
-                    if (!firstInvalidField) firstInvalidField = field;
+
+                    if (!firstInvalidField) {
+                        firstInvalidField = element;
+                    }
+
                     missingFields.push(label);
                 }
             });
 
-            // Phone number validation - exactly 10 digits
-            const phoneField = document.getElementById('modal-customer-phone');
-            const phoneValue = phoneField.value.replace(/\D/g, '');
-            if (phoneValue.length !== 10) {
-                phoneField.classList.add('is-invalid');
+            // Validate Delivery/Pickup radio
+            const pickupDelivery = document.querySelector(
+                'input[name="pickup_delivery"]:checked'
+            );
+
+            if (!pickupDelivery) {
                 isValid = false;
-                if (!firstInvalidField) firstInvalidField = phoneField;
-                if (!missingFields.includes("Customer Phone")) {
-                    missingFields.push("Customer Phone (Please valid 10 digits)");
+                missingFields.push('Delivery or Pickup');
+            }
+
+            // Validate amount > 0
+            const amountField = document.querySelector('input[name="amount"]');
+
+            if (
+                amountField &&
+                (isNaN(amountField.value) || parseFloat(amountField.value) <= 0)
+            ) {
+                amountField.classList.add('is-invalid');
+                isValid = false;
+
+                if (!firstInvalidField) {
+                    firstInvalidField = amountField;
+                }
+
+                if (!missingFields.includes('Amount (lbs/units)')) {
+                    missingFields.push('Amount (must be greater than 0)');
                 }
             }
 
-            // Check if at least one product has amount > 0
-            const productAmounts = document.querySelectorAll('.product-amount');
-            let hasProducts = false;
-            productAmounts.forEach(input => {
-                if (parseFloat(input.value) > 0) hasProducts = true;
-            });
+            if (!isValid) {
 
-            if (!hasProducts) {
-                isValid = false;
-                missingFields.push('At least one product with amount > 0');
-            }
-
-            // Email format validation
-            const emailField = document.getElementById('modal-customer-email');
-            let emailValue = emailField.value;
-            if ($('#modal-customer-email').hasClass('select2-hidden-accessible')) {
-                emailValue = $('#modal-customer-email').val();
-            }
-
-            if (emailValue && !isValidEmail(emailValue)) {
-                emailField.classList.add('is-invalid');
-                isValid = false;
-                if (!firstInvalidField) firstInvalidField = emailField;
-                if (!missingFields.includes("Customer Email")) {
-                    missingFields.push("Customer Email (Invalid Format)");
+                if (firstInvalidField) {
+                    firstInvalidField.focus();
                 }
-            }
 
-            if (!isValid && firstInvalidField) {
-                firstInvalidField.focus();
                 Swal.fire({
                     title: 'Validation Error',
-                    html: 'Please fill in the following required field(s):<br><ul style="text-align: left;">' +
+                    html:
+                        'Please fill in the following required field(s):<br><ul style="text-align:left;">' +
                         missingFields.map(field => `<li>${field}</li>`).join('') +
                         '</ul>',
                     icon: 'warning',
@@ -942,165 +909,6 @@
             }
 
             return isValid;
-        }
-
-        function isValidEmail(email) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return emailRegex.test(email);
-        }
-
-        // Validate address and get delivery cost before submission
-        async function validateAddressAndGetDeliveryCost() {
-            const formData = getFormData();
-
-            // Step 1: Validate Address
-            const addressValid = await validateAddressFields(formData);
-            if (!addressValid) {
-                return null; // Address validation failed
-            }
-
-            // Step 2: Get Delivery Cost
-            try {
-                const supplier = await getClosestSupplier(formData);
-                const quoteData = await getDeliveryQuote(supplier, formData);
-
-                if (quoteData.success && quoteData.total) {
-                    return quoteData.total;
-                } else {
-                    const errorMessages = extractErrorMessages(quoteData);
-                    throw new Error(errorMessages);
-                }
-            } catch (error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Delivery Cost Error',
-                    text: error.message || 'Failed to get delivery cost',
-                    confirmButtonText: 'OK'
-                });
-                return null;
-            }
-        }
-
-        function getFormData() {
-            return {
-                address: getInput('modal-address'),
-                city: getInput('modal-city'),
-                province: getInput('modal-province'),
-                email: getInput('modal-customer-email'),
-                name: getInput('modal-customer-name'),
-                phone: getInput('modal-customer-phone'),
-                iceAmount: parseFloat(getInput('modal-ice-amount')) || 1,
-                postal: getInput('modal-postal'),
-                locationName: getInput('modal-location-name'),
-                unit: getInput('modal-unit') || ''
-            };
-        }
-
-        function getInput(id) {
-            return document.getElementById(id)?.value?.trim();
-        }
-
-        async function validateAddressFields(formData) {
-            {{--const apiKey = "{{config('services.google.address_api_key')}}";--}}
-            {{--const response = await fetch(`https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`, {--}}
-            {{--    method: "POST",--}}
-            {{--    headers: {--}}
-            {{--        "Content-Type": "application/json"--}}
-            {{--    },--}}
-            {{--    body: JSON.stringify({--}}
-            {{--        address: {--}}
-            {{--            regionCode: "CA",--}}
-            {{--            addressLines: [formData.address],--}}
-            {{--            locality: formData.city,--}}
-            {{--            administrativeArea: formData.province,--}}
-            {{--            postalCode: formData.postal--}}
-            {{--        }--}}
-            {{--    })--}}
-            {{--});--}}
-
-            {{--const result = await response.json();--}}
-            {{--if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {--}}
-            {{--    await Swal.fire({--}}
-            {{--        title: 'Address Validation Failed',--}}
-            {{--        html: `Address could not be confirmed. Please provide proper address. <br>Street Address, City, Province, Postal`,--}}
-            {{--        icon: 'warning',--}}
-            {{--        confirmButtonColor: '#d33',--}}
-            {{--    });--}}
-            {{--    return false;--}}
-            {{--}--}}
-            return true;
-        }
-
-        function getClosestSupplier(formData) {
-            const url = `/test-closest-supplier?street=${encodeURIComponent(formData.address)}&city=${encodeURIComponent(formData.city)}&province=${encodeURIComponent(formData.province)}`;
-
-            return fetch(url)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Supplier API returned ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (!data.closest_supplier || !data.closest_supplier.id) {
-                        throw new Error('No supplier found in response');
-                    }
-
-                    const supplier = data.closest_supplier;
-
-                    if($('#supplier_id').length) {
-                        $('#supplier_id').val(supplier.id);
-                    }
-
-                    return supplier;
-                });
-        }
-
-        function getDeliveryQuote(supplier, formData) {
-            const quotePayload = {
-                supplier_id: supplier.id,
-                delivery: {
-                    name: formData.locationName.trim() || 'N/A',
-                    street: formData.address.trim(),
-                    unit: formData.unit.trim() || '',
-                    city: formData.city.trim(),
-                    province: formData.province.trim(),
-                    postal_code: formData.postal.trim(),
-                    contact: formData.name.trim() || 'N/A',
-                    phone: formData.phone.trim() || 'N/A',
-                    email: formData.email.trim() || 'N/A'
-                },
-                weight: formData.iceAmount
-            };
-
-            return fetch('/get-delivery-quote', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(quotePayload)
-            }).then(response => response.json());
-        }
-
-        function extractErrorMessages(data) {
-            if (!data?.data?.problems) {
-                return 'Quote failed';
-            }
-            const problems = data.data.problems;
-            const extractMessages = (problems) => {
-                let messages = [];
-                problems.forEach(problem => {
-                    if (problem.message) messages.push(problem.message);
-                    if (problem.problems) {
-                        messages = messages.concat(extractMessages(problem.problems));
-                    }
-                });
-                return messages;
-            };
-
-            return extractMessages(data.data.problems).join('\n');
         }
 
         // Handle Save/Update Button Click
@@ -1116,53 +924,6 @@
 
             // Store original text for reset
             const originalText = saveBtn.innerHTML;
-
-            // Show validating state
-            saveBtn.innerHTML = '<i class="la la-spinner la-spin"></i> Validating...';
-            saveBtn.disabled = true;
-
-            // Validate address and get delivery cost
-            const deliveryCost = await validateAddressAndGetDeliveryCost();
-
-            if (deliveryCost === null) {
-                // Validation failed, reset button
-                saveBtn.innerHTML = originalText;
-                saveBtn.disabled = false;
-                return;
-            }
-
-            // Set the delivery cost
-            document.getElementById('modal-delivery-cost').value = deliveryCost.toFixed(2);
-
-            // Update cost summary with validated delivery cost
-            updateCostSummary();
-
-            // Show delivery cost confirmation to admin
-            const confirmResult = await Swal.fire({
-                title: 'Delivery Cost Confirmed',
-                html: `
-                <div class="text-start">
-                    <p class="mb-2">The delivery cost has been calculated:</p>
-                    <div class="alert alert-info">
-                        <strong>Delivery Cost: ${deliveryCost.toFixed(2)}</strong>
-                    </div>
-                    <p class="mb-0">Do you want to proceed with this order?</p>
-                </div>
-            `,
-                icon: 'info',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, proceed',
-                cancelButtonText: 'Cancel'
-            });
-
-            // If admin cancels, reset button and stop
-            if (!confirmResult.isConfirmed) {
-                saveBtn.innerHTML = originalText;
-                saveBtn.disabled = false;
-                return;
-            }
 
             // Show saving state
             saveBtn.innerHTML = mode === 'edit' ?
@@ -1736,930 +1497,6 @@
             initializeAddressManagement();
         });
     });
-
-{{--    document.addEventListener('DOMContentLoaded', function() {--}}
-{{--        let summaryModal = document.getElementById("orderSummaryModal");--}}
-{{--        let sidebar = document.querySelector("aside.navbar-vertical");--}}
-{{--        let isEditMode = false;--}}
-{{--        let customerData = {}; // Store customer data for quick lookup--}}
-
-{{--        // Initialize Select2 for email field--}}
-{{--        function initializeEmailSelect2() {--}}
-{{--            $('#modal-customer-email').select2({--}}
-{{--                dropdownParent: $('#orderSummaryModal'),--}}
-{{--                placeholder: 'Search or enter email address',--}}
-{{--                allowClear: true,--}}
-{{--                tags: true,--}}
-{{--                ajax: {--}}
-{{--                    url: '{{ route("admin.customers.search") }}', // You'll need to create this route--}}
-{{--                    dataType: 'json',--}}
-{{--                    delay: 250,--}}
-{{--                    data: function (params) {--}}
-{{--                        return {--}}
-{{--                            q: params.term,--}}
-{{--                            page: params.page || 1--}}
-{{--                        };--}}
-{{--                    },--}}
-{{--                    processResults: function (data, params) {--}}
-{{--                        params.page = params.page || 1;--}}
-
-{{--                        return {--}}
-{{--                            results: data.customers.map(customer => ({--}}
-{{--                                id: customer.email,--}}
-{{--                                text: `${customer.email} (${customer.name})`,--}}
-{{--                                customer: customer--}}
-{{--                            })),--}}
-{{--                            pagination: {--}}
-{{--                                more: data.has_more--}}
-{{--                            }--}}
-{{--                        };--}}
-{{--                    },--}}
-{{--                    cache: true--}}
-{{--                },--}}
-{{--                templateResult: function(customer) {--}}
-{{--                    if (customer.loading) return customer.text;--}}
-
-{{--                    if (customer.customer) {--}}
-{{--                        return $(`--}}
-{{--                    <div class="select2-customer-result">--}}
-{{--                        <div class="customer-email">${customer.customer.email}</div>--}}
-{{--                        <div class="customer-details text-muted small">--}}
-{{--                            ${customer.customer.name} • ${customer.customer.city || 'N/A'}, ${customer.customer.province || 'N/A'}--}}
-{{--                        </div>--}}
-{{--                    </div>--}}
-{{--                `);--}}
-{{--                    }--}}
-
-{{--                    return $(`<div class="select2-new-email">New: ${customer.text}</div>`);--}}
-{{--                },--}}
-{{--                templateSelection: function(customer) {--}}
-{{--                    return customer.customer ? customer.customer.email : customer.text;--}}
-{{--                }--}}
-{{--            });--}}
-
-{{--            // Handle email selection--}}
-{{--            $('#modal-customer-email').on('select2:select', function (e) {--}}
-{{--                const data = e.params.data;--}}
-
-{{--                if (data.customer) {--}}
-{{--                    // Existing customer selected - populate fields--}}
-{{--                    populateCustomerFields(data.customer);--}}
-{{--                    customerData[data.customer.email] = data.customer;--}}
-{{--                } else {--}}
-{{--                    // New email entered - clear customer fields but keep email--}}
-{{--                    clearCustomerFields(data.text);--}}
-{{--                }--}}
-{{--            });--}}
-
-{{--            // Handle clearing selection--}}
-{{--            $('#modal-customer-email').on('select2:clear', function (e) {--}}
-{{--                clearCustomerFields('');--}}
-{{--            });--}}
-{{--        }--}}
-
-{{--        // Populate customer fields with existing data--}}
-{{--        function populateCustomerFields(customer) {--}}
-{{--            document.getElementById('modal-customer-name').value = customer.name || '';--}}
-{{--            document.getElementById('modal-customer-phone').value = customer.phone || '';--}}
-{{--            document.getElementById('modal-address').value = customer.address || '';--}}
-{{--            document.getElementById('modal-city').value = customer.city || '';--}}
-{{--            document.getElementById('modal-postal').value = customer.postal_code || '';--}}
-{{--            document.getElementById('modal-province').value = customer.province || '';--}}
-
-{{--            // Add visual indication that fields are pre-filled--}}
-{{--            const prefilledFields = [--}}
-{{--                'modal-customer-name',--}}
-{{--                'modal-customer-phone',--}}
-{{--                'modal-address',--}}
-{{--                'modal-city',--}}
-{{--                'modal-postal',--}}
-{{--                'modal-province'--}}
-{{--            ];--}}
-
-{{--            prefilledFields.forEach(fieldId => {--}}
-{{--                const field = document.getElementById(fieldId);--}}
-{{--                if (field.value) {--}}
-{{--                    field.classList.add('prefilled-field');--}}
-{{--                    // Remove the class after animation--}}
-{{--                    setTimeout(() => field.classList.remove('prefilled-field'), 2000);--}}
-{{--                }--}}
-{{--            });--}}
-{{--        }--}}
-
-{{--        // Clear customer fields--}}
-{{--        function clearCustomerFields(emailValue = '') {--}}
-{{--            document.getElementById('modal-customer-name').value = '';--}}
-{{--            document.getElementById('modal-customer-phone').value = '';--}}
-{{--            document.getElementById('modal-address').value = '';--}}
-{{--            document.getElementById('modal-city').value = '';--}}
-{{--            document.getElementById('modal-postal').value = '';--}}
-{{--            document.getElementById('modal-province').value = '';--}}
-{{--        }--}}
-
-{{--        // Handle sidebar z-index for Backpack compatibility--}}
-{{--        summaryModal.addEventListener("show.bs.modal", function() {--}}
-{{--            if (sidebar) {--}}
-{{--                sidebar.style.zIndex = "-1";--}}
-{{--            }--}}
-{{--            // Initialize Select2 when modal opens--}}
-{{--            setTimeout(() => {--}}
-{{--                initializeEmailSelect2();--}}
-{{--            }, 100);--}}
-{{--        });--}}
-
-{{--        summaryModal.addEventListener("hidden.bs.modal", function() {--}}
-{{--            if (sidebar) {--}}
-{{--                sidebar.style.zIndex = "1030";--}}
-{{--            }--}}
-{{--            // Destroy Select2 when modal closes--}}
-{{--            if ($('#modal-customer-email').hasClass('select2-hidden-accessible')) {--}}
-{{--                $('#modal-customer-email').select2('destroy');--}}
-{{--            }--}}
-{{--        });--}}
-
-{{--        // Create New Order button--}}
-{{--        document.getElementById('create-order-btn').addEventListener('click', function() {--}}
-{{--            loadModalContent('create');--}}
-{{--        });--}}
-
-{{--        // Edit Order buttons (existing functionality)--}}
-{{--        document.addEventListener('click', function(e) {--}}
-{{--            if (e.target.classList.contains('btn-view')) {--}}
-{{--                const orderId = e.target.dataset.orderId;--}}
-{{--                loadModalContent('edit', orderId);--}}
-{{--            }--}}
-{{--        });--}}
-{{--// Replace loadModalContent function with this optimized version:--}}
-{{--        function loadModalContent(action, orderId = null) {--}}
-{{--            const url = action === 'edit'--}}
-{{--                ? `/admin/orders/modal/${orderId}/edit`--}}
-{{--                : '/admin/orders/modal/create';--}}
-
-{{--            // Show loading state--}}
-{{--            document.getElementById('modal-content-container').innerHTML = `--}}
-{{--                <div class="modal-body text-center">--}}
-{{--                    <div class="spinner-border" role="status">--}}
-{{--                        <span class="visually-hidden">Loading...</span>--}}
-{{--                    </div>--}}
-{{--                    <p class="mt-2">Loading...</p>--}}
-{{--                </div>`;--}}
-
-{{--            // Show the modal immediately with loading state--}}
-{{--            const modal = new bootstrap.Modal(summaryModal);--}}
-{{--            modal.show();--}}
-
-{{--            fetch(url, {--}}
-{{--                method: 'GET',--}}
-{{--                headers: {--}}
-{{--                    'X-Requested-With': 'XMLHttpRequest',--}}
-{{--                    'Accept': 'text/html'--}}
-{{--                }--}}
-{{--            })--}}
-{{--                .then(response => {--}}
-{{--                    if (!response.ok) {--}}
-{{--                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);--}}
-{{--                    }--}}
-{{--                    return response.text();--}}
-{{--                })--}}
-{{--                .then(html => {--}}
-{{--                    document.getElementById('modal-content-container').innerHTML = html;--}}
-{{--                    isEditMode = action === 'edit';--}}
-
-{{--                    // Initialize components after content is loaded--}}
-{{--                    setTimeout(() => {--}}
-{{--                        initializeEmailSelect2();--}}
-{{--                        addCostCalculationListeners();--}}
-{{--                        setupDeliveryCalculation();--}}
-
-{{--                        // Calculate costs for edit mode--}}
-{{--                        // if (isEditMode) {--}}
-{{--                        //     updateCostSummary();--}}
-{{--                        // }--}}
-{{--                    }, 100);--}}
-{{--                })--}}
-{{--                .catch(error => {--}}
-{{--                    console.error('Error loading modal content:', error);--}}
-{{--                    document.getElementById('modal-content-container').innerHTML = `--}}
-{{--                    <div class="modal-body text-center">--}}
-{{--                        <i class="la la-exclamation-triangle text-danger" style="font-size: 3rem;"></i>--}}
-{{--                        <h5 class="mt-3">Error Loading Content</h5>--}}
-{{--                        <p>Unable to load modal content. Please try again.</p>--}}
-{{--                        <button class="btn btn-primary" onclick="loadModalContent('${action}', ${orderId})">Retry</button>--}}
-{{--                    </div>`;--}}
-{{--                });--}}
-{{--        }--}}
-
-{{--        function setupDeliveryCalculation() {--}}
-{{--            const addressFields = [--}}
-{{--                'modal-address',--}}
-{{--                'modal-city',--}}
-{{--                'modal-province',--}}
-{{--                'modal-postal',--}}
-{{--                'modal-ice-amount'--}}
-{{--            ];--}}
-
-{{--            let btnHtml = `<button--}}
-{{--                        id="recalculate-delivery-btn"--}}
-{{--                        type="button"--}}
-{{--                        class="btn btn-xs btn-outline-primary"--}}
-{{--                        title="Click to recalculate delivery charges">--}}
-{{--                        Recalculate--}}
-{{--                    </button>`;--}}
-
-{{--            addressFields.forEach(id => {--}}
-{{--                const field = document.getElementById(id);--}}
-{{--                if (field) {--}}
-{{--                    field.removeEventListener('input', field._deliveryListener);--}}
-
-{{--                    // Create new listener--}}
-{{--                    field._deliveryListener = () => {--}}
-{{--                        const deliveryOption = document.getElementById('modal-pickup-or-delivery');--}}
-{{--                        const recalculateButton = document.getElementById('recalculate-delivery-btn');--}}
-{{--                        const saveOrderBtn = document.getElementById('save-order-btn');--}}
-
-{{--                        if (deliveryOption && deliveryOption.value === 'delivery') {--}}
-{{--                            if (!recalculateButton) {--}}
-{{--                                $('.cost-summary-delivery').append(btnHtml);--}}
-
-{{--                                // Disable save order button when recalc button is shown--}}
-{{--                                if (saveOrderBtn) {--}}
-{{--                                    saveOrderBtn.disabled = true;--}}
-{{--                                }--}}
-{{--                            }--}}
-{{--                        }--}}
-
-{{--                        // If button already exists but user clears/change fields--}}
-{{--                        setTimeout(() => {--}}
-{{--                            const btnExists = document.getElementById('recalculate-delivery-btn');--}}
-{{--                            if (!btnExists && saveOrderBtn) {--}}
-{{--                                saveOrderBtn.disabled = false; // Enable back if button gone--}}
-{{--                            }--}}
-{{--                        }, 100);--}}
-{{--                    };--}}
-
-{{--                    field.addEventListener('input', field._deliveryListener);--}}
-{{--                }--}}
-{{--            });--}}
-
-{{--            // Handle recalc button click (remove it and enable save order button)--}}
-{{--            $(document).on('click', '#recalculate-delivery-btn', function () {--}}
-{{--                $(this).remove();--}}
-{{--                const saveOrderBtn = document.getElementById('save-order-btn');--}}
-{{--                if (saveOrderBtn) {--}}
-{{--                    saveOrderBtn.disabled = false;--}}
-{{--                }--}}
-{{--            });--}}
-{{--        }--}}
-
-{{--        $(document).on('change','#modal-pickup-or-delivery',function () {--}}
-{{--            if (this.value === 'delivery') {--}}
-{{--                // Setup auto listener to check fields and trigger quote--}}
-{{--                setupDeliveryCalculation();--}}
-
-{{--                // Initial trigger in case fields are already filled--}}
-{{--                tryGetDeliveryQuote();--}}
-{{--            } else if (this.value === 'pickup') {--}}
-{{--                // Set delivery cost to 0 for pickup--}}
-{{--                updateDeliveryCostSummary(0);--}}
-{{--            } else {--}}
-{{--                // Clear delivery cost for other options--}}
-{{--                updateDeliveryCostSummary(null);--}}
-{{--            }--}}
-{{--        });--}}
-
-{{--        $(document).on('click','#recalculate-delivery-btn',function () {--}}
-{{--            $('#recalculate-delivery-btn').remove();--}}
-{{--            tryGetDeliveryQuote();--}}
-{{--        });--}}
-
-
-
-{{--        // Dynamic cost calculation--}}
-{{--        function updateCostSummary() {--}}
-{{--            let productTotal = 0;--}}
-{{--            let productSummaryHtml = '';--}}
-
-{{--            // Calculate product costs--}}
-{{--            document.querySelectorAll('.product-amount').forEach(input => {--}}
-{{--                const amount = parseFloat(input.value) || 0;--}}
-{{--                const unitPrice = parseFloat(input.dataset.unitPrice) || 0;--}}
-{{--                const productCost = amount * unitPrice;--}}
-{{--                productTotal += productCost;--}}
-
-{{--                if (amount > 0) {--}}
-{{--                    const productId = input.dataset.productId;--}}
-{{--                    const productName = document.querySelector('.label-'+productId).textContent;--}}
-{{--                    productSummaryHtml += `--}}
-{{--                <p class="m-0 d-flex justify-content-between align-items-center">--}}
-{{--                    ${productName} (${amount} @ $${unitPrice.toFixed(2)}):--}}
-{{--                    <strong>$${productCost.toFixed(2)}</strong>--}}
-{{--                </p>--}}
-{{--            `;--}}
-{{--                }--}}
-{{--            });--}}
-
-{{--            const pickupDelivery = document.getElementById('modal-pickup-or-delivery').value;--}}
-{{--            const deliveryCost = parseFloat(document.getElementById('modal-delivery-cost').value) || 0;--}}
-{{--            const hazmatCost = parseFloat(document.getElementById('modal-hazmat-cost').value) || 0;--}}
-
-{{--            const deliveryFee = pickupDelivery === 'delivery' ? deliveryCost : 0.00;--}}
-{{--            const subTotal = productTotal;--}}
-{{--            const taxRate = 0.15;--}}
-{{--            const tax = (subTotal + deliveryFee) * taxRate;--}}
-{{--            const total = subTotal + tax + deliveryFee + hazmatCost;--}}
-
-{{--            // Update the cost summary section--}}
-{{--            document.querySelector('.cost-summary-products').innerHTML = productSummaryHtml;--}}
-
-{{--            document.querySelector('.cost-summary-delivery').innerHTML =--}}
-{{--                `Pickup/Delivery:<strong>$${deliveryFee.toFixed(2)}</strong>`;--}}
-
-{{--            document.querySelector('.cost-summary-hazmat').innerHTML =--}}
-{{--                `Hazmat:<strong>$${hazmatCost.toFixed(2)}</strong>`;--}}
-
-{{--            document.querySelector('.cost-summary-subtotal').innerHTML =--}}
-{{--                `Sub-Total:<strong>$${subTotal.toFixed(2)}</strong>`;--}}
-{{--            document.querySelector('#modal-sub-total').value = subTotal.toFixed(2);--}}
-{{--            document.querySelector('.cost-summary-tax').innerHTML =--}}
-{{--                `Tax (${(taxRate * 100).toFixed(0)}%):<strong>$${tax.toFixed(2)}</strong>`;--}}
-{{--            document.querySelector('#modal-tax').value = tax.toFixed(2);--}}
-{{--            document.querySelector('.cost-summary-total').innerHTML =--}}
-{{--                `TOTAL:<strong>$${total.toFixed(2)}</strong>`;--}}
-{{--            document.querySelector('#modal-total-cost').value = total.toFixed(2);--}}
-{{--        }--}}
-
-
-{{--        function addCostCalculationListeners() {--}}
-{{--            document.querySelectorAll('.product-amount').forEach(input => {--}}
-{{--                input.addEventListener('input', updateCostSummary);--}}
-{{--            });--}}
-
-{{--            const deliveryField = document.getElementById('modal-pickup-or-delivery');--}}
-{{--            if (deliveryField) deliveryField.addEventListener('change', updateCostSummary);--}}
-{{--        }--}}
-
-{{--        document.addEventListener('DOMContentLoaded', function () {--}}
-{{--            const dateInput = document.getElementById('modal-delivery-date');--}}
-{{--            if (dateInput) {--}}
-{{--                const today = new Date().toISOString().split('T')[0];--}}
-{{--                dateInput.min = today;--}}
-
-{{--                // Optional fallback: listen for manual changes--}}
-{{--                dateInput.addEventListener('change', function () {--}}
-{{--                    if (this.value < today) {--}}
-{{--                        alert('You cannot select a past date.');--}}
-{{--                        this.value = today;--}}
-{{--                    }--}}
-{{--                });--}}
-{{--            }--}}
-{{--        });--}}
-
-{{--        // Form validation--}}
-{{--        function validateForm() {--}}
-{{--            const pickupOrDelivery = document.getElementById('modal-pickup-or-delivery').value;--}}
-
-{{--            const requiredFields = [--}}
-{{--                {id: 'modal-customer-name', label: 'Customer Name'},--}}
-{{--                {id: 'modal-customer-email', label: 'Customer Email'},--}}
-{{--                {id: 'modal-customer-phone', label: 'Customer Phone'},--}}
-{{--                {id: 'modal-recurring', label: 'Recurring Option'},--}}
-{{--                {id: 'modal-address', label: 'Address', dependsOnDelivery: true},--}}
-{{--                {id: 'modal-city', label: 'City', dependsOnDelivery: true},--}}
-{{--                {id: 'modal-postal', label: 'Postal Code', dependsOnDelivery: true},--}}
-{{--                {id: 'modal-province', label: 'Province', dependsOnDelivery: true},--}}
-{{--                {id: 'modal-delivery-date', label: 'Delivery Date'},--}}
-{{--                {id: 'modal-pickup-or-delivery', label: 'Pickup or Delivery'}--}}
-{{--            ];--}}
-
-{{--            let isValid = true;--}}
-{{--            let firstInvalidField = null;--}}
-{{--            let missingFields = [];--}}
-
-{{--            // Check required fields--}}
-{{--            requiredFields.forEach(({id, label, dependsOnDelivery}) => {--}}
-{{--                if (dependsOnDelivery && pickupOrDelivery === 'pickup') return;--}}
-
-{{--                const field = document.getElementById(id);--}}
-{{--                field.classList.remove('is-invalid');--}}
-
-{{--                let fieldValue = field.value;--}}
-
-{{--                if (id === 'modal-customer-email' && $('#modal-customer-email').hasClass('select2-hidden-accessible')) {--}}
-{{--                    fieldValue = $('#modal-customer-email').val();--}}
-{{--                }--}}
-
-{{--                if (!fieldValue || !fieldValue.toString().trim()) {--}}
-{{--                    field.classList.add('is-invalid');--}}
-{{--                    isValid = false;--}}
-{{--                    if (!firstInvalidField) firstInvalidField = field;--}}
-{{--                    missingFields.push(label);--}}
-{{--                }--}}
-{{--            });--}}
-
-{{--            // Check if at least one product has amount > 0--}}
-{{--            const productAmounts = document.querySelectorAll('.product-amount');--}}
-{{--            let hasProducts = false;--}}
-
-{{--            productAmounts.forEach(input => {--}}
-{{--                if (parseFloat(input.value) > 0) {--}}
-{{--                    hasProducts = true;--}}
-{{--                }--}}
-{{--            });--}}
-
-{{--            if (!hasProducts) {--}}
-{{--                isValid = false;--}}
-{{--                missingFields.push('At least one product with amount > 0');--}}
-{{--            }--}}
-
-{{--            // Email format validation--}}
-{{--            const emailField = document.getElementById('modal-customer-email');--}}
-{{--            let emailValue = emailField.value;--}}
-{{--            if ($('#modal-customer-email').hasClass('select2-hidden-accessible')) {--}}
-{{--                emailValue = $('#modal-customer-email').val();--}}
-{{--            }--}}
-
-{{--            if (emailValue && !isValidEmail(emailValue)) {--}}
-{{--                emailField.classList.add('is-invalid');--}}
-{{--                isValid = false;--}}
-{{--                if (!firstInvalidField) firstInvalidField = emailField;--}}
-{{--                if (!missingFields.includes("Customer Email")) {--}}
-{{--                    missingFields.push("Customer Email (Invalid Format)");--}}
-{{--                }--}}
-{{--            }--}}
-
-{{--            if (!isValid && firstInvalidField) {--}}
-{{--                firstInvalidField.focus();--}}
-
-{{--                Swal.fire({--}}
-{{--                    title: 'Validation Error',--}}
-{{--                    html: 'Please fill in the following required field(s):<br><ul style="text-align: left;">' +--}}
-{{--                        missingFields.map(field => `<li>${field}</li>`).join('') +--}}
-{{--                        '</ul>',--}}
-{{--                    icon: 'warning',--}}
-{{--                    confirmButtonText: 'OK'--}}
-{{--                });--}}
-{{--            }--}}
-
-{{--            return isValid;--}}
-{{--        }--}}
-
-{{--        function isValidEmail(email) {--}}
-{{--            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;--}}
-{{--            return emailRegex.test(email);--}}
-{{--        }--}}
-
-{{--        // Handle Save/Update Button Click--}}
-
-{{--        $(document).on('click','#save-order-btn',function (e) {--}}
-{{--            e.preventDefault();--}}
-
-{{--            if (!validateForm()) return;--}}
-
-{{--            const saveBtn = this;--}}
-{{--            const mode = this.dataset.mode;--}}
-{{--            const orderId = this.dataset.orderId;--}}
-{{--            const form = document.getElementById('order-form');--}}
-
-{{--            // Store original text for reset--}}
-{{--            const originalText = saveBtn.innerHTML;--}}
-
-{{--            // Show loading state--}}
-{{--            saveBtn.innerHTML = mode === 'edit' ?--}}
-{{--                '<i class="la la-spinner la-spin"></i> Updating...' :--}}
-{{--                '<i class="la la-spinner la-spin"></i> Creating...';--}}
-{{--            saveBtn.disabled = true;--}}
-
-{{--            // Set form action and method based on mode--}}
-{{--            if (mode === 'edit') {--}}
-{{--                form.action = `/admin/orders/${orderId}/ajax-update`;--}}
-{{--            } else {--}}
-{{--                form.action = '/admin/orders/ajax-create';--}}
-{{--            }--}}
-
-{{--            // Get form data--}}
-{{--            const formData = new FormData(form);--}}
-
-{{--            // Handle delivery date/time combination--}}
-{{--            const date = document.getElementById('modal-delivery-date').value;--}}
-{{--            const time = document.getElementById('modal-delivery-time').value;--}}
-{{--            if (date && time) {--}}
-{{--                formData.set('delivery_date', `${date} ${time}:00`);--}}
-{{--            } else if (date) {--}}
-{{--                formData.set('delivery_date', `${date} 00:00:00`);--}}
-{{--            }--}}
-
-{{--            // Get CSRF token--}}
-{{--            const csrfToken = document.querySelector('meta[name="csrf-token"]');--}}
-{{--            if (!csrfToken) {--}}
-{{--                console.error('CSRF token not found');--}}
-{{--                resetButton();--}}
-{{--                return;--}}
-{{--            }--}}
-
-{{--            // Send AJAX request--}}
-{{--            fetch(form.action, {--}}
-{{--                method: 'POST',--}}
-{{--                body: formData,--}}
-{{--                headers: {--}}
-{{--                    'X-CSRF-TOKEN': csrfToken.getAttribute('content'),--}}
-{{--                    'Accept': 'application/json'--}}
-{{--                }--}}
-{{--            })--}}
-{{--                .then(response => response.json())--}}
-{{--                .then(data => {--}}
-{{--                    resetButton();--}}
-
-{{--                    if (data.success) {--}}
-{{--                        // Close modal--}}
-{{--                        const modal = bootstrap.Modal.getInstance(summaryModal);--}}
-{{--                        modal.hide();--}}
-
-{{--                        // Show success notification--}}
-{{--                        Swal.fire({--}}
-{{--                            title: 'Success!',--}}
-{{--                            text: mode === 'edit' ?--}}
-{{--                                'Order has been updated successfully' :--}}
-{{--                                'Order has been created successfully',--}}
-{{--                            icon: 'success',--}}
-{{--                            confirmButtonText: 'OK'--}}
-{{--                        }).then(() => {--}}
-{{--                            window.location.reload();--}}
-{{--                        });--}}
-{{--                    } else {--}}
-{{--                        throw new Error(data.message || 'Operation failed');--}}
-{{--                    }--}}
-{{--                })--}}
-{{--                .catch(error => {--}}
-{{--                    console.error('Error:', error);--}}
-{{--                    resetButton();--}}
-
-{{--                    Swal.fire({--}}
-{{--                        title: 'Error!',--}}
-{{--                        text: error.message || 'Operation failed. Please try again.',--}}
-{{--                        icon: 'error',--}}
-{{--                        confirmButtonText: 'OK'--}}
-{{--                    });--}}
-{{--                });--}}
-
-{{--            function resetButton() {--}}
-{{--                saveBtn.innerHTML = originalText;--}}
-{{--                saveBtn.disabled = false;--}}
-{{--            }--}}
-{{--        });--}}
-{{--        // Handle Delete Button Click--}}
-
-{{--        $(document).on('click', '#delete-pushed-order-btn', function() {--}}
-
-
-{{--            Swal.fire({--}}
-{{--                title: 'Pushed!',--}}
-{{--                text: 'This order has already been pushed to delivery service and cannot be deleted.',--}}
-{{--                icon: 'warning',--}}
-{{--                confirmButtonText: 'OK'--}}
-{{--            }).then(() => {--}}
-
-{{--            });--}}
-
-{{--        });--}}
-
-
-{{--        $(document).on('click', '#delete-order-btn', function() {--}}
-{{--            const orderId = this.dataset.orderId;--}}
-
-{{--            if (!orderId) {--}}
-{{--                alert('Order ID not found');--}}
-{{--                return;--}}
-{{--            }--}}
-
-{{--            Swal.fire({--}}
-{{--                title: 'Are you sure?',--}}
-{{--                text: "You won't be able to revert this!",--}}
-{{--                icon: 'warning',--}}
-{{--                showCancelButton: true,--}}
-{{--                confirmButtonColor: '#d33',--}}
-{{--                cancelButtonColor: '#3085d6',--}}
-{{--                confirmButtonText: 'Yes, delete it!'--}}
-{{--            }).then((result) => {--}}
-{{--                if (result.isConfirmed) {--}}
-{{--                    const csrfToken = document.querySelector('meta[name="csrf-token"]');--}}
-{{--                    if (!csrfToken) {--}}
-{{--                        console.error('CSRF token not found');--}}
-{{--                        return;--}}
-{{--                    }--}}
-
-{{--                    fetch(`order/${orderId}/delete/`, {--}}
-{{--                        method: 'DELETE',--}}
-{{--                        headers: {--}}
-{{--                            'Content-Type': 'application/json',--}}
-{{--                            'X-CSRF-TOKEN': csrfToken.getAttribute('content'),--}}
-{{--                            'Accept': 'application/json'--}}
-{{--                        },--}}
-{{--                        credentials: 'same-origin'--}}
-{{--                    })--}}
-{{--                        .then(response => response.json())--}}
-{{--                        .then(data => {--}}
-{{--                            if (data.success) {--}}
-{{--                                const modal = bootstrap.Modal.getInstance(summaryModal);--}}
-{{--                                modal.hide();--}}
-
-{{--                                Swal.fire({--}}
-{{--                                    title: 'Deleted!',--}}
-{{--                                    text: 'Order has been deleted successfully',--}}
-{{--                                    icon: 'success',--}}
-{{--                                    confirmButtonText: 'OK'--}}
-{{--                                }).then(() => {--}}
-{{--                                    window.location.reload();--}}
-{{--                                });--}}
-{{--                            } else {--}}
-{{--                                throw new Error(data.message || 'Delete failed');--}}
-{{--                            }--}}
-{{--                        })--}}
-{{--                        .catch(error => {--}}
-{{--                            console.error('Error deleting order:', error);--}}
-{{--                            Swal.fire({--}}
-{{--                                title: 'Error!',--}}
-{{--                                text: error.message || 'Failed to delete order. Please try again.',--}}
-{{--                                icon: 'error',--}}
-{{--                                confirmButtonText: 'OK'--}}
-{{--                            });--}}
-{{--                        });--}}
-{{--                }--}}
-{{--            });--}}
-{{--        });--}}
-{{--        let closestSupplier = null;--}}
-
-{{--        // const deliveryOption = document.getElementById('modal-pickup-or-delivery');--}}
-
-{{--        function getInput(id) {--}}
-{{--            return document.getElementById(id)?.value?.trim();--}}
-{{--        }--}}
-
-{{--        function updateDeliveryCostSummary(amount) {--}}
-{{--            // Update the form field instead of just display--}}
-{{--            const deliveryCostField = document.getElementById('modal-delivery-cost');--}}
-{{--            if (deliveryCostField) {--}}
-{{--                deliveryCostField.value = amount !== null ? amount.toFixed(2) : 0 ;--}}
-{{--            }--}}
-
-{{--            // Update display--}}
-{{--            const displayElement = document.querySelector('.cost-summary-delivery strong');--}}
-{{--            if (displayElement) {--}}
-{{--                displayElement.textContent = amount !== null ? `${amount.toFixed(2)}` : 'Not found';--}}
-{{--            }--}}
-
-{{--            // Update TOTAL only if amount is not null--}}
-{{--            if (amount !== null) {--}}
-{{--                let productTotal = 0;--}}
-{{--                document.querySelectorAll('.product-amount').forEach(input => {--}}
-{{--                    const inputAmount = parseFloat(input.value) || 0;--}}
-{{--                    const unitPrice = parseFloat(input.dataset.unitPrice) || 0;--}}
-{{--                    productTotal += inputAmount * unitPrice;--}}
-{{--                });--}}
-
-{{--                const hazmatText = parseFloat(document.getElementById('modal-hazmat-cost').value) || 0;--}}
-{{--                const delivery = amount;--}}
-
-{{--                const subtotal = productTotal;--}}
-{{--                const tax = (subtotal + delivery) * 0.15;--}}
-{{--                const total = subtotal + tax + delivery + hazmatText;--}}
-
-{{--                document.querySelector('.cost-summary-subtotal strong').textContent = `${subtotal.toFixed(2)}`;--}}
-{{--                document.querySelector('#modal-sub-total').value = subtotal.toFixed(2);--}}
-{{--                document.querySelector('.cost-summary-tax strong').textContent = `${tax.toFixed(2)}`;--}}
-{{--                document.querySelector('#modal-tax').value = tax.toFixed(2);--}}
-{{--                document.querySelector('.cost-summary-total strong').textContent = `${total.toFixed(2)}`;--}}
-{{--                document.querySelector('#modal-total-cost').value = total.toFixed(2);--}}
-{{--            } else {--}}
-{{--                // Reset totals when delivery cost can't be calculated--}}
-{{--                document.querySelector('.cost-summary-subtotal strong').textContent = '$0.00';--}}
-{{--                document.querySelector('#modal-sub-total').value = 0;--}}
-{{--                document.querySelector('.cost-summary-tax strong').textContent = '$0.00';--}}
-{{--                document.querySelector('#modal-tax').value = 0;--}}
-{{--                document.querySelector('.cost-summary-total strong').textContent = '$0.00';--}}
-{{--                document.querySelector('#modal-total-cost').value = 0;--}}
-{{--            }--}}
-{{--        }--}}
-
-{{--        async function tryGetDeliveryQuote() {--}}
-{{--            const formData = getFormData();--}}
-
-{{--            let addressVerified = await validateAddressFields(formData);--}}
-{{--            if (!addressVerified || !validateRequiredFields(formData)) {--}}
-{{--                updateDeliveryCostSummary(null);--}}
-{{--                return;--}}
-{{--            }--}}
-
-{{--            showLoadingState();--}}
-
-{{--            getClosestSupplier(formData)--}}
-{{--                .then(supplier => getDeliveryQuote(supplier, formData))--}}
-{{--                .then(handleQuoteResponse)--}}
-{{--                .catch(handleError);--}}
-{{--        }--}}
-
-{{--        function getFormData() {--}}
-{{--            return {--}}
-{{--                address: getInput('modal-address'),--}}
-{{--                city: getInput('modal-city'),--}}
-{{--                province: getInput('modal-province'),--}}
-{{--                email: getInput('modal-customer-email'),--}}
-{{--                name: getInput('modal-customer-name'),--}}
-{{--                phone: getInput('modal-customer-phone'),--}}
-{{--                iceAmount: parseFloat(getInput('modal-ice-amount')) || 1,--}}
-{{--                postal: getInput('modal-postal'),--}}
-{{--                locationName: getInput('modal-location-name'),--}}
-{{--                unit: getInput('modal-unit') || ''--}}
-{{--            };--}}
-{{--        }--}}
-
-{{--        function validateRequiredFields(formData) {--}}
-{{--            const requiredFields = [formData.address, formData.city, formData.province, formData.postal];--}}
-{{--            const isValid = requiredFields.every(val => val && val.trim());--}}
-
-{{--            if (!isValid) {--}}
-{{--                console.log('Missing required address fields for delivery calculation');--}}
-{{--            }--}}
-
-{{--            return isValid;--}}
-{{--        }--}}
-
-{{--        function showLoadingState() {--}}
-{{--            const deliveryCostElement = document.querySelector('.cost-summary-delivery strong');--}}
-{{--            if (deliveryCostElement) {--}}
-{{--                deliveryCostElement.textContent = 'Calculating...';--}}
-{{--            }--}}
-{{--        }--}}
-
-{{--        function getClosestSupplier(formData) {--}}
-{{--            const url = `/test-closest-supplier?street=${encodeURIComponent(formData.address)}&city=${encodeURIComponent(formData.city)}&province=${encodeURIComponent(formData.province)}`;--}}
-
-{{--            return fetch(url)--}}
-{{--                .then(response => {--}}
-{{--                    if (!response.ok) {--}}
-{{--                        throw new Error(`Supplier API returned ${response.status}`);--}}
-{{--                    }--}}
-{{--                    return response.json();--}}
-{{--                })--}}
-{{--                .then(data => {--}}
-{{--                    if (!data.closest_supplier || !data.closest_supplier.id) {--}}
-{{--                        throw new Error('No supplier found in response');--}}
-{{--                    }--}}
-
-{{--                    const supplier = data.closest_supplier;--}}
-
-{{--                    if($('#supplier_id').length) {--}}
-{{--                        $('#supplier_id').val(supplier.id);--}}
-{{--                    }--}}
-
-{{--                    return supplier;--}}
-{{--                });--}}
-{{--        }--}}
-
-{{--        function getDeliveryQuote(supplier, formData) {--}}
-{{--            const quotePayload = {--}}
-{{--                supplier_id: supplier.id,--}}
-{{--                delivery: {--}}
-{{--                    name: formData.locationName.trim() || 'N/A',--}}
-{{--                    street: formData.address.trim(),--}}
-{{--                    unit: formData.unit.trim() || '',--}}
-{{--                    city: formData.city.trim(),--}}
-{{--                    province: formData.province.trim(),--}}
-{{--                    postal_code: formData.postal.trim(),--}}
-{{--                    contact: formData.name.trim() || 'N/A',--}}
-{{--                    phone: formData.phone.trim() || 'N/A',--}}
-{{--                    email: formData.email.trim() || 'N/A'--}}
-{{--                },--}}
-{{--                weight: formData.iceAmount--}}
-{{--            };--}}
-
-{{--            return fetch('/get-delivery-quote', {--}}
-{{--                method: 'POST',--}}
-{{--                headers: {--}}
-{{--                    'Content-Type': 'application/json',--}}
-{{--                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,--}}
-{{--                    'Accept': 'application/json'--}}
-{{--                },--}}
-{{--                body: JSON.stringify(quotePayload)--}}
-{{--            }).then(response => response.json());--}}
-{{--        }--}}
-
-{{--        function handleQuoteResponse(data) {--}}
-{{--            const deliveryCostElement = document.querySelector('.cost-summary-delivery strong');--}}
-
-{{--            if (data.success && data.total) {--}}
-{{--                console.log('Quote successful, total:', data.total);--}}
-{{--                updateDeliveryCostSummary(data.total);--}}
-{{--                showSuccess(deliveryCostElement);--}}
-{{--            } else {--}}
-{{--                const errorMessages = extractErrorMessages(data);--}}
-{{--                throw new Error(errorMessages);--}}
-{{--            }--}}
-{{--        }--}}
-
-{{--        function extractErrorMessages(data) {--}}
-{{--            if (!data?.data?.problems) {--}}
-{{--                return 'Quote failed';--}}
-{{--            }--}}
-{{--            const problems = data.data.problems;--}}
-{{--            const extractMessages = (problems) => {--}}
-{{--                let messages = [];--}}
-{{--                problems.forEach(problem => {--}}
-{{--                    if (problem.message) messages.push(problem.message);--}}
-{{--                    if (problem.problems) {--}}
-{{--                        messages = messages.concat(extractMessages(problem.problems));--}}
-{{--                    }--}}
-{{--                });--}}
-{{--                return messages;--}}
-{{--            };--}}
-
-{{--            return extractMessages(data.data.problems).join('\n');--}}
-{{--        }--}}
-
-{{--        function handleError(error) {--}}
-{{--            console.error('Delivery quote error:', error);--}}
-
-{{--            const deliveryCostElement = document.querySelector('.cost-summary-delivery strong');--}}
-{{--            updateDeliveryCostSummary(null);--}}
-{{--            showError(deliveryCostElement);--}}
-
-{{--            Swal.fire({--}}
-{{--                icon: 'error',--}}
-{{--                title: 'Delivery Quote Error',--}}
-{{--                text: error.message || 'Failed to get delivery quote',--}}
-{{--                confirmButtonText: 'OK'--}}
-{{--            });--}}
-{{--        }--}}
-
-{{--        function showSuccess(element) {--}}
-{{--            if (element) {--}}
-{{--                element.style.color = 'green';--}}
-{{--                setTimeout(() => element.style.color = '', 2000);--}}
-{{--            }--}}
-{{--        }--}}
-
-{{--        function showError(element) {--}}
-{{--            if (element) {--}}
-{{--                element.style.color = 'red';--}}
-{{--                setTimeout(() => element.style.color = '', 3000);--}}
-{{--            }--}}
-{{--        }--}}
-
-{{--        async function validateAddressFields(formData) {--}}
-{{--            const apiKey = "{{config('services.google.address_api_key')}}";--}}
-{{--            const response = await fetch(`https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`, {--}}
-{{--                method: "POST",--}}
-{{--                headers: {--}}
-{{--                    "Content-Type": "application/json"--}}
-{{--                },--}}
-{{--                body: JSON.stringify({--}}
-{{--                    address: {--}}
-{{--                        regionCode: "CA", // For Canada--}}
-{{--                        addressLines: [formData.address],--}}
-{{--                        locality: formData.city,--}}
-{{--                        administrativeArea: formData.province,--}}
-{{--                        postalCode: formData.postal--}}
-{{--                    }--}}
-{{--                })--}}
-{{--            });--}}
-
-{{--            const result = await response.json();--}}
-{{--            if (result.result.verdict.possibleNextAction === "FIX" || result.result.verdict.hasUnconfirmedComponents) {--}}
-{{--                Swal.fire({--}}
-{{--                    title: 'Address Validation',--}}
-{{--                    html: `Address could not be confirmed. Please provide proper address. <br>Street Address, City, Province, Postal`,--}}
-{{--                    icon: 'warning',--}}
-{{--                    showCancelButton: false,--}}
-{{--                    confirmButtonColor: '#d33',--}}
-{{--                });--}}
-{{--                return false;--}}
-{{--            } else {--}}
-{{--                return true;--}}
-{{--            }--}}
-{{--        }--}}
-
-{{--        document.addEventListener('change', function(e) {--}}
-{{--            if (e.target.classList.contains('btn-view')) {--}}
-{{--                const orderId = e.target.dataset.orderId;--}}
-{{--                loadModalContent('edit', orderId);--}}
-{{--            }--}}
-{{--        });--}}
-
-{{--        // // Setup event listeners for address fields that should trigger recalculation--}}
-{{--        // function initializeDeliveryCalculation() {--}}
-{{--        //     const deliveryOption = document.getElementById('modal-pickup-or-delivery');--}}
-{{--        //--}}
-{{--        //     // Check current state on page load--}}
-{{--        //     if (deliveryOption && deliveryOption.value === 'delivery') {--}}
-{{--        //         setupDeliveryCalculation();--}}
-{{--        //         tryGetDeliveryQuote(); // Calculate immediately if delivery is already selected--}}
-{{--        //     } else if (deliveryOption && deliveryOption.value === 'pickup') {--}}
-{{--        //         updateDeliveryCostSummary(0); // Set to 0 for pickup--}}
-{{--        //     }--}}
-{{--        // }--}}
-
-{{--        // // Initialize on page load--}}
-{{--        // initializeDeliveryCalculation();--}}
-{{--    });--}}
 
 
     function tryPushOrderToNovex(orderId) {

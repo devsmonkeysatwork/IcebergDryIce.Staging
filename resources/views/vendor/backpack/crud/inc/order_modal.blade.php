@@ -362,12 +362,12 @@
 
 <div class="modal-footer border-0 d-flex justify-content-between">
     <div>
-        @if(!$defaultValues['novex_pushed'])
-            <button id="save-order-btn" class="btn btn-primary" data-mode="{{ $mode }}"
-                    @if($isEditMode) data-order-id="{{ $defaultValues['order_id'] }}" @endif>
-                <i class="la la-save"></i> <span>{{ $saveButtonText }}</span>
-            </button>
-        @endif
+{{--        @if(!$defaultValues['novex_pushed'])--}}
+{{--            <button id="save-order-btn" class="btn btn-primary" data-mode="{{ $mode }}"--}}
+{{--                    @if($isEditMode) data-order-id="{{ $defaultValues['order_id'] }}" @endif>--}}
+{{--                <i class="la la-save"></i> <span>{{ $saveButtonText }}</span>--}}
+{{--            </button>--}}
+{{--        @endif--}}
 
         @if($showPushButton && $isEditMode)
             @if(!$defaultValues['novex_pushed'])

@@ -194,6 +194,9 @@ Route::group([
     Route::get('orders/modal/{id}/edit', [OrderCrudController::class, 'editModal'])->name('admin.orders.modal.edit');
     Route::get('orders/modal/create', [OrderCrudController::class, 'modalCreate'])->name('admin.orders.modal.create');
 
+    Route::get('orders/manual/modal/create',[OrderCrudController::class, 'manualCreateModal'])->name('admin.orders.manual.modal.create');
+    Route::get('orders/manual/modal/{id}/edit',[OrderCrudController::class, 'manualEditModal'])->name('admin.orders.manual.modal.edit');
+
     Route::get('/customers/search', [CustomersCrudController::class, 'searchCustomers'])
         ->name('admin.customers.search');
 

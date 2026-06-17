@@ -48,6 +48,8 @@ class Order extends Model
         'payment_status',
         'supplier_id',
         'invoice_id',
+        'po',
+        'created_by'
     ];
 
     public function scopeToday($query)
