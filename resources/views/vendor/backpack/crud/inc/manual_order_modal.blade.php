@@ -78,7 +78,7 @@
             <div class="col-lg-6">
                 <div class="mb-3">
                     <label class="form-label fw-bold">
-                        Amount (lbs/units)
+                        Amount (lbs/boxes)
                     </label>
 
                     <input

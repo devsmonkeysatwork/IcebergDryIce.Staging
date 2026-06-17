@@ -182,6 +182,10 @@ Route::group([
 
 
 
+    Route::get('customers-pricing',[CustomersCrudController::class, 'customerPricing']);
+    Route::post('/customer-pricing/{customer}',[CustomersCrudController::class, 'customerPricingUpdate'])->name('customer-pricing.update');
+
+
     Route::post('orders/ajax-create', [OrderCrudController::class, 'ajaxCreate']);
 
     Route::put('orders/{id}/ajax-update', [OrderCrudController::class, 'updateOrderAjax'])

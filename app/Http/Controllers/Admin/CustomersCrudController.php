@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\Customer;
 use App\Models\CustomerAddress;
+use App\Models\CustomerPricing;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 use App\Http\Requests\CustomerRequest;
@@ -434,4 +435,74 @@ class CustomersCrudController extends CrudController
     {
         $this->setupCreateOperation();
     }
+
+
+    public function customerPricing(){
+        $customers = Customer::with('pricing')
+            ->orderBy('name')
+            ->get();
+
+        return view('vendor.backpack.crud.customer-pricing', compact('customers'));
+    }
+
+    public function customerPricingUpdate(Request $request, $customerId)
+    {
+        $validated = $request->validate([
+            'ice_price' => 'nullable|numeric|min:0',
+            'box_price' => 'nullable|numeric|min:0',
+            'hazmat_fee' => 'nullable|numeric|min:0',
+            'delivery_fee' => 'nullable|numeric|min:0',
+            'other_charges' => 'nullable|numeric|min:0',
+        ]);
+
+        $icePrice = (float)($validated['ice_price'] ?? 0);
+        $boxPrice = (float)($validated['box_price'] ?? 0);
+        $hazmatFee = (float)($validated['hazmat_fee'] ?? 0);
+        $deliveryFee = (float)($validated['delivery_fee'] ?? 0);
+        $otherCharges = (float)($validated['other_charges'] ?? 0);
+
+        $total =
+            $icePrice +
+            $boxPrice +
+            $hazmatFee +
+            $deliveryFee +
+            $otherCharges;
+
+        $pricing = CustomerPricing::where(
+            'customer_id',
+            $customerId
+        )->first();
+
+        // If everything is zero, don't create a record.
+        if ($total == 0) {
+
+            if ($pricing) {
+                $pricing->delete();
+            }
+
+            return back()->with(
+                'success',
+                'Pricing cleared successfully.'
+            );
+        }
+
+        CustomerPricing::updateOrCreate(
+            [
+                'customer_id' => $customerId
+            ],
+            [
+                'ice_price' => $icePrice,
+                'box_price' => $boxPrice,
+                'hazmat_fee' => $hazmatFee,
+                'delivery_fee' => $deliveryFee,
+                'other_charges' => $otherCharges,
+            ]
+        );
+
+        return back()->with(
+            'success',
+            'Customer pricing updated successfully.'
+        );
+    }
+
 }

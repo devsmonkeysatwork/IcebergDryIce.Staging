@@ -123,4 +123,9 @@ class Customer extends Authenticatable
     }
 
 
+    public function pricing()
+    {
+        return $this->hasOne(CustomerPricing::class);
+    }
+
 }
