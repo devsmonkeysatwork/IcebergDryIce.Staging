@@ -112,6 +112,51 @@
                     </div>
                 </div>
             </form>
+            <div class="card mt-5">
+                <div class="row">
+                    <div class="col-12 px-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h3 class="form-group-heading m-0">
+                                <i class="la la-file-invoice-dollar me-2"></i>  Invoices
+                            </h3>
+                            <button type="button" class="btn btn-primary btn-sm">
+                                <i class="la la-plus"></i> Generate New Invoice
+                            </button>
+                        </div>
+                        <div>
+                            @if($entry->invoices && $entry->invoices->count() > 0)
+                                <table class="table table-bordered table-sm">
+                                    <thead>
+                                    <tr>
+                                        <th>Invoice ID</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach($entry->invoices as $invoice)
+                                        <tr>
+                                            <td>{{$invoice->invoice_number}}</td>
+                                            <td>{{$invoice->total_amount}}</td>
+                                            <td>{{$invoice->payment_status}}</td>
+                                            <td>
+                                                <button class="btn btn-primary btn-view la la-eye view-invoice-btn"
+                                                        data-url="{{ route('consolidated.invoice.view', $invoice->id) }}"
+                                                        data-invoice-id="{{$invoice->id}}"
+                                                        title="View Invoice">
+                                                    <i class=""></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                    </tbody>
+                                </table>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {{-- Additional Addresses Section --}}
             <div class="card my-5">
@@ -125,7 +170,6 @@
                                 <i class="la la-plus"></i> Add New Address
                             </button>
                         </div>
-
                         <div id="addresses-container">
                             @if($entry->addresses && $entry->addresses->count() > 0)
                                 @foreach($entry->addresses as $address)
@@ -266,6 +310,36 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" onclick="saveAddress()">Save Address</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+
+    {{-- Invoice Modal --}}
+    <div class="modal fade" id="invoiceModal" tabindex="-1" aria-labelledby="invoiceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="invoiceModalLabel">Invoice</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-0" id="invoiceModalBody">
+                    {{-- Invoice HTML loads here --}}
+                    <div class="text-center py-5" id="invoiceLoader">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-2 text-muted">Loading invoice...</p>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <a href="#" id="downloadInvoiceBtn" class="btn btn-success" target="_blank">
+                        <i class="fas fa-download"></i> Download PDF
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+
             </div>
         </div>
     </div>
@@ -565,5 +639,56 @@
                     Swal.fire('Error', 'Failed to set default address', 'error');
                 });
         }
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+            const invoiceModal     = new bootstrap.Modal(document.getElementById('invoiceModal'));
+            const invoiceModalBody = document.getElementById('invoiceModalBody');
+            const invoiceLoader    = document.getElementById('invoiceLoader');
+            const downloadBtn      = document.getElementById('downloadInvoiceBtn');
+
+            document.querySelectorAll('.view-invoice-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const url        = this.dataset.url;
+                    const invoiceId  = this.dataset.invoiceId;
+
+                    // Reset modal state
+                    invoiceModalBody.innerHTML = '';
+                    invoiceLoader.style.display = 'block';
+                    invoiceModalBody.appendChild(invoiceLoader);
+                    downloadBtn.href = `/admin/invoice-generator/${invoiceId}/pdf`; // your PDF download route
+
+                    invoiceModal.show();
+
+                    fetch(url, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        }
+                    })
+                        .then(res => {
+                            if (!res.ok) throw new Error('Failed to load invoice');
+                            return res.text();
+                        })
+                        .then(html => {
+                            invoiceLoader.style.display = 'none';
+                            invoiceModalBody.innerHTML = html;
+                        })
+                        .catch(err => {
+                            invoiceModalBody.innerHTML = `
+                    <div class="alert alert-danger m-3">
+                        Failed to load invoice. Please try again.
+                    </div>`;
+                        });
+                });
+            });
+
+            // Clear modal content when closed to avoid stale data
+            document.getElementById('invoiceModal').addEventListener('hidden.bs.modal', function () {
+                invoiceModalBody.innerHTML = '';
+            });
+        });
+
     </script>
 @endpush

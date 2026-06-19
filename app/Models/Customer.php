@@ -128,4 +128,9 @@ class Customer extends Authenticatable
         return $this->hasOne(CustomerPricing::class);
     }
 
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class,'customer_id');
+    }
+
 }

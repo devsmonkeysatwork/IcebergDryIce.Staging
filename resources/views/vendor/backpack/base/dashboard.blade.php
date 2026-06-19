@@ -40,7 +40,7 @@
                             @foreach($oneTimeOrders as $order)
                                 <tr>
                                     <td>
-                                        {{ str_pad($order->invoice_id, 4, '0', STR_PAD_LEFT) }}
+                                        {{ str_pad($order->invoice_id ?? $order->id, 4, '0', STR_PAD_LEFT) }}
                                     </td>
                                     <td>{{ $order->customer_name }}</td>
                                     <td>{{ \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') }}</td>
@@ -56,12 +56,14 @@
                                         <span class="badge {{$order['payment_status'] == 'paid' ? 'bg-success' : 'bg-danger'}}">
                                             {{ $order['payment_status'] == 'paid' ? 'PAID' : 'PENDING' }}
                                         </span>
-                                        <button
-                                            class="btn btn-sm view-invoice-btn"
-                                            data-invoice-id="{{ $order->invoice->id }}"
-                                            data-url="{{ route('invoice.view', $order->invoice->id) }}">
-                                            <i class="las la-file-invoice-dollar"></i>
-                                        </button>
+                                        @isset($order->invoice)
+                                            <button
+                                                class="btn btn-sm view-invoice-btn"
+                                                data-invoice-id="{{ $order->invoice->id }}"
+                                                data-url="{{ route('invoice.view', $order->invoice->id) }}">
+                                                <i class="las la-file-invoice-dollar"></i>
+                                            </button>
+                                        @endisset
                                     </td>
                                 </tr>
                             @endforeach
@@ -135,12 +137,14 @@
                                             {{ $order['payment_status'] == 'paid' ? 'PAID' : 'PENDING' }}
                                         </span>
                                         @endif
+                                        @isset($order->invoice)
                                             <button
                                                 class="btn btn-sm view-invoice-btn"
                                                 data-invoice-id="{{ $order->invoice->id }}"
                                                 data-url="{{ route('invoice.view', $order->invoice->id) }}">
                                                 <i class="las la-file-invoice-dollar"></i>
                                             </button>
+                                        @endisset
                                     </td>
                                 </tr>
                             @endforeach

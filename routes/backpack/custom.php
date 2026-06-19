@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\ManualPaymentCrudController;
 use App\Http\Controllers\Admin\ReportsController;
 use App\Http\Controllers\Customer\CustomerDashboardController;
 use App\Http\Controllers\Customer\CustomerProfileController;
+use App\Http\Controllers\InvoiceGeneratorController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -142,6 +143,17 @@ Route::group([
     // Invoice routes
     Route::get('/invoice/{invoice}/view', [OrderCrudController::class, 'viewInvoice'])->name('invoice.view');
     Route::get('/invoice/{invoice}/download', [OrderCrudController::class, 'downloadInvoice'])->name('invoice.download');
+
+
+    Route::prefix('invoice-generator')->group(function () {
+        Route::get('/', [InvoiceGeneratorController::class, 'index'])->name('admin.invoice-generator.index');
+        Route::post('/draft', [InvoiceGeneratorController::class, 'buildDraft'])->name('admin.invoice-generator.draft');
+        Route::post('/draft/update', [InvoiceGeneratorController::class, 'updateDraft'])->name('admin.invoice-generator.draft.update');
+        Route::post('/finalize', [InvoiceGeneratorController::class, 'finalize'])->name('admin.invoice-generator.finalize');
+        Route::get('/{invoice}/pdf', [InvoiceGeneratorController::class, 'downloadPdf'])->name('admin.invoice-generator.pdf');
+        Route::get('/invoice/{invoice}/view', [InvoiceGeneratorController::class, 'viewInvoice'])->name('consolidated.invoice.view');
+    });
+
 });
 
 Route::post('/order/ajax-create-from-review', [OrderCrudController::class, 'ajaxCreateFromReview'])->name('orders.ajax-create-from-review');

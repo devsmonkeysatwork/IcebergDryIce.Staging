@@ -50,25 +50,21 @@ class ProcessRecurringOrders extends Command
                             'status' => 'open',
                         ]);
 
-                        $invoiceService = new InvoiceService();
-                        $invoice = $invoiceService->createInvoiceForRecurringOrder($recurringOrder);
-
-                        // Attach invoice_id to recurring order
-                        $recurringOrder->update([
-                            'invoice_id' => $invoice->invoice_number,
-                        ]);
+//                        $invoiceService = new InvoiceService();
+//                        $invoice = $invoiceService->createInvoiceForRecurringOrder($recurringOrder);
+//
+//                        // Attach invoice_id to recurring order
+//                        $recurringOrder->update([
+//                            'invoice_id' => $invoice->invoice_number,
+//                        ]);
 
                         DB::commit();
 
-                        $order = RecurringOrder::with(['invoice', 'order', 'items'])
-                            ->where('id', $recurringOrder->id)
-                            ->first();
-
-                        Mail::to($order->order->email)->send(new OrderPlacedMail($order, 'recurring'));
-
-
-
-                        Log::info("Created recurring order for Order ID: {$order->id}, Invoice ID: {$invoice->id}");
+//                        $order = RecurringOrder::with(['invoice', 'order', 'items'])
+//                            ->where('id', $recurringOrder->id)
+//                            ->first();
+//                        Mail::to($order->order->email)->send(new OrderPlacedMail($order, 'recurring'));
+                        Log::info("Created recurring order for Order ID: {$order->id}");
                     } catch (\Exception $e) {
                         DB::rollBack();
                         Log::error("Failed to create recurring order for Order ID: {$order->id}. Error: " . $e->getMessage());

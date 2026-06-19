@@ -20,7 +20,8 @@ class Invoice extends Model
         'parent_invoice_id',
         'recurring_sequence',
         'invoice_date',
-        'transaction_json'
+        'transaction_json',
+        'customer_id'
     ];
 
     protected $casts = [
@@ -72,5 +73,19 @@ class Invoice extends Model
     public function isOriginal(): bool
     {
         return $this->recurring_sequence === 1 && is_null($this->parent_invoice_id);
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function lineItems()
+    {
+        return $this->hasMany(InvoiceLineItems::class, 'invoice_id');
+    }
+    public function flatCharges()
+    {
+        return $this->hasMany(InvoiceFlatCharges::class, 'invoice_id');
     }
 }

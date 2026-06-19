@@ -404,10 +404,10 @@ class OrderCrudController extends CrudController
             }
 
             // Create invoice
-            $invoiceService = new InvoiceService();
-            $originalInvoice = $invoiceService->createInvoiceForOrder($order);
-
-            $order->load('invoice');
+//            $invoiceService = new InvoiceService();
+//            $originalInvoice = $invoiceService->createInvoiceForOrder($order);
+//
+//            $order->load('invoice');
 
             DB::commit();
 
@@ -517,10 +517,10 @@ class OrderCrudController extends CrudController
                 'unit_price'       => $product->price,
             ]);
 
-            $invoiceService = new InvoiceService();
-            $originalInvoice = $invoiceService->createInvoiceForOrder($order);
-
-            $order->load('invoice');
+//            $invoiceService = new InvoiceService();
+//            $originalInvoice = $invoiceService->createInvoiceForOrder($order);
+//
+//            $order->load('invoice');
             DB::commit();
 
             return response()->json([
@@ -715,7 +715,7 @@ class OrderCrudController extends CrudController
 
             DB::commit();
 
-            Mail::to($order->email)->send(new OrderPlacedMail($order));
+//            Mail::to($order->email)->send(new OrderPlacedMail($order));
 
 //            $order->payment_status = 0;
 //            $order->save();
@@ -1052,7 +1052,7 @@ class OrderCrudController extends CrudController
 
             if ($invoiceable instanceof Order) {
                 $invoiceable->update(['payment_status' => 'paid']);
-                Mail::to($invoiceable->email)->send(new OrderPlacedMail($invoiceable));
+//                Mail::to($invoiceable->email)->send(new OrderPlacedMail($invoiceable));
             } elseif ($invoiceable instanceof RecurringOrder) {
                 $invoiceable->update(['recurring_payment_status' => 1]);
                 $invoiceable->load('order');
@@ -1306,16 +1306,16 @@ class OrderCrudController extends CrudController
             }
 
             // Regenerate invoice if needed
-            if ($order->invoice) {
-                $order->invoice->delete();
-            }
-
-            $invoiceService = new InvoiceService();
-            $invoiceService->createInvoiceForOrder($order->fresh());
+//            if ($order->invoice) {
+//                $order->invoice->delete();
+//            }
+//
+//            $invoiceService = new InvoiceService();
+//            $invoiceService->createInvoiceForOrder($order->fresh());
 
             $order->load([
                 'customer',
-                'invoice',
+//                'invoice',
                 'items.product'
             ]);
 

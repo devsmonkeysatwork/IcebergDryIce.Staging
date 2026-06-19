@@ -22,6 +22,7 @@
   <x-backpack::menu-dropdown-item title="Products" icon="la la-product-hunt" :link="backpack_url('product')" />
   <x-backpack::menu-dropdown-item title="Variables" icon="la la-cogs" :link="backpack_url('variables')" />
   <x-backpack::menu-dropdown-item title="Customers" icon="la la-users" :link="backpack_url('customers')" />
+  <x-backpack::menu-dropdown-item title="Invoicing" icon="la la-file-invoice-dollar" :link="backpack_url('invoice-generator')" />
   <x-backpack::menu-dropdown-item title="Customer Pricing" icon="la la-dollar" :link="backpack_url('customers-pricing')" />
 {{--  <x-backpack::menu-dropdown-item title="Log Files" icon="la la-file-alt" :link="backpack_url('log-files')" />--}}
 </x-backpack::menu-dropdown>

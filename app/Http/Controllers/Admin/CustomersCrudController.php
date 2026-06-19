@@ -91,8 +91,7 @@ class CustomersCrudController extends CrudController
 
         $entry = Customer::with(['addresses' => function($query) {
             $query->where('is_active', 1)->orderBy('is_default', 'desc');
-        }])->findOrFail($id);
-
+        },'invoices'])->findOrFail($id);
         return view('vendor.backpack.crud.customer-edit', [
             'entry' => $entry,
             'crud' => $this->crud,

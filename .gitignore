@@ -20,3 +20,8 @@ yarn-error.log
 /.vscode
 /public/website/downloads/
 /public/website/downloads
+/.claude
+/.claude/
+TECHNICAL_DOCUMENTATION.md
+FLOW_ANALYSIS_Orders_Customers_Invoices.md
+TESTING_NewFlow.md
