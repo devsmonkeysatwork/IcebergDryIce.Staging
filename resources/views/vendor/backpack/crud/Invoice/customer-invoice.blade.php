@@ -397,6 +397,14 @@
                 }).then(data => {
                     if (data.success) {
                         renderDraft(data.draft);
+                        if (data.using_default_pricing) {
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'Default Pricing Applied',
+                                text: 'No custom pricing found for this customer. Product default prices have been used. You can adjust line items manually before finalizing.',
+                                confirmButtonText: 'OK'
+                            });
+                        }
                     } else {
                         Swal.fire('No Orders Found', data.message, 'info');
                     }

@@ -49,12 +49,10 @@ class InvoiceGeneratorController extends Controller
         $endDate    = $request->end_date;
 
         $pricing = CustomerPricing::where('customer_id', $customerId)->first();
+        $usingDefaultPricing = false;
 
         if (!$pricing) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No pricing configured for this customer.',
-            ], 422);
+            $usingDefaultPricing = true;
         }
 
         // ---- One-time orders ----
@@ -118,13 +116,15 @@ class InvoiceGeneratorController extends Controller
 
         // Once-per-invoice flat charges from customer_pricing
         $flatCharges = [];
-        foreach (['hazmat_fee', 'delivery_fee', 'other_charges'] as $key) {
-            if (!empty($pricing->$key) && (float) $pricing->$key != 0) {
-                $flatCharges[] = [
-                    'charge_key' => $key,
-                    'label'      => null,
-                    'amount'     => (float) $pricing->$key,
-                ];
+        if ($pricing) {
+            foreach (['hazmat_fee', 'delivery_fee', 'other_charges'] as $key) {
+                if (!empty($pricing->$key) && (float) $pricing->$key != 0) {
+                    $flatCharges[] = [
+                        'charge_key' => $key,
+                        'label'      => null,
+                        'amount'     => (float) $pricing->$key,
+                    ];
+                }
             }
         }
 
@@ -142,8 +142,9 @@ class InvoiceGeneratorController extends Controller
         $this->saveDraft($draft);
 
         return response()->json([
-            'success' => true,
-            'draft'   => $draft,
+            'success'              => true,
+            'draft'                => $draft,
+            'using_default_pricing' => $usingDefaultPricing,
         ]);
     }
 
@@ -318,17 +319,7 @@ class InvoiceGeneratorController extends Controller
         $invoiceOrders = InvoiceOrders::where('invoice_id', $invoice->id)->get();
 
         // Pull customer + reference info from the first linked order
-        $firstRef = $invoiceOrders->first();
-        $customer = null;
-
-        if ($firstRef) {
-            if ($firstRef->invoiceable_type === Order::class) {
-                $sourceOrder = Order::find($firstRef->invoiceable_id);
-            } else {
-                $sourceOrder = RecurringOrder::find($firstRef->invoiceable_id)?->order;
-            }
-            $customer = $sourceOrder?->customer;
-        }
+        $customer = $invoice->customer;
 
         $subTotal = $invoice->lineItems->sum('total_price');
         $flatChargesTotal = $invoice->flatCharges->sum('amount');
@@ -351,12 +342,17 @@ class InvoiceGeneratorController extends Controller
 
     private function buildLineItem($item, $pricing, $orderId): array
     {
-        $unitPrice = $item->unit_price;
-
-        if ($item->product_id == 1 && $pricing->ice_price !== null) {
-            $unitPrice = $pricing->ice_price;
-        } elseif ($item->product_id == 2 && $pricing->box_price !== null) {
-            $unitPrice = $pricing->box_price;
+        if ($pricing) {
+            if ($item->product_id == 1 && $pricing->ice_price !== null) {
+                $unitPrice = $pricing->ice_price;
+            } elseif ($item->product_id == 2 && $pricing->box_price !== null) {
+                $unitPrice = $pricing->box_price;
+            } else {
+                $unitPrice = $item->unit_price;
+            }
+        } else {
+            // No customer pricing — fall back to the product's default price
+            $unitPrice = $item->product?->price ?? $item->unit_price;
         }
 
         return [
@@ -442,7 +438,6 @@ class InvoiceGeneratorController extends Controller
         $invoiceOrders = InvoiceOrders::where('invoice_id', $invoice->id)->get();
 
         // Pull customer + reference info from the first linked order
-        $firstRef = $invoiceOrders->first();
         $customer = $invoice->customer;
 
         $subTotal = $invoice->lineItems->sum('total_price');

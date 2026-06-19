@@ -1033,7 +1033,7 @@ class OrderCrudController extends CrudController
             ->first();
 
         if (!$invoice) {
-            return view('website.payment-result', [
+            return view('website.order.payment-result', [
                 'success' => false,
                 'message' => 'Invoice not found or already processed.',
                 'invoice_number' => $invoiceNumber ?? null,
