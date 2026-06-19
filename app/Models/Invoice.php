@@ -21,7 +21,8 @@ class Invoice extends Model
         'recurring_sequence',
         'invoice_date',
         'transaction_json',
-        'customer_id'
+        'customer_id',
+        'paid_at'
     ];
 
     protected $casts = [

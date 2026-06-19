@@ -715,7 +715,7 @@ class OrderCrudController extends CrudController
 
             DB::commit();
 
-//            Mail::to($order->email)->send(new OrderPlacedMail($order));
+            Mail::to($order->email)->send(new OrderPlacedMail($order));
 
 //            $order->payment_status = 0;
 //            $order->save();
@@ -1052,7 +1052,7 @@ class OrderCrudController extends CrudController
 
             if ($invoiceable instanceof Order) {
                 $invoiceable->update(['payment_status' => 'paid']);
-//                Mail::to($invoiceable->email)->send(new OrderPlacedMail($invoiceable));
+                Mail::to($invoiceable->email)->send(new OrderPlacedMail($invoiceable));
             } elseif ($invoiceable instanceof RecurringOrder) {
                 $invoiceable->update(['recurring_payment_status' => 1]);
                 $invoiceable->load('order');

@@ -617,7 +617,7 @@ class ManualPaymentCrudController extends CrudController
     {
         $search = $request->input('q');
 
-        $invoices = Invoice::where('payment_status', Invoice::PENDING)
+        $invoices = Invoice::whereIn('payment_status', [Invoice::PENDING,Invoice::FAILED])
             ->where('invoice_number', 'like', "%{$search}%")
             ->limit(20)
             ->get();
@@ -632,7 +632,7 @@ class ManualPaymentCrudController extends CrudController
                     'invoice_number' => $invoice->invoice_number,
                     'customer_name' => $order->customer_name,
                     'email' => $order->email,
-                    'total_cost' => $order->total_cost ?? $invoice->amount ?? 0,
+                    'total_cost' => $order->total_cost ?? $invoice->total_amount ?? 0,
                     'type' => 'direct'
                 ] : null;
             } else {
@@ -649,7 +649,7 @@ class ManualPaymentCrudController extends CrudController
                     'invoice_number' => $invoice->invoice_number,
                     'customer_name' => $recurring->order->customer_name,
                     'email' => $recurring->order->email,
-                    'total_cost' => $recurring->order->total_cost ?? $invoice->amount ?? 0,
+                    'total_cost' => $recurring->order->total_cost ?? $invoice->total_amount ?? 0,
                     'type' => 'recurring'
                 ] : null;
             }

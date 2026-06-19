@@ -747,6 +747,14 @@
             document.getElementById('modal-postal').value = '';
             document.getElementById('modal-province').value = '';
         }
+        function initializeCustomerSelect2() {
+            $('#manual-customer-id').select2({
+                dropdownParent: $('#orderSummaryModal'),
+                placeholder: 'Search customer...',
+                allowClear: true,
+                width: '100%'
+            });
+        }
 
         summaryModal.addEventListener("show.bs.modal", function() {
             if (sidebar) sidebar.style.zIndex = "-1";
@@ -759,6 +767,9 @@
             if (sidebar) sidebar.style.zIndex = "1030";
             if ($('#modal-customer-email').hasClass('select2-hidden-accessible')) {
                 $('#modal-customer-email').select2('destroy');
+            }
+            if($('#manual-customer-id').length){
+                $('#manual-customer-id').select2('destroy');
             }
         });
 
@@ -797,6 +808,11 @@
 
             $.get(url).done(function(response) {
                 $('#orderSummaryModal .modal-content').html(response);
+                setTimeout(() => {
+                    if($('#manual-customer-id').length){
+                        initializeCustomerSelect2();
+                    }
+                }, 500);
                 }).fail(function(xhr) { $('#orderSummaryModal .modal-content')
                     .html(` <div class="p-4 text-center text-danger"> Failed to load order. </div> `);
                     console.error(xhr);
