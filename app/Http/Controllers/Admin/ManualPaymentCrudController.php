@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Requests\ManualPaymentRequest;
+use App\Mail\ConsolidatedInvoiceMail;
 use App\Models\ManualPayment;
 use Illuminate\Support\Facades\DB;
 use App\Mail\OrderPlacedMail;
@@ -12,6 +13,7 @@ use App\Models\RecurringOrder;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\Order;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 use Illuminate\Support\Facades\Mail;
@@ -358,6 +360,43 @@ class ManualPaymentCrudController extends CrudController
         // from the pivot. Idempotent — re-marking a paid order is harmless.
         Order::where('invoice_id', $invoice->id)->update(['payment_status' => 'paid']);
         RecurringOrder::where('invoice_id', $invoice->id)->update(['recurring_payment_status' => 1]);
+
+        // Uncomment to auto-send on payment.
+        // $this->sendConsolidatedInvoiceEmail($invoice);
+    }
+
+    /**
+     * Email a consolidated invoice (with PDF attached) to its customer.
+     */
+    protected function sendConsolidatedInvoiceEmail(Invoice $invoice): void
+    {
+        try {
+            $info  = $this->resolveCustomerInfo($invoice);
+            $email = $info->email ?? ($invoice->customer->email ?? null);
+
+            if (empty($email)) {
+                \Log::warning('Consolidated invoice email skipped — no customer email for invoice ' . $invoice->id);
+                return;
+            }
+
+            $invoice->loadMissing(['lineItems.product', 'flatCharges']);
+            $invoiceOrders = InvoiceOrders::where('invoice_id', $invoice->id)->get();
+
+            $pdfData = Pdf::loadView('emails.invoice-pdf-consolidated', [
+                'invoice'          => $invoice,
+                'invoiceOrders'    => $invoiceOrders,
+                'customer'         => $invoice->customer,
+                'lineItems'        => $invoice->lineItems,
+                'flatCharges'      => $invoice->flatCharges,
+                'subTotal'         => $invoice->lineItems->sum('total_price'),
+                'flatChargesTotal' => $invoice->flatCharges->sum('amount'),
+                'totalAmount'      => $invoice->total_amount,
+            ])->output();
+
+            Mail::to($email)->send(new ConsolidatedInvoiceMail($invoice, $invoice->customer, $pdfData));
+        } catch (\Throwable $e) {
+            \Log::error('Consolidated invoice email failed: ' . $e->getMessage());
+        }
     }
 
     /**
