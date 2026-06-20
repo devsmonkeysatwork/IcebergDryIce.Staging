@@ -129,8 +129,8 @@
                                     </td>
                                     <td>
                                         @if($order instanceof \App\Models\RecurringOrder)
-                                            <span class="badge {{$order['rucurring_payment_status'] == 'paid' ? 'bg-success' : 'bg-danger'}}">
-                                            {{ $order['payment_status'] == 'paid' ? 'PAID' : 'PENDING' }}
+                                            <span class="badge {{$order['recurring_payment_status'] == 1 ? 'bg-success' : 'bg-danger'}}">
+                                            {{ $order['recurring_payment_status'] == 1 ? 'PAID' : 'PENDING' }}
                                         </span>
                                         @else
                                             <span class="badge {{$order['payment_status'] == 'paid' ? 'bg-success' : 'bg-danger'}}">

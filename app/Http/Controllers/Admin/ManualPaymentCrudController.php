@@ -7,6 +7,7 @@ use App\Models\ManualPayment;
 use Illuminate\Support\Facades\DB;
 use App\Mail\OrderPlacedMail;
 use App\Models\Invoice;
+use App\Models\InvoiceOrders;
 use App\Models\RecurringOrder;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -95,10 +96,9 @@ class ManualPaymentCrudController extends CrudController
         try {
             $paymentMethod = $request->get('payment_method');
             $invoiceNumber = $request->get('invoice_id');
-
             // Find invoice
             $invoice = Invoice::where('invoice_number', $invoiceNumber)
-                ->where('payment_status', Invoice::PENDING)
+                ->whereIn('payment_status', [Invoice::PENDING, Invoice::FAILED])
                 ->first();
 
             if (!$invoice) {
@@ -107,7 +107,7 @@ class ManualPaymentCrudController extends CrudController
 
             if ($paymentMethod === 'credit') {
                 // Process credit card payment
-                $customerInfo = $this->getCustomerInfo($invoice);
+                $customerInfo = $this->resolveCustomerInfo($invoice);
 
                 if (!$customerInfo) {
                     return redirect()->back()->with('error', 'Customer information not found');
@@ -202,7 +202,7 @@ class ManualPaymentCrudController extends CrudController
 
         $invoice = Invoice::where('invoice_number', $data['invoice_id'])
             ->with('invoiceable')
-            ->where('payment_status', Invoice::PENDING)
+            ->whereIn('payment_status', [Invoice::PENDING, Invoice::FAILED])
             ->first();
 
         if (!$invoice) {
@@ -222,40 +222,23 @@ class ManualPaymentCrudController extends CrudController
 
             // Create manual payment record
             ManualPayment::create([
-                'invoice_id' => $invoice->id,
-                'contact_name' => $data['contact_name'],
-                'email' => $data['email'],
-                'description' => $data['description'],
-                'amount' => $data['amount'],
+                'invoice_id'   => $invoice->id,
+                'contact_name' => $data['contact_name'] ?? null,
+                'email'        => $data['email'] ?? null,
+                'description'  => $data['description'] ?? null,
+                'amount'       => $data['amount'] ?? $invoice->total_amount,
             ]);
 
-            // Update invoice payment status
-            $invoice->update([
-                'payment_status' => Invoice::PAID,
-                'paid_at' => now()
-            ]);
-
-            $invoiceable = $invoice->invoiceable;
-
-            if ($invoiceable instanceof Order) {
-                // Update direct order
-                $invoiceable->update(['payment_status' => 'paid']);
-                Mail::to($invoiceable->email)->send(new OrderPlacedMail($invoiceable));
-            } elseif ($invoiceable instanceof RecurringOrder) {
-                // Update recurring order
-                $invoiceable->update(['recurring_payment_status' => 1]);
-                $invoiceable->load('order');
-                if ($invoiceable->order) {
-                    Mail::to($invoiceable->order->email)->send(new OrderPlacedMail($invoiceable, 'recurring'));
-                }
-            }
+            // Mark invoice + all underlying orders paid (handles legacy AND consolidated)
+            $this->applyPayment($invoice);
 
             DB::commit();
 
             \Alert::success('Manual payment created and order updated.')->flash();
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollback();
+            \Log::error('Manual payment failed: ' . $e->getMessage());
             \Alert::error('Error processing payment: ' . $e->getMessage())->flash();
             return redirect()->back()->withInput();
         }
@@ -263,26 +246,157 @@ class ManualPaymentCrudController extends CrudController
         return redirect($this->crud->route);
     }
 
-    protected function getCustomerInfo($invoice)
+    /**
+     * Resolve {email, customer_name} for any invoice shape.
+     * - Consolidated invoice (invoiceable_type === null): use the directly attached
+     *   customer (invoices.customer_id), mapping Customer.name -> customer_name.
+     *   Falls back to the first linked order if customer_id is missing.
+     * - Legacy polymorphic invoice: read from the related Order / RecurringOrder.
+     * Returns null only if nothing can be resolved (caller handles gracefully).
+     */
+    protected function resolveCustomerInfo($invoice)
     {
+        // ---- Consolidated invoice ----
+        if (empty($invoice->invoiceable_type)) {
+            $customer = $invoice->customer; // belongsTo Customer via customer_id
+
+            if ($customer) {
+                return (object) [
+                    'email'         => $customer->email,
+                    'customer_name' => $customer->name,
+                ];
+            }
+
+            // Fallback: derive from the first linked order in the pivot
+            $order = $this->firstLinkedOrder($invoice);
+            if ($order) {
+                return (object) [
+                    'email'         => $order->email,
+                    'customer_name' => $order->customer_name,
+                ];
+            }
+
+            return null;
+        }
+
+        // ---- Legacy polymorphic invoice ----
         $invoiceable = $invoice->invoiceable;
 
         if ($invoiceable instanceof Order) {
-            return (object)[
-                'email' => $invoiceable->email,
-                'customer_name' => $invoiceable->customer_name
+            return (object) [
+                'email'         => $invoiceable->email,
+                'customer_name' => $invoiceable->customer_name,
             ];
-        } elseif ($invoiceable instanceof RecurringOrder) {
-            $invoiceable->load('order');
+        }
+
+        if ($invoiceable instanceof RecurringOrder) {
+            $invoiceable->loadMissing('order');
             if ($invoiceable->order) {
-                return (object)[
-                    'email' => $invoiceable->order->email,
-                    'customer_name' => $invoiceable->order->customer_name
+                return (object) [
+                    'email'         => $invoiceable->order->email,
+                    'customer_name' => $invoiceable->order->customer_name,
                 ];
             }
         }
 
         return null;
+    }
+
+    /**
+     * Mark an invoice and all of its underlying orders as paid.
+     * Idempotent and exception-safe: a failure to update one entity (or to send
+     * mail) is logged and never aborts the surrounding payment transaction.
+     *
+     * - Legacy polymorphic invoice  -> the single invoiceable (Order/RecurringOrder),
+     *   keeps the existing confirmation email.
+     * - Consolidated invoice        -> every order linked via the invoice_orders
+     *   pivot (plus a safety sweep on orders.invoice_id). NO auto email — those
+     *   account-holder invoices are sent manually (scope Q8).
+     */
+    protected function applyPayment(Invoice $invoice): void
+    {
+        // 1) The invoice itself
+        $invoice->update([
+            'payment_status' => Invoice::PAID,
+            'paid_at'        => now()->format('Y:m:d H:i:s'),
+        ]);
+        // 2) Legacy polymorphic invoice — single related entity, keep email
+        if (!empty($invoice->invoiceable_type) && !empty($invoice->invoiceable_id)) {
+            $invoiceable = $invoice->invoiceable;
+
+            if ($invoiceable instanceof Order) {
+                $invoiceable->update(['payment_status' => 'paid']);
+                $this->safeSendOrderMail($invoiceable->email, $invoiceable);
+            } elseif ($invoiceable instanceof RecurringOrder) {
+                $invoiceable->update(['recurring_payment_status' => 1]);
+                $invoiceable->loadMissing('order');
+                if ($invoiceable->order) {
+                    $this->safeSendOrderMail($invoiceable->order->email, $invoiceable, 'recurring');
+                }
+            }
+
+            return;
+        }
+
+        // 3) Consolidated invoice — mark every linked order, no auto email
+        InvoiceOrders::where('invoice_id', $invoice->id)->get()
+            ->each(function ($link) {
+                try {
+                    if ($link->invoiceable_type === RecurringOrder::class) {
+                        RecurringOrder::where('id', $link->invoiceable_id)
+                            ->update(['recurring_payment_status' => 1]);
+                    } else {
+                        Order::where('id', $link->invoiceable_id)
+                            ->update(['payment_status' => 'paid']);
+                    }
+                } catch (\Throwable $e) {
+                    \Log::error('applyPayment link update failed: ' . $e->getMessage());
+                }
+            });
+
+        // Safety sweep: catch any order stamped with this invoice_id but missing
+        // from the pivot. Idempotent — re-marking a paid order is harmless.
+        Order::where('invoice_id', $invoice->id)->update(['payment_status' => 'paid']);
+        RecurringOrder::where('invoice_id', $invoice->id)->update(['recurring_payment_status' => 1]);
+    }
+
+    /**
+     * Send the order/recurring confirmation email without ever breaking the
+     * payment flow (missing address or mail-server issues are logged, not thrown).
+     */
+    protected function safeSendOrderMail($email, $invoiceable, $type = null): void
+    {
+        if (empty($email)) {
+            return;
+        }
+
+        try {
+            $mail = $type
+                ? new OrderPlacedMail($invoiceable, $type)
+                : new OrderPlacedMail($invoiceable);
+
+            Mail::to($email)->send($mail);
+        } catch (\Throwable $e) {
+            \Log::error('Order confirmation mail failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * First order linked to a consolidated invoice via the pivot (for fallbacks).
+     */
+    protected function firstLinkedOrder($invoice)
+    {
+        $link = InvoiceOrders::where('invoice_id', $invoice->id)->first();
+
+        if (!$link) {
+            return null;
+        }
+
+        if ($link->invoiceable_type === RecurringOrder::class) {
+            return optional(RecurringOrder::find($link->invoiceable_id))->order;
+        }
+
+        return Order::find($link->invoiceable_id);
     }
 
     protected function buildExactPaymentParams($invoice, $customerInfo)
@@ -326,14 +440,13 @@ class ManualPaymentCrudController extends CrudController
     {
         $responseCode = $request->get('x_response_code');
         $invoiceNumber = $request->get('x_invoice_num');
-
         $invoice = Invoice::where('invoice_number', $invoiceNumber)
             ->with('invoiceable')
-            ->where('payment_status', Invoice::PENDING)
+            ->whereIn('payment_status', [Invoice::PENDING, Invoice::FAILED])
             ->first();
 
         if (!$invoice) {
-            return view('vendor.backpack.crud.payment-result', [
+            return view('vendor.backpack.base.payment-result', [
                 'success' => false,
                 'message' => 'Invoice not found or already processed.',
                 'invoice_number' => $invoiceNumber ?? null,
@@ -354,26 +467,10 @@ class ManualPaymentCrudController extends CrudController
                     'payment_method' => 'credit_card',
                     'transaction_id' => $request->get('x_trans_id'),
                 ]);
-
-                // Update invoice
-                $invoice->update([
-                    'payment_status' => Invoice::PAID,
-                    'transaction_json' => json_encode($request->all()),
-                    'paid_at' => now()
-                ]);
-
-                $invoiceable = $invoice->invoiceable;
-
-                if ($invoiceable instanceof Order) {
-                    $invoiceable->update(['payment_status' => 'paid']);
-                    Mail::to($invoiceable->email)->send(new OrderPlacedMail($invoiceable));
-                } elseif ($invoiceable instanceof RecurringOrder) {
-                    $invoiceable->update(['recurring_payment_status' => 1]);
-                    $invoiceable->load('order');
-                    if ($invoiceable->order) {
-                        Mail::to($invoiceable->order->email)->send(new OrderPlacedMail($invoiceable, 'recurring'));
-                    }
-                }
+                // Store the gateway response, then mark invoice + orders paid
+                // (applyPayment handles both legacy and consolidated invoices)
+                $invoice->update(['transaction_json' => json_encode($request->all())]);
+                $this->applyPayment($invoice);
 
                 DB::commit();
 
@@ -419,7 +516,7 @@ class ManualPaymentCrudController extends CrudController
 //        $data = $request->all();
 //
 //        $invoice = Invoice::where('id', $data['invoice_id'])->with('invoiceable')
-//            ->where('payment_status', Invoice::PENDING)
+//            ->whereIn('payment_status', [Invoice::PENDING, Invoice::FAILED])
 //            ->first();
 //
 //        if (!$invoice) {
@@ -507,11 +604,11 @@ class ManualPaymentCrudController extends CrudController
 //
 //        $invoice = Invoice::where('invoice_number', $invoiceNumber)
 //            ->with('invoiceable')
-//            ->where('payment_status', Invoice::PENDING)
+//            ->whereIn('payment_status', [Invoice::PENDING, Invoice::FAILED])
 //            ->first();
 //
 //        if (!$invoice) {
-//            return view('vendor.backpack.crud.payment-result', [
+//            return view('vendor.backpack.base.payment-result', [
 //                'success' => false,
 //                'message' => 'Invoice not found or already processed.',
 //                'invoice_number' => $invoiceNumber ?? null,
@@ -539,7 +636,7 @@ class ManualPaymentCrudController extends CrudController
 //                }
 //            }
 //
-//            return view('vendor.backpack.crud.payment-result', [
+//            return view('vendor.backpack.base.payment-result', [
 //                'success' => true,
 //                'message' => 'Payment completed successfully!',
 //                'invoice_number' => $invoice->invoice_number,
@@ -554,7 +651,7 @@ class ManualPaymentCrudController extends CrudController
 //                'paid_at' => now()
 //            ]);
 //
-//            return view('vendor.backpack.crud.payment-result', [
+//            return view('vendor.backpack.base.payment-result', [
 //                'success' => false,
 //                'message' => 'Payment failed. Please try again.',
 //                'invoice_number' => $invoice->invoice_number,
@@ -617,42 +714,59 @@ class ManualPaymentCrudController extends CrudController
     {
         $search = $request->input('q');
 
-        $invoices = Invoice::whereIn('payment_status', [Invoice::PENDING,Invoice::FAILED])
+        $invoices = Invoice::with('customer')
+            ->whereIn('payment_status', [Invoice::PENDING, Invoice::FAILED])
             ->where('invoice_number', 'like', "%{$search}%")
             ->limit(20)
             ->get();
 
-        $results = $invoices->map(function($invoice) {
-            if ($invoice->invoiceable_type === 'App\Models\Order') {
-                // Direct order - use invoice ID to find the order
-                $order = Order::where('invoice_id', $invoice->id)->first();
-                return $order ? [
-                    'id' => $invoice->id,
-                    'order_id' => $order->id,
-                    'invoice_number' => $invoice->invoice_number,
-                    'customer_name' => $order->customer_name,
-                    'email' => $order->email,
-                    'total_cost' => $order->total_cost ?? $invoice->total_amount ?? 0,
-                    'type' => 'direct'
-                ] : null;
-            } else {
-                // Recurring order - use invoice ID to find recurring order, then get parent order
-                $recurring = RecurringOrder::where('id', $invoice->invoiceable_id)
-                    ->where('status', RecurringOrder::OPEN)
-                    ->whereNull('recurring_payment_status')
-                    ->with('order')
-                    ->first();
+        $results = $invoices->map(function ($invoice) {
+            // ---- Consolidated invoice (no polymorphic invoiceable) ----
+            if (empty($invoice->invoiceable_type)) {
+                $info = $this->resolveCustomerInfo($invoice);
 
-                return $recurring ? [
-                    'id' => $invoice->id, // Return invoice ID for selection
-                    'order_id' => $recurring->order->id,
+                return [
+                    'id'             => $invoice->id,
+                    'order_id'       => null,
                     'invoice_number' => $invoice->invoice_number,
-                    'customer_name' => $recurring->order->customer_name,
-                    'email' => $recurring->order->email,
-                    'total_cost' => $recurring->order->total_cost ?? $invoice->total_amount ?? 0,
-                    'type' => 'recurring'
+                    'customer_name'  => $info->customer_name ?? null,
+                    'email'          => $info->email ?? null,
+                    'total_cost'     => $invoice->total_amount ?? 0,
+                    'type'           => 'consolidated',
+                ];
+            }
+
+            // ---- Legacy direct order ----
+            if ($invoice->invoiceable_type === Order::class) {
+                $order = Order::where('invoice_id', $invoice->id)->first();
+
+                return $order ? [
+                    'id'             => $invoice->id,
+                    'order_id'       => $order->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'customer_name'  => $order->customer_name,
+                    'email'          => $order->email,
+                    'total_cost'     => $order->total_cost ?? $invoice->total_amount ?? 0,
+                    'type'           => 'direct',
                 ] : null;
             }
+
+            // ---- Legacy recurring order ----
+            $recurring = RecurringOrder::where('id', $invoice->invoiceable_id)
+                ->where('status', RecurringOrder::OPEN)
+                ->whereNull('recurring_payment_status')
+                ->with('order')
+                ->first();
+
+            return ($recurring && $recurring->order) ? [
+                'id'             => $invoice->id,
+                'order_id'       => $recurring->order->id,
+                'invoice_number' => $invoice->invoice_number,
+                'customer_name'  => $recurring->order->customer_name,
+                'email'          => $recurring->order->email,
+                'total_cost'     => $recurring->order->total_cost ?? $invoice->total_amount ?? 0,
+                'type'           => 'recurring',
+            ] : null;
         })->filter()->values();
 
 

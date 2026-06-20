@@ -10,9 +10,12 @@ use App\Models\InvoiceLineItems;
 use App\Models\InvoiceOrders;
 use App\Models\Order;
 use App\Models\RecurringOrder;
+use App\Mail\ConsolidatedInvoiceMail;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class InvoiceGeneratorController extends Controller
@@ -103,7 +106,7 @@ class InvoiceGeneratorController extends Controller
                 'invoiceable_id'   => $recurring->id,
                 'order_type'       => 'recurring',
                 'label'            => 'Recurring #' . $recurring->id . ' (Order #' . str_pad($parentOrder->invoice_id ?? $parentOrder->id, 4, '0', STR_PAD_LEFT) . ')',
-                'delivery_date'    => $recurring->scheduled_delivery_date,
+                'delivery_date'    => Carbon::parse($recurring->scheduled_delivery_date)->format('Y:m:d h:i:s'),
             ];
         }
 
@@ -336,6 +339,73 @@ class InvoiceGeneratorController extends Controller
         ]);
 
         return $pdf->download('invoice-' . $invoice->invoice_number . '.pdf');
+    }
+
+    /**
+     * Email a consolidated invoice (with PDF attached) to its customer.
+     * Route to be wired later. Designed to never throw to the caller:
+     * any failure is logged and returned as a JSON error so it can't break
+     * a surrounding flow.
+     */
+    public function sendInvoiceEmail($invoiceId)
+    {
+        try {
+            $invoice = Invoice::with(['lineItems.product', 'flatCharges'])->findOrFail($invoiceId);
+
+            // Consolidated invoices carry the customer directly (customer_id).
+            $customer = $invoice->customer;
+
+            // Fallback: derive the customer from the first linked order.
+            if (!$customer) {
+                $firstRef = InvoiceOrders::where('invoice_id', $invoice->id)->first();
+                if ($firstRef) {
+                    $sourceOrder = $firstRef->invoiceable_type === RecurringOrder::class
+                        ? optional(RecurringOrder::find($firstRef->invoiceable_id))->order
+                        : Order::find($firstRef->invoiceable_id);
+                    $customer = $sourceOrder?->customer;
+                }
+            }
+
+            $email = $customer->email ?? null;
+
+            if (empty($email)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No customer email found for this invoice.',
+                ], 422);
+            }
+
+            $invoiceOrders    = InvoiceOrders::where('invoice_id', $invoice->id)->get();
+            $subTotal         = $invoice->lineItems->sum('total_price');
+            $flatChargesTotal = $invoice->flatCharges->sum('amount');
+
+            // Render the same PDF used for download, pass raw bytes to the Mailable.
+            $pdfData = Pdf::loadView('emails.invoice-pdf-consolidated', [
+                'invoice'          => $invoice,
+                'invoiceOrders'    => $invoiceOrders,
+                'customer'         => $customer,
+                'lineItems'        => $invoice->lineItems,
+                'flatCharges'      => $invoice->flatCharges,
+                'subTotal'         => $subTotal,
+                'flatChargesTotal' => $flatChargesTotal,
+                'totalAmount'      => $invoice->total_amount,
+            ])->output();
+
+            Mail::to($email)->send(new ConsolidatedInvoiceMail($invoice, $customer, $pdfData));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Invoice emailed to ' . $email,
+            ]);
+
+        } catch (\Throwable $e) {
+            \Log::error('Send consolidated invoice email failed: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send invoice email. Please try again.',
+            ], 500);
+        }
     }
 
     // ===================== Helpers =====================
