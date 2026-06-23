@@ -54,14 +54,15 @@ class Invoice extends Model
             ->where('recurring_sequence', $this->recurring_sequence + 1);
     }
 
-    // Generate unique invoice number
+    // Generate the next invoice number: 3000 when the table is empty,
+    // otherwise the highest existing invoice number + 1.
     public static function generateInvoiceNumber(): string
     {
-        $lastInvoice = self::orderBy('id', 'desc')->first();
+        // Highest existing numeric invoice number (0 when there are no records).
+        $last = (int) static::orderByRaw('CAST(invoice_number AS UNSIGNED) DESC')
+            ->value('invoice_number');
 
-        $nextInvoiceId = $lastInvoice ? $lastInvoice->id + 1 : 3000;
-
-        return str_pad($nextInvoiceId, 4, '0', STR_PAD_LEFT);
+        return (string) ($last < 3000 ? 3000 : $last + 1);
     }
 
     // Check if this is a recurring invoice

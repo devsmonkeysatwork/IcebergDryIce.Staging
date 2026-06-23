@@ -169,6 +169,7 @@
                     </label>
 
                     <input
+                        min="{{\Illuminate\Support\Carbon::now()->format('Y-m-d')}}"
                         type="date"
                         class="form-control"
                         id="modal-delivery-date"
@@ -184,6 +185,7 @@
                     </label>
 
                     <input
+                        min="{{\Illuminate\Support\Carbon::now()->format('h:m')}}"
                         type="time"
                         class="form-control"
                         id="modal-delivery-time"

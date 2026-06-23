@@ -465,14 +465,7 @@ class InvoiceGeneratorController extends Controller
 
     private function generateInvoiceNumber(): string
     {
-        $last = Invoice::orderByDesc('id')->value('invoice_number');
-        if (!$last) {
-            return '3000';
-        }
-        // Strip any prefix/formatting and extract the numeric part
-        $numeric = (int) preg_replace('/[^0-9]/', '', $last);
-
-        return (string) ($numeric + 1);
+        return Invoice::generateInvoiceNumber();
     }
 
     // ----- Draft storage: session-backed for now -----
