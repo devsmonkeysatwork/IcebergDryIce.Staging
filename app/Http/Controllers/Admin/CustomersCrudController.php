@@ -451,6 +451,7 @@ class CustomersCrudController extends CrudController
             'box_price' => 'nullable|numeric|min:0',
             'hazmat_fee' => 'nullable|numeric|min:0',
             'delivery_fee' => 'nullable|numeric|min:0',
+            'pickup_fee' => 'nullable|numeric|min:0',
             'other_charges' => 'nullable|numeric|min:0',
         ]);
 
@@ -458,6 +459,7 @@ class CustomersCrudController extends CrudController
         $boxPrice = (float)($validated['box_price'] ?? 0);
         $hazmatFee = (float)($validated['hazmat_fee'] ?? 0);
         $deliveryFee = (float)($validated['delivery_fee'] ?? 0);
+        $pickupFee = (float)($validated['pickup_fee'] ?? 0);
         $otherCharges = (float)($validated['other_charges'] ?? 0);
 
         $total =
@@ -465,6 +467,7 @@ class CustomersCrudController extends CrudController
             $boxPrice +
             $hazmatFee +
             $deliveryFee +
+            $pickupFee +
             $otherCharges;
 
         $pricing = CustomerPricing::where(
@@ -494,6 +497,7 @@ class CustomersCrudController extends CrudController
                 'box_price' => $boxPrice,
                 'hazmat_fee' => $hazmatFee,
                 'delivery_fee' => $deliveryFee,
+                'pickup_fee' => $pickupFee,
                 'other_charges' => $otherCharges,
             ]
         );

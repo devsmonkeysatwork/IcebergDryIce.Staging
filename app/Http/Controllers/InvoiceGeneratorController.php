@@ -82,8 +82,16 @@ class InvoiceGeneratorController extends Controller
 
         $lineItems = [];
         $orderRefs = [];
+        $hasDelivery = false;
+        $hasPickup   = false;
 
         foreach ($orders as $order) {
+            if ($order->pickup_delivery === 'pickup') {
+                $hasPickup = true;
+            } elseif ($order->pickup_delivery === 'delivery') {
+                $hasDelivery = true;
+            }
+
             foreach ($order->items as $item) {
                 $lineItems[] = $this->buildLineItem($item, $pricing, $order->id);
             }
@@ -98,6 +106,12 @@ class InvoiceGeneratorController extends Controller
 
         foreach ($recurringOrders as $recurring) {
             $parentOrder = $recurring->order;
+            if ($parentOrder->pickup_delivery === 'pickup') {
+                $hasPickup = true;
+            } elseif ($parentOrder->pickup_delivery === 'delivery') {
+                $hasDelivery = true;
+            }
+
             foreach ($parentOrder->items as $item) {
                 $lineItems[] = $this->buildLineItem($item, $pricing, $parentOrder->id);
             }
@@ -117,10 +131,12 @@ class InvoiceGeneratorController extends Controller
             ], 422);
         }
 
-        // Once-per-invoice flat charges from customer_pricing
+        // Once-per-invoice flat charges from customer_pricing.
+        // Delivery vs pickup fee is added at most once each, based on whether
+        // any invoiced order is a delivery / pickup (an invoice can mix both).
         $flatCharges = [];
         if ($pricing) {
-            foreach (['hazmat_fee', 'delivery_fee', 'other_charges'] as $key) {
+            foreach (['hazmat_fee', 'other_charges'] as $key) {
                 if (!empty($pricing->$key) && (float) $pricing->$key != 0) {
                     $flatCharges[] = [
                         'charge_key' => $key,
@@ -128,6 +144,22 @@ class InvoiceGeneratorController extends Controller
                         'amount'     => (float) $pricing->$key,
                     ];
                 }
+            }
+
+            if ($hasDelivery && !empty($pricing->delivery_fee) && (float) $pricing->delivery_fee != 0) {
+                $flatCharges[] = [
+                    'charge_key' => 'delivery_fee',
+                    'label'      => null,
+                    'amount'     => (float) $pricing->delivery_fee,
+                ];
+            }
+
+            if ($hasPickup && !empty($pricing->pickup_fee) && (float) $pricing->pickup_fee != 0) {
+                $flatCharges[] = [
+                    'charge_key' => 'pickup_fee',
+                    'label'      => null,
+                    'amount'     => (float) $pricing->pickup_fee,
+                ];
             }
         }
 

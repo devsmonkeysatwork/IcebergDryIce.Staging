@@ -22,7 +22,8 @@ class Invoice extends Model
         'invoice_date',
         'transaction_json',
         'customer_id',
-        'paid_at'
+        'paid_at',
+        'notes'
     ];
 
     protected $casts = [

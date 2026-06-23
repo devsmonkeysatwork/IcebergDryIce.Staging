@@ -18,6 +18,7 @@
                     <th>Box Price</th>
                     <th>Hazmat Fee</th>
                     <th>Delivery Fee</th>
+                    <th>Pickup Fee</th>
                     <th>Other Charges</th>
                     <th width="120">Action</th>
                 </tr>
@@ -85,6 +86,16 @@
                                     name="delivery_fee"
                                     class="form-control"
                                     value="{{ $pricing->delivery_fee ?? 0 }}">
+                            </td>
+
+                            <td>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    name="pickup_fee"
+                                    class="form-control"
+                                    value="{{ $pricing->pickup_fee ?? 0 }}">
                             </td>
 
                             <td>

@@ -14,6 +14,7 @@ class CustomerPricing extends Model
         'box_price',
         'hazmat_fee',
         'delivery_fee',
+        'pickup_fee',
         'other_charges',
     ];
 
