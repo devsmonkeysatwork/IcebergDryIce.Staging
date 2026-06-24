@@ -296,6 +296,9 @@
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', function () {
 
@@ -305,6 +308,15 @@
             const selectorCard = document.getElementById('selector-card');
             const draftCard     = document.getElementById('draft-card');
             const resultCard    = document.getElementById('result-card');
+
+            // Make the customer dropdown searchable (same as the manual order form)
+            if (window.jQuery && jQuery.fn.select2) {
+                jQuery('#gen-customer-id').select2({
+                    placeholder: 'Search customer...',
+                    allowClear: true,
+                    width: '100%'
+                });
+            }
 
             function fmt(n) {
                 return '$' + Number(n).toFixed(2);

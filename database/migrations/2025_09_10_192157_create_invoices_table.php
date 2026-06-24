@@ -30,6 +30,7 @@ return new class extends Migration
 
 
             $table->date('invoice_date');
+            $table->string('paid_at', 20)->nullable();
             $table->timestamps();
 
             $table->index('parent_invoice_id');
