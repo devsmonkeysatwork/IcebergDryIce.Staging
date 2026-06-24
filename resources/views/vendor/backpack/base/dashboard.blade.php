@@ -835,10 +835,6 @@
                     label: 'Amount (lbs/units)'
                 },
                 {
-                    element: document.querySelector('input[name="po_number"]'),
-                    label: 'PO #'
-                },
-                {
                     element: document.querySelector('select[name="recurring"]'),
                     label: 'Recurring'
                 },

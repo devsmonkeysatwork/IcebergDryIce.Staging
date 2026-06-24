@@ -99,7 +99,7 @@
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <input type="text" id="new-charge-label" class="form-control form-control-sm" placeholder="Label (e.g. Loyalty Discount)">
+                                <input type="text" id="new-charge-label" class="form-control form-control-sm" placeholder="Label">
                             </div>
                             <div class="col-md-3">
                                 <input type="number" id="new-charge-amount" class="form-control form-control-sm" placeholder="Amount (use - for discount)" step="0.01">
@@ -131,6 +131,12 @@
                                     <strong>TOTAL:</strong> <strong id="summary-total">$0.00</strong>
                                 </p>
                             </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <label for="invoice-notes" class="form-label" style="font-size:14px;font-weight:600;">Invoice Notes</label>
+                            <textarea id="invoice-notes" class="form-control" rows="3"
+                                placeholder="Optional notes"></textarea>
                         </div>
 
                         <div class="mt-4 d-flex gap-2">
@@ -499,7 +505,9 @@
                 }).then(result => {
                     if (!result.isConfirmed) return;
 
-                    postJson('{{ route('admin.invoice-generator.finalize') }}', {}).then(data => {
+                    postJson('{{ route('admin.invoice-generator.finalize') }}', {
+                        notes: document.getElementById('invoice-notes').value
+                    }).then(data => {
                         if (data.success) {
                             document.getElementById('result-invoice-number').textContent = '#' + data.invoice_id;
                             document.getElementById('result-pdf-link').href = data.pdf_url;

@@ -284,7 +284,9 @@ class InvoiceGeneratorController extends Controller
             ], 404);
         }
 
-        $invoice = DB::transaction(function () use ($draft) {
+        $notes = $request->input('notes');
+
+        $invoice = DB::transaction(function () use ($draft, $notes) {
             $invoice = Invoice::create([
                 'invoice_number'     => $this->generateInvoiceNumber(),
                 'total_amount'       => $draft['totals']['total'],
@@ -292,7 +294,8 @@ class InvoiceGeneratorController extends Controller
                 'parent_invoice_id'  => null,
                 'recurring_sequence' => 1,
                 'invoice_date'       => now()->format('Y-m-d'),
-                'customer_id'       => $draft['customer_id'],
+                'customer_id'        => $draft['customer_id'],
+                'notes'              => $notes,
             ]);
 
             foreach ($draft['order_refs'] as $ref) {

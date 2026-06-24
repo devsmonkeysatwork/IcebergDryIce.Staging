@@ -177,6 +177,19 @@
     </tr>
 </table>
 
+@if(!empty($invoice->notes))
+<!-- Notes -->
+<table align="center" class="fullTable" bgcolor="#ffffff">
+    <tr>
+        <td style="padding: 20px;">
+            <p style="font-size:8px; font-weight:600; color:#5E6470;">Notes</p>
+            <p style="border-top:1px solid #D7DAE0; margin:4px 0;"></p>
+            <p style="font-size:10px;color:#5E6470;white-space:pre-line;">{{ $invoice->notes }}</p>
+        </td>
+    </tr>
+</table>
+@endif
+
 <!-- Terms -->
 <table align="center" class="fullTable" bgcolor="#ffffff">
     <tr>
