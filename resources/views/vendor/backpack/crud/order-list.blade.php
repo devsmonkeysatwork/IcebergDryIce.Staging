@@ -144,12 +144,14 @@
                                                 data-order-id="{{ $order->id }}">
                                         </button>
                                     @endif
-                                    <button
-                                        class="btn btn-sm btn-outline-dark view-invoice-btn"
-                                        data-invoice-id="{{ $order->invoice->id }}"
-                                        data-url="{{ route('invoice.view', $order->invoice->id) }}">
-                                        <i class="las la-file-invoice-dollar"></i>
-                                    </button>
+                                    @isset($order->invoice)
+                                        <button
+                                            class="btn btn-sm btn-outline-dark view-invoice-btn"
+                                            data-invoice-id="{{ $order->invoice->id }}"
+                                            data-url="{{ route('invoice.view', $order->invoice->id) }}">
+                                            <i class="las la-file-invoice-dollar"></i>
+                                        </button>
+                                    @endisset
                                 </td>
                             </tr>
                         @endforeach
