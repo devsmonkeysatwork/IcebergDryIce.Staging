@@ -607,10 +607,10 @@
                         element: document.querySelector('input[name="amount"]'),
                         label: 'Amount (lbs/units)'
                     },
-                    {
-                        element: document.querySelector('input[name="po_number"]'),
-                        label: 'PO #'
-                    },
+                    // {
+                    //     element: document.querySelector('input[name="po_number"]'),
+                    //     label: 'PO #'
+                    // },
                     {
                         element: document.getElementById('recurring-status'),
                         label: 'Recurring'
