@@ -371,7 +371,9 @@ class InvoiceGeneratorController extends Controller
             'subTotal'       => $subTotal,
             'flatChargesTotal' => $flatChargesTotal,
             'totalAmount'    => $invoice->total_amount,
-        ]);
+        ])->setOption('isHtml5ParserEnabled', true)
+            ->setOption('isRemoteEnabled', true)
+            ->setOption('chroot', public_path());
 
         return $pdf->download('invoice-' . $invoice->invoice_number . '.pdf');
     }
@@ -424,7 +426,10 @@ class InvoiceGeneratorController extends Controller
                 'subTotal'         => $subTotal,
                 'flatChargesTotal' => $flatChargesTotal,
                 'totalAmount'      => $invoice->total_amount,
-            ])->output();
+            ])->setOption('isHtml5ParserEnabled', true)
+                ->setOption('isRemoteEnabled', true)
+                ->setOption('chroot', public_path())
+                ->output();
 
             Mail::to($email)->send(new ConsolidatedInvoiceMail($invoice, $customer, $pdfData));
 
