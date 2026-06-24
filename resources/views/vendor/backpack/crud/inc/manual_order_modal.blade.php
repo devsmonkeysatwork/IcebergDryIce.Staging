@@ -217,17 +217,18 @@
             data-bs-dismiss="modal">
             Cancel
         </button>
-
-        <button
-            type="button"
-            id="save-order-btn"
-            class="btn btn-primary"
-            data-mode="{{ $mode }}"
-            @if($isEditMode)
-                data-order-id="{{ $order->id }}"
-            @endif>
-            {{ $saveButtonText }}
-        </button>
+        @if($order->payment_status !== 'paid')
+            <button
+                type="button"
+                id="save-order-btn"
+                class="btn btn-primary"
+                data-mode="{{ $mode }}"
+                @if($isEditMode)
+                    data-order-id="{{ $order->id }}"
+                @endif>
+                {{ $saveButtonText }}
+            </button>
+        @endif
 
         @if($isEditMode)
             <button
