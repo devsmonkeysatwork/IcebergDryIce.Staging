@@ -149,7 +149,7 @@ class SupplierController extends Controller
                 'province' => $supplierLocation->province,
                 'postalCode' => $supplierLocation->postal,
                 'country' => 'CAN',
-                'instructions' => '',
+                'instructions' => 'Call  604-255-6007 if given phone is not responding',
             ],
             'delivery' => [
                 'name' => $deliveryDetails['name'],
@@ -159,7 +159,7 @@ class SupplierController extends Controller
                 'province' => $deliveryDetails['province'],
                 'postalCode' => $destinationPostal,
                 'country' => 'CAN',
-                'instructions' => '',
+                'instructions' => 'Call  604-255-6007 if given phone is not responding',
                 'contact' => $deliveryDetails['contact'],
                 'phone' => $deliveryDetails['phone'],
                 'notificationEmail' => $deliveryDetails['email'],
@@ -254,8 +254,9 @@ class SupplierController extends Controller
                     'city' => $supplier->city,
                     'province' => $supplier->province,
                     'postalCode' => $supplier->postal,
+                    "phone" => "604 524-0609",
                     'country' => 'CAN',
-                    'instructions' => '',
+                    'instructions' => 'Call 604-255-6007 if given phone is not responding',
                 ],
                 'delivery' => [
                     'name' => $order->location_name ?? 'Customer',
@@ -265,8 +266,8 @@ class SupplierController extends Controller
                     'province' => $order->province,
                     'postalCode' => $order->postal_code,
                     'country' => 'CAN',
-                    'instructions' => $order->notes ?? '',
-                    'contact' => $order->contact_name ?? 'Unknown',
+                    'instructions' => 'Call 604-255-6007 if given phone is not responding',
+                    'contact' => $order->contact_name ?? 'Customer',
                     'phone' => $order->phone,
                     'notificationEmail' => $order->email,
                 ],
@@ -285,6 +286,7 @@ class SupplierController extends Controller
             ];
 
             Log::info('Pushing order to Novex', ['order_id' => $order->id, 'payload' => $payload]);
+
             $response = Http::withOptions([
                 'verify' => config('services.http_verify'),
             ])->withHeaders([
