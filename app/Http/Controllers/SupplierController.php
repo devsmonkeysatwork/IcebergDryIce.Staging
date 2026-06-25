@@ -285,7 +285,6 @@ class SupplierController extends Controller
             ];
 
             Log::info('Pushing order to Novex', ['order_id' => $order->id, 'payload' => $payload]);
-            dd($payload);
             $response = Http::withOptions([
                 'verify' => config('services.http_verify'),
             ])->withHeaders([
