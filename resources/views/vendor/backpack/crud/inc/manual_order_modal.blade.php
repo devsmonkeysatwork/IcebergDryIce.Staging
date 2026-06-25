@@ -217,7 +217,7 @@
             data-bs-dismiss="modal">
             Cancel
         </button>
-        @if($order->payment_status !== 'paid')
+        @if(isset($order) && $order->payment_status !== 'paid' || !isset($order))
             <button
                 type="button"
                 id="save-order-btn"

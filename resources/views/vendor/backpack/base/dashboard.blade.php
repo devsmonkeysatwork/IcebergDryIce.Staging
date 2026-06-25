@@ -40,7 +40,7 @@
                             @foreach($oneTimeOrders as $order)
                                 <tr>
                                     <td>
-                                        {{ str_pad($order->invoice_id ?? $order->id, 4, '0', STR_PAD_LEFT) }}
+                                        {{ str_pad($order->id, 4, '0', STR_PAD_LEFT) }}
                                     </td>
                                     <td>{{ $order->customer_name }}</td>
                                     <td>{{ \Carbon\Carbon::parse($order->delivery_date)->format('Y-m-d') }}</td>
@@ -97,7 +97,7 @@
                                 <tr>
                                     <td>
                                         {{-- Handle both Order and RecurringOrder --}}
-                                    {{ str_pad($order instanceof \App\Models\RecurringOrder ? $order->invoice_id : $order->invoice_id, 4, '0', STR_PAD_LEFT) }}
+                                    {{ str_pad($order instanceof \App\Models\RecurringOrder ? $order->id : $order->id, 4, '0', STR_PAD_LEFT) }}
                                     <td>
                                         {{-- Handle customer name from both sources --}}
                                         {{ $order instanceof \App\Models\RecurringOrder ? $order->order->customer_name : $order->customer_name }}
