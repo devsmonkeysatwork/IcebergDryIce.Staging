@@ -170,7 +170,7 @@ class SupplierController extends Controller
             'instructions'=> "It is a test order.",
             'packages' => [
                 [
-                    'typeId' => 122,
+                    'typeId' => 3,
                     'length' => $dimensions,
                     'width' => 1,
                     'height' => 1,
@@ -275,7 +275,7 @@ class SupplierController extends Controller
                 'readyBy'=> $order->delivery_date,
                 'instructions'=> "",
                 'packages' => [[
-                    'typeId' => 122,
+                    'typeId' => 3,
                     'length' => $dimensions,
                     'width' => 1,
                     'height' => 1,
@@ -285,7 +285,7 @@ class SupplierController extends Controller
             ];
 
             Log::info('Pushing order to Novex', ['order_id' => $order->id, 'payload' => $payload]);
-
+            dd($payload);
             $response = Http::withOptions([
                 'verify' => config('services.http_verify'),
             ])->withHeaders([

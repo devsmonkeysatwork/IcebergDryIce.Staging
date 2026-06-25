@@ -146,7 +146,7 @@ class ProcessRecurringOrders extends Command
                 'readyBy'=> $order->delivery_date,
                 'instructions'=> "",
                 'packages' => [[
-                    'typeId' => 122,
+                    'typeId' => 3,
                     'length' => $dimensions,
                     'width' => 1,
                     'height' => 1,
