@@ -259,7 +259,7 @@ class SupplierController extends Controller
                     'instructions' => 'Call 604-255-6007 if given phone is not responding',
                 ],
                 'delivery' => [
-                    'name' => $order->location_name ?? 'Customer',
+                    'name' => $order->location_name ?? $order->customer_name ?? 'Customer',
                     'street' => $order->address,
                     'unit' => $order->unit ?? '',
                     'city' => $order->city,
