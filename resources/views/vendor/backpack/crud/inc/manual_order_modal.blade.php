@@ -230,7 +230,7 @@
             </button>
         @endif
 
-        @if(isset($order) && $order->status == 'completed' || $order->payment_status == 'paid')
+        @if(isset($order) && $order->status == 'completed' || isset($order) && $order->payment_status == 'paid')
             @if(!$order->push)
                 <button id="push-btn-{{ $order->id }}"
                         onclick="tryPushOrderToNovex({{ $order->id }})"
