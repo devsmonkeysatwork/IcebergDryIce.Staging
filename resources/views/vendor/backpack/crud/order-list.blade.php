@@ -92,7 +92,7 @@
                         @foreach($entries as $order)
                             <tr>
                                 <td>
-                                    {{ str_pad($order instanceof \App\Models\RecurringOrder ? $order->invoice_id : $order->invoice_id, 4, '0', STR_PAD_LEFT) }}
+                                    {{ $order instanceof \App\Models\RecurringOrder ? str_pad($order->id, 2, '0', STR_PAD_LEFT).'R'.$order->order->id : str_pad($order->id, 4, '0', STR_PAD_LEFT) }}
                                 </td>
                                 <td>
                                     {{-- Customer Name --}}
