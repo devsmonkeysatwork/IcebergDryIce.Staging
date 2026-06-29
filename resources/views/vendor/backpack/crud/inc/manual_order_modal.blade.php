@@ -230,6 +230,21 @@
             </button>
         @endif
 
+        @if(isset($order) && $order->status == 'completed' || $order->payment_status == 'paid')
+            @if(!$order->push)
+                <button id="push-btn-{{ $order->id }}"
+                        onclick="tryPushOrderToNovex({{ $order->id }})"
+                        class="btn btn-primary button-push" style="background: gray">
+                    Push Order
+                </button>
+                <span id="push-status-{{ $order->id }}" class="ml-2 text-sm text-muted status-push"></span>
+            @else
+                <button id="push-status-{{ $order->id }}" class="ml-2 text-sm btn btn-success status-push">
+                    Order Pushed
+                </button>
+            @endif
+        @endif
+
         @if($isEditMode)
             <button
                 type="button"
