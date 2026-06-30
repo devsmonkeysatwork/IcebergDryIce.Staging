@@ -20,17 +20,19 @@ use Illuminate\Support\Str;
 
 class InvoiceGeneratorController extends Controller
 {
-    // Session key used for in-memory draft storage.
-    // Swap the body of getDraft()/saveDraft()/clearDraft() to hit a DraftInvoice
-    // DB table later without touching any other method in this class.
-    private const DRAFT_SESSION_KEY = 'invoice_generator_draft';
-
     public function index()
     {
         $customers = Customer::orderBy('name')->get();
 
+        // Unfinalized drafts the admin can resume / discard.
+        $drafts = Invoice::draft()
+            ->with('customer')
+            ->orderByDesc('id')
+            ->get();
+
         return view('vendor.backpack.crud.Invoice.customer-invoice', [
             'customers' => $customers,
+            'drafts'    => $drafts,
         ]);
     }
 
@@ -58,6 +60,13 @@ class InvoiceGeneratorController extends Controller
             $usingDefaultPricing = true;
         }
 
+        // Orders already reserved by ANY invoice (draft or finalized) via the
+        // invoice_orders pivot must not be pulled into a second draft.
+        $claimedOrderIds = InvoiceOrders::where('invoiceable_type', Order::class)
+            ->pluck('invoiceable_id')->all();
+        $claimedRecurringIds = InvoiceOrders::where('invoiceable_type', RecurringOrder::class)
+            ->pluck('invoiceable_id')->all();
+
         // ---- One-time orders ----
         $orders = Order::where('customer_id', $customerId)
             ->where('origin', 'manual')
@@ -66,6 +75,7 @@ class InvoiceGeneratorController extends Controller
                 $q->whereNull('payment_status')->orWhere('payment_status', 'unpaid');
             })
             ->whereNull('invoice_id')
+            ->whereNotIn('id', $claimedOrderIds)
             ->whereBetween('delivery_date', [$startDate, $endDate])
             ->with(['items.product'])
             ->get();
@@ -73,6 +83,7 @@ class InvoiceGeneratorController extends Controller
         // ---- Recurring orders ----
         $recurringOrders = RecurringOrder::whereNull('recurring_payment_status')
             ->whereNull('invoice_id')
+            ->whereNotIn('id', $claimedRecurringIds)
             ->whereBetween('scheduled_delivery_date', [$startDate, $endDate])
             ->whereHas('order', function ($q) use ($customerId) {
                 $q->where('customer_id', $customerId)->where('origin', 'manual');
@@ -163,22 +174,60 @@ class InvoiceGeneratorController extends Controller
             }
         }
 
-        $draft = [
-            'customer_id'   => $customerId,
-            'start_date'    => $startDate,
-            'end_date'      => $endDate,
-            'order_refs'    => $orderRefs,
-            'line_items'    => $lineItems,
-            'flat_charges'  => $flatCharges,
-        ];
+        // Persist the draft as a real invoice with status='draft'. The included
+        // orders become reserved via invoice_orders so no other draft can claim
+        // them. The permanent invoice_number is assigned only at finalize.
+        $invoice = DB::transaction(function () use ($customerId, $orderRefs, $lineItems, $flatCharges) {
+            $invoice = Invoice::create([
+                'status'             => Invoice::STATUS_DRAFT,
+                'invoice_number'     => null,
+                'invoice_type'       => 'one_time',
+                'total_amount'       => 0,
+                'payment_status'     => 'pending',
+                'parent_invoice_id'  => null,
+                'recurring_sequence' => 1,
+                'invoice_date'       => now()->format('Y-m-d'),
+                'customer_id'        => $customerId,
+            ]);
 
-        $draft['totals'] = $this->calculateTotals($draft);
+            foreach ($orderRefs as $ref) {
+                InvoiceOrders::create([
+                    'invoice_id'       => $invoice->id,
+                    'invoiceable_type' => $ref['invoiceable_type'],
+                    'invoiceable_id'   => $ref['invoiceable_id'],
+                    'order_type'       => $ref['order_type'],
+                ]);
+            }
 
-        $this->saveDraft($draft);
+            foreach ($lineItems as $li) {
+                InvoiceLineItems::create([
+                    'invoice_id'  => $invoice->id,
+                    'order_id'    => $li['order_id'],
+                    'product_id'  => $li['product_id'],
+                    'description' => $li['description'],
+                    'quantity'    => $li['quantity'],
+                    'unit_price'  => $li['unit_price'],
+                    'total_price' => $li['total_price'],
+                ]);
+            }
+
+            foreach ($flatCharges as $fc) {
+                InvoiceFlatCharges::create([
+                    'invoice_id' => $invoice->id,
+                    'charge_key' => $fc['charge_key'],
+                    'label'      => $fc['label'],
+                    'amount'     => $fc['amount'],
+                ]);
+            }
+
+            $this->recomputeTotal($invoice);
+
+            return $invoice;
+        });
 
         return response()->json([
-            'success'              => true,
-            'draft'                => $draft,
+            'success'               => true,
+            'draft'                 => $this->serializeDraft($invoice->fresh()),
             'using_default_pricing' => $usingDefaultPricing,
         ]);
     }
@@ -189,12 +238,14 @@ class InvoiceGeneratorController extends Controller
      */
     public function updateDraft(Request $request)
     {
-        $draft = $this->getDraft();
+        $request->validate(['invoice_id' => 'required|integer']);
 
-        if (!$draft) {
+        $invoice = Invoice::draft()->find($request->invoice_id);
+
+        if (!$invoice) {
             return response()->json([
                 'success' => false,
-                'message' => 'No active draft found. Please rebuild the draft.',
+                'message' => 'Draft not found or already finalized.',
             ], 404);
         }
 
@@ -207,16 +258,17 @@ class InvoiceGeneratorController extends Controller
                     'invoiceable_id'   => 'required',
                 ]);
 
-                $draft['order_refs'] = array_values(array_filter($draft['order_refs'], function ($ref) use ($request) {
-                    return !($ref['invoiceable_type'] === $request->invoiceable_type
-                        && $ref['invoiceable_id'] == $request->invoiceable_id);
-                }));
+                // Removing the pivot row releases the order's reservation.
+                InvoiceOrders::where('invoice_id', $invoice->id)
+                    ->where('invoiceable_type', $request->invoiceable_type)
+                    ->where('invoiceable_id', $request->invoiceable_id)
+                    ->delete();
 
-                // Drop line items tied to the parent order if it no longer has any ref pointing to it
-                $remainingOrderIds = $this->collectParentOrderIds($draft['order_refs']);
-                $draft['line_items'] = array_values(array_filter($draft['line_items'], function ($li) use ($remainingOrderIds) {
-                    return in_array($li['order_id'], $remainingOrderIds);
-                }));
+                // Drop line items whose parent order is no longer referenced.
+                $remainingParentIds = $this->draftParentOrderIds($invoice);
+                InvoiceLineItems::where('invoice_id', $invoice->id)
+                    ->whereNotIn('order_id', $remainingParentIds ?: [0])
+                    ->delete();
                 break;
 
             case 'add_flat_charge':
@@ -226,125 +278,142 @@ class InvoiceGeneratorController extends Controller
                     'label'      => 'nullable|string',
                 ]);
 
-                $draft['flat_charges'][] = [
+                InvoiceFlatCharges::create([
+                    'invoice_id' => $invoice->id,
                     'charge_key' => $request->charge_key, // e.g. 'custom' or 'discount'
                     'label'      => $request->label,
                     'amount'     => (float) $request->amount, // negative for discount
-                ];
+                ]);
                 break;
 
             case 'remove_flat_charge':
-                $request->validate(['index' => 'required|integer']);
-                unset($draft['flat_charges'][$request->index]);
-                $draft['flat_charges'] = array_values($draft['flat_charges']);
+                $request->validate(['flat_charge_id' => 'required|integer']);
+                InvoiceFlatCharges::where('invoice_id', $invoice->id)
+                    ->where('id', $request->flat_charge_id)
+                    ->delete();
                 break;
 
             case 'update_line_item':
                 $request->validate([
-                    'index'      => 'required|integer',
-                    'unit_price' => 'nullable|numeric',
-                    'quantity'   => 'nullable|integer',
+                    'line_item_id' => 'required|integer',
+                    'unit_price'   => 'nullable|numeric',
+                    'quantity'     => 'nullable|integer',
                 ]);
 
-                if (isset($draft['line_items'][$request->index])) {
+                $li = InvoiceLineItems::where('invoice_id', $invoice->id)
+                    ->where('id', $request->line_item_id)
+                    ->first();
+
+                if ($li) {
                     if ($request->filled('unit_price')) {
-                        $draft['line_items'][$request->index]['unit_price'] = (float) $request->unit_price;
+                        $li->unit_price = (float) $request->unit_price;
                     }
                     if ($request->filled('quantity')) {
-                        $draft['line_items'][$request->index]['quantity'] = (int) $request->quantity;
+                        $li->quantity = (int) $request->quantity;
                     }
-                    $li = $draft['line_items'][$request->index];
-                    $draft['line_items'][$request->index]['total_price'] = $li['unit_price'] * $li['quantity'];
+                    $li->total_price = $li->unit_price * $li->quantity;
+                    $li->save();
                 }
+                break;
+
+            case 'update_notes':
+                $invoice->update(['notes' => $request->input('notes')]);
                 break;
 
             default:
                 return response()->json(['success' => false, 'message' => 'Unknown action.'], 422);
         }
 
-        $draft['totals'] = $this->calculateTotals($draft);
+        $this->recomputeTotal($invoice);
 
-        $this->saveDraft($draft);
-
-        return response()->json(['success' => true, 'draft' => $draft]);
+        return response()->json(['success' => true, 'draft' => $this->serializeDraft($invoice->fresh())]);
     }
 
     /**
-     * Step 3: Finalize — persist invoice, pivot rows, line items, flat charges.
-     * Marks all included orders/recurring_orders as invoiced.
+     * Step 3: Finalize — lock the draft, assign the permanent invoice number,
+     * and mark all included orders/recurring_orders as invoiced.
      */
     public function finalize(Request $request)
     {
-        $draft = $this->getDraft();
+        $request->validate(['invoice_id' => 'required|integer']);
 
-        if (!$draft || empty($draft['order_refs'])) {
+        $invoice = Invoice::draft()->find($request->invoice_id);
+
+        if (!$invoice) {
             return response()->json([
                 'success' => false,
-                'message' => 'No active draft to finalize.',
+                'message' => 'Draft not found or already finalized.',
             ], 404);
         }
 
-        $notes = $request->input('notes');
+        $refs = InvoiceOrders::where('invoice_id', $invoice->id)->get();
 
-        $invoice = DB::transaction(function () use ($draft, $notes) {
-            $invoice = Invoice::create([
-                'invoice_number'     => $this->generateInvoiceNumber(),
-                'total_amount'       => $draft['totals']['total'],
-                'payment_status'     => 'pending',
-                'parent_invoice_id'  => null,
-                'recurring_sequence' => 1,
-                'invoice_date'       => now()->format('Y-m-d'),
-                'customer_id'        => $draft['customer_id'],
-                'notes'              => $notes,
+        if ($refs->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot finalize an invoice with no orders.',
+            ], 422);
+        }
+
+        $notes = $request->input('notes', $invoice->notes);
+
+        DB::transaction(function () use ($invoice, $refs, $notes) {
+            $this->recomputeTotal($invoice);
+
+            $invoice->update([
+                'status'         => Invoice::STATUS_FINALIZED,
+                'invoice_number' => Invoice::generateInvoiceNumber(),
+                'payment_status' => 'pending',
+                'invoice_date'   => now()->format('Y-m-d'),
+                'notes'          => $notes,
             ]);
 
-            foreach ($draft['order_refs'] as $ref) {
-                InvoiceOrders::create([
-                    'invoice_id'       => $invoice->id,
-                    'invoiceable_type' => $ref['invoiceable_type'],
-                    'invoiceable_id'   => $ref['invoiceable_id'],
-                    'order_type'       => $ref['order_type'],
-                ]);
-
-                // Mark as invoiced
-                if ($ref['invoiceable_type'] === Order::class) {
-                    Order::where('id', $ref['invoiceable_id'])->update(['invoice_id' => $invoice->id]);
+            foreach ($refs as $ref) {
+                if ($ref->invoiceable_type === Order::class) {
+                    Order::where('id', $ref->invoiceable_id)->update(['invoice_id' => $invoice->id]);
                 } else {
-                    RecurringOrder::where('id', $ref['invoiceable_id'])->update(['invoice_id' => $invoice->id]);
+                    RecurringOrder::where('id', $ref->invoiceable_id)->update(['invoice_id' => $invoice->id]);
                 }
             }
-
-            foreach ($draft['line_items'] as $li) {
-                InvoiceLineItems::create([
-                    'invoice_id'  => $invoice->id,
-                    'order_id'    => $li['order_id'],
-                    'product_id'  => $li['product_id'],
-                    'description' => $li['description'],
-                    'quantity'    => $li['quantity'],
-                    'unit_price'  => $li['unit_price'],
-                    'total_price' => $li['total_price'],
-                ]);
-            }
-
-            foreach ($draft['flat_charges'] as $fc) {
-                InvoiceFlatCharges::create([
-                    'invoice_id' => $invoice->id,
-                    'charge_key' => $fc['charge_key'],
-                    'label'      => $fc['label'],
-                    'amount'     => $fc['amount'],
-                ]);
-            }
-
-            return $invoice;
         });
-
-        $this->clearDraft();
 
         return response()->json([
             'success'    => true,
             'invoice_id' => $invoice->id,
             'pdf_url'    => route('admin.invoice-generator.pdf', $invoice->id),
         ]);
+    }
+
+    /**
+     * Load a saved draft back into the editor.
+     */
+    public function resumeDraft($invoiceId)
+    {
+        $invoice = Invoice::draft()->find($invoiceId);
+
+        if (!$invoice) {
+            return response()->json(['success' => false, 'message' => 'Draft not found.'], 404);
+        }
+
+        return response()->json(['success' => true, 'draft' => $this->serializeDraft($invoice)]);
+    }
+
+    /**
+     * Delete a draft and release its reserved orders (children cascade on delete).
+     */
+    public function discardDraft(Request $request)
+    {
+        $request->validate(['invoice_id' => 'required|integer']);
+
+        $invoice = Invoice::draft()->find($request->invoice_id);
+
+        if (!$invoice) {
+            return response()->json(['success' => false, 'message' => 'Draft not found or already finalized.'], 404);
+        }
+
+        $invoice->delete(); // FK cascade removes invoice_orders / line_items / flat_charges
+
+        return response()->json(['success' => true]);
     }
 
     /**
@@ -475,32 +544,24 @@ class InvoiceGeneratorController extends Controller
         ];
     }
 
-    private function calculateTotals(array $draft): array
-    {
-        $subTotal = array_sum(array_column($draft['line_items'], 'total_price'));
-        $flatTotal = array_sum(array_column($draft['flat_charges'], 'amount'));
-
-        return [
-            'sub_total'   => round($subTotal, 2),
-            'flat_total'  => round($flatTotal, 2),
-            'total'       => round($subTotal + $flatTotal, 2),
-        ];
-    }
-
-    private function collectParentOrderIds(array $orderRefs): array
+    /**
+     * Distinct parent-order ids still referenced by a draft's pivot rows
+     * (used to decide which line items to drop when an order is removed).
+     */
+    private function draftParentOrderIds(Invoice $invoice): array
     {
         $ids = [];
-        foreach ($orderRefs as $ref) {
-            if ($ref['invoiceable_type'] === Order::class) {
-                $ids[] = $ref['invoiceable_id'];
+        foreach (InvoiceOrders::where('invoice_id', $invoice->id)->get() as $ref) {
+            if ($ref->invoiceable_type === Order::class) {
+                $ids[] = $ref->invoiceable_id;
             } else {
-                $recurring = RecurringOrder::find($ref['invoiceable_id']);
+                $recurring = RecurringOrder::find($ref->invoiceable_id);
                 if ($recurring) {
                     $ids[] = $recurring->order_id;
                 }
             }
         }
-        return array_unique($ids);
+        return array_values(array_unique($ids));
     }
 
     private function generateInvoiceNumber(): string
@@ -508,24 +569,87 @@ class InvoiceGeneratorController extends Controller
         return Invoice::generateInvoiceNumber();
     }
 
-    // ----- Draft storage: session-backed for now -----
-    // To switch to a DB-backed draft later, replace the body of these three
-    // methods to read/write a DraftInvoice model instead of session(), and
-    // every calling method above stays unchanged.
-
-    private function getDraft(): ?array
+    /**
+     * Keep invoices.total_amount in sync with line items + flat charges.
+     */
+    private function recomputeTotal(Invoice $invoice): void
     {
-        return session(self::DRAFT_SESSION_KEY);
+        $sub  = InvoiceLineItems::where('invoice_id', $invoice->id)->sum('total_price');
+        $flat = InvoiceFlatCharges::where('invoice_id', $invoice->id)->sum('amount');
+        $invoice->update(['total_amount' => round($sub + $flat, 2)]);
     }
 
-    private function saveDraft(array $draft): void
+    /**
+     * Turn a draft Invoice (+ children) into the JSON shape the editor expects.
+     */
+    private function serializeDraft(Invoice $invoice): array
     {
-        session([self::DRAFT_SESSION_KEY => $draft]);
-    }
+        $invoice->loadMissing(['lineItems', 'flatCharges']);
 
-    private function clearDraft(): void
-    {
-        session()->forget(self::DRAFT_SESSION_KEY);
+        $orderRefs = [];
+        $dates = [];
+
+        foreach (InvoiceOrders::where('invoice_id', $invoice->id)->get() as $ref) {
+            if ($ref->invoiceable_type === RecurringOrder::class) {
+                $rec    = RecurringOrder::with('order')->find($ref->invoiceable_id);
+                $parent = $rec?->order;
+                $date   = $rec?->scheduled_delivery_date;
+                $label  = 'Recurring #' . $ref->invoiceable_id
+                    . ' (Order #' . str_pad($parent->invoice_id ?? $parent->id ?? 0, 4, '0', STR_PAD_LEFT) . ')';
+            } else {
+                $order = Order::find($ref->invoiceable_id);
+                $date  = $order?->delivery_date;
+                $label = 'Order #' . $ref->invoiceable_id;
+            }
+
+            if ($date) {
+                $dates[] = Carbon::parse($date);
+            }
+
+            $orderRefs[] = [
+                'invoiceable_type' => $ref->invoiceable_type,
+                'invoiceable_id'   => $ref->invoiceable_id,
+                'order_type'       => $ref->order_type,
+                'label'            => $label,
+                'delivery_date'    => $date ? Carbon::parse($date)->format('Y-m-d H:i') : '',
+            ];
+        }
+
+        $lineItems = $invoice->lineItems->map(fn ($li) => [
+            'id'          => $li->id,
+            'order_id'    => $li->order_id,
+            'product_id'  => $li->product_id,
+            'description' => $li->description,
+            'quantity'    => $li->quantity,
+            'unit_price'  => (float) $li->unit_price,
+            'total_price' => (float) $li->total_price,
+        ])->values()->all();
+
+        $flatCharges = $invoice->flatCharges->map(fn ($fc) => [
+            'id'         => $fc->id,
+            'charge_key' => $fc->charge_key,
+            'label'      => $fc->label,
+            'amount'     => (float) $fc->amount,
+        ])->values()->all();
+
+        $subTotal  = $invoice->lineItems->sum('total_price');
+        $flatTotal = $invoice->flatCharges->sum('amount');
+
+        return [
+            'id'           => $invoice->id,
+            'customer_id'  => $invoice->customer_id,
+            'notes'        => $invoice->notes,
+            'start_date'   => $dates ? collect($dates)->min()->format('Y-m-d') : '',
+            'end_date'     => $dates ? collect($dates)->max()->format('Y-m-d') : '',
+            'order_refs'   => $orderRefs,
+            'line_items'   => $lineItems,
+            'flat_charges' => $flatCharges,
+            'totals'       => [
+                'sub_total'  => round($subTotal, 2),
+                'flat_total' => round($flatTotal, 2),
+                'total'      => round($subTotal + $flatTotal, 2),
+            ],
+        ];
     }
 
 

@@ -9,10 +9,15 @@ class Invoice extends Model
     const PAID = 'paid';
     const FAILED = 'failed';
 
+    // Lifecycle status (separate from payment_status).
+    const STATUS_DRAFT = 'draft';
+    const STATUS_FINALIZED = 'finalized';
+
 
     protected $fillable = [
         'invoice_number',
         'invoice_type',
+        'status',
         'invoiceable_id',
         'invoiceable_type',
         'total_amount',
@@ -25,6 +30,21 @@ class Invoice extends Model
         'paid_at',
         'notes'
     ];
+
+    public function scopeDraft($query)
+    {
+        return $query->where('status', self::STATUS_DRAFT);
+    }
+
+    public function scopeFinalized($query)
+    {
+        return $query->where('status', self::STATUS_FINALIZED);
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->status === self::STATUS_DRAFT;
+    }
 
     protected $casts = [
         'invoice_date' => 'date'

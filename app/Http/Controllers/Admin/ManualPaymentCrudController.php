@@ -754,6 +754,7 @@ class ManualPaymentCrudController extends CrudController
         $search = $request->input('q');
 
         $invoices = Invoice::with('customer')
+            ->where('status', '!=', Invoice::STATUS_DRAFT) // never expose unfinalized drafts
             ->whereIn('payment_status', [Invoice::PENDING, Invoice::FAILED])
             ->where('invoice_number', 'like', "%{$search}%")
             ->limit(20)

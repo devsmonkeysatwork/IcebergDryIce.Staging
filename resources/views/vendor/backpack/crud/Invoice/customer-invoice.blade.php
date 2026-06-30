@@ -47,6 +47,42 @@
             </div>
         </div>
 
+        {{-- Saved (unfinalized) drafts the admin can resume or discard --}}
+        @if(isset($drafts) && $drafts->count())
+            <div class="table" id="drafts-card">
+                <div class="table-header">Saved Drafts <span class="text-muted" style="font-size:13px;">(not yet finalized)</span></div>
+                <div class="p-3">
+                    <div class="table-responsive-wrapper">
+                        <table id="drafts-table" class="w-100">
+                            <thead>
+                            <tr>
+                                <th>Draft #</th>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Created</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @foreach($drafts as $d)
+                                <tr data-draft-row="{{ $d->id }}">
+                                    <td>#{{ $d->id }}</td>
+                                    <td>{{ optional($d->customer)->name ?? 'N/A' }}</td>
+                                    <td>${{ number_format($d->total_amount, 2) }}</td>
+                                    <td>{{ optional($d->created_at)->format('Y-m-d H:i') }}</td>
+                                    <td>
+                                        <button class="btn btn-add btn-sm resume-draft-btn" data-id="{{ $d->id }}">Resume</button>
+                                        <button class="btn btn-secondary btn-sm discard-draft-btn" data-id="{{ $d->id }}">Discard</button>
+                                    </td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         {{-- STEP 2: Draft Review / Edit --}}
         <div class="table" id="draft-card" style="display:none;">
             <div class="table-header d-flex justify-content-between align-items-center">
@@ -144,7 +180,7 @@
                                 <i class="la la-check-circle"></i> Confirm &amp; Generate Invoice
                             </button>
                             <button id="cancel-draft-btn" class="btn btn-secondary">
-                                Cancel
+                                Save &amp; Close
                             </button>
                         </div>
                     </div>
@@ -322,16 +358,20 @@
                 return '$' + Number(n).toFixed(2);
             }
 
+            let currentDraftId = null;
+
             function renderDraft(draft) {
                 currentDraft = draft;
+                currentDraftId = draft.id;
 
+                const range = (draft.start_date || '') + (draft.start_date ? ' to ' : '') + (draft.end_date || '');
                 document.getElementById('draft-range-label').textContent =
-                    draft.start_date + ' to ' + draft.end_date;
+                    'Draft #' + draft.id + (range ? ' · ' + range : '');
 
                 // Order refs
                 const refsBody = document.getElementById('order-refs-body');
                 refsBody.innerHTML = '';
-                draft.order_refs.forEach((ref, idx) => {
+                draft.order_refs.forEach((ref) => {
                     const badgeClass = ref.order_type === 'recurring' ? 'badge-recurring' : 'badge-onetime';
                     refsBody.insertAdjacentHTML('beforeend', `
                 <tr>
@@ -350,12 +390,12 @@
                 // Line items
                 const liBody = document.getElementById('line-items-body');
                 liBody.innerHTML = '';
-                draft.line_items.forEach((li, idx) => {
+                draft.line_items.forEach((li) => {
                     liBody.insertAdjacentHTML('beforeend', `
                 <tr>
                     <td>${li.description}</td>
-                    <td><input type="number" class="form-control form-control-sm line-item-input li-qty" data-index="${idx}" value="${li.quantity}" min="0"></td>
-                    <td><input type="number" class="form-control form-control-sm line-item-input li-price" data-index="${idx}" value="${li.unit_price}" step="0.01" min="0"></td>
+                    <td><input type="number" class="form-control form-control-sm line-item-input li-qty" data-id="${li.id}" value="${li.quantity}" min="0"></td>
+                    <td><input type="number" class="form-control form-control-sm line-item-input li-price" data-id="${li.id}" value="${li.unit_price}" step="0.01" min="0"></td>
                     <td>${fmt(li.total_price)}</td>
                 </tr>
             `);
@@ -364,24 +404,28 @@
                 // Flat charges
                 const flatSummary = document.getElementById('flat-charges-summary');
                 flatSummary.innerHTML = '';
-                draft.flat_charges.forEach((fc, idx) => {
+                draft.flat_charges.forEach((fc) => {
                     const label = fc.label || fc.charge_key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
                     flatSummary.insertAdjacentHTML('beforeend', `
                 <p class="m-0 d-flex justify-content-between align-items-center">
                     ${label}
                     <span>
                         <strong class="me-2">${fc.amount < 0 ? '-' : ''}${fmt(Math.abs(fc.amount))}</strong>
-                        <button class="remove-charge-btn" data-index="${idx}" title="Remove charge"><i class="la la-times-circle"></i></button>
+                        <button class="remove-charge-btn" data-id="${fc.id}" title="Remove charge"><i class="la la-times-circle"></i></button>
                     </span>
                 </p>
             `);
                 });
+
+                document.getElementById('invoice-notes').value = draft.notes || '';
 
                 document.getElementById('summary-subtotal').textContent  = fmt(draft.totals.sub_total);
                 document.getElementById('summary-flattotal').textContent = fmt(draft.totals.flat_total);
                 document.getElementById('summary-total').textContent     = fmt(draft.totals.total);
 
                 selectorCard.style.display = 'none';
+                const draftsCard = document.getElementById('drafts-card');
+                if (draftsCard) draftsCard.style.display = 'none';
                 draftCard.style.display = 'block';
                 resultCard.style.display = 'none';
             }
@@ -396,6 +440,16 @@
                     },
                     body: JSON.stringify(payload)
                 }).then(res => res.json());
+            }
+
+            // Send an edit action against the current draft and re-render the response.
+            function sendDraftAction(payload) {
+                payload.invoice_id = currentDraftId;
+                return postJson('{{ route('admin.invoice-generator.draft.update') }}', payload).then(data => {
+                    if (data.success) renderDraft(data.draft);
+                    else Swal.fire('Error', data.message || 'Update failed.', 'error');
+                    return data;
+                });
             }
 
             document.getElementById('build-draft-btn').addEventListener('click', function () {
@@ -432,13 +486,10 @@
             document.getElementById('order-refs-body').addEventListener('click', function (e) {
                 const btn = e.target.closest('.remove-ref-btn');
                 if (!btn) return;
-
-                postJson('{{ route('admin.invoice-generator.draft.update') }}', {
+                sendDraftAction({
                     action: 'remove_order_ref',
                     invoiceable_type: btn.dataset.type,
                     invoiceable_id: btn.dataset.id
-                }).then(data => {
-                    if (data.success) renderDraft(data.draft);
                 });
             });
 
@@ -452,14 +503,13 @@
                     return;
                 }
 
-                postJson('{{ route('admin.invoice-generator.draft.update') }}', {
+                sendDraftAction({
                     action: 'add_flat_charge',
                     charge_key: chargeKey,
                     label: label,
                     amount: amount
                 }).then(data => {
                     if (data.success) {
-                        renderDraft(data.draft);
                         document.getElementById('new-charge-label').value = '';
                         document.getElementById('new-charge-amount').value = '';
                     }
@@ -469,42 +519,29 @@
             document.getElementById('flat-charges-summary').addEventListener('click', function (e) {
                 const btn = e.target.closest('.remove-charge-btn');
                 if (!btn) return;
-
-                postJson('{{ route('admin.invoice-generator.draft.update') }}', {
-                    action: 'remove_flat_charge',
-                    index: btn.dataset.index
-                }).then(data => {
-                    if (data.success) renderDraft(data.draft);
-                });
+                sendDraftAction({ action: 'remove_flat_charge', flat_charge_id: btn.dataset.id });
             });
 
             document.getElementById('line-items-body').addEventListener('change', function (e) {
                 const input = e.target;
                 if (!input.classList.contains('li-qty') && !input.classList.contains('li-price')) return;
 
-                const index = input.dataset.index;
-                const payload = { action: 'update_line_item', index: index };
-
+                const payload = { action: 'update_line_item', line_item_id: input.dataset.id };
                 if (input.classList.contains('li-qty')) payload.quantity = input.value;
                 if (input.classList.contains('li-price')) payload.unit_price = input.value;
+                sendDraftAction(payload);
+            });
 
-                postJson('{{ route('admin.invoice-generator.draft.update') }}', payload).then(data => {
-                    if (data.success) renderDraft(data.draft);
-                });
+            // Persist notes on blur so they survive resume.
+            document.getElementById('invoice-notes').addEventListener('blur', function () {
+                if (!currentDraftId) return;
+                sendDraftAction({ action: 'update_notes', notes: this.value });
             });
 
             document.getElementById('cancel-draft-btn').addEventListener('click', function () {
-                Swal.fire({
-                    title: 'Discard this draft?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Yes, discard'
-                }).then(result => {
-                    if (result.isConfirmed) {
-                        draftCard.style.display = 'none';
-                        selectorCard.style.display = 'block';
-                    }
-                });
+                // Draft is already saved in the DB — just close the editor and
+                // refresh so it shows under "Saved Drafts".
+                location.reload();
             });
 
             document.getElementById('finalize-btn').addEventListener('click', function () {
@@ -518,6 +555,7 @@
                     if (!result.isConfirmed) return;
 
                     postJson('{{ route('admin.invoice-generator.finalize') }}', {
+                        invoice_id: currentDraftId,
                         notes: document.getElementById('invoice-notes').value
                     }).then(data => {
                         if (data.success) {
@@ -533,11 +571,42 @@
             });
 
             document.getElementById('start-new-btn').addEventListener('click', function () {
-                document.getElementById('gen-customer-id').value = '';
-                document.getElementById('gen-start-date').value = '';
-                document.getElementById('gen-end-date').value = '';
-                resultCard.style.display = 'none';
-                selectorCard.style.display = 'block';
+                location.reload();
+            });
+
+            // ---- Saved drafts: resume / discard ----
+            document.querySelectorAll('.resume-draft-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    fetch('{{ url('admin/invoice-generator/draft') }}/' + this.dataset.id + '/resume', {
+                        headers: { 'Accept': 'application/json' }
+                    }).then(r => r.json()).then(data => {
+                        if (data.success) renderDraft(data.draft);
+                        else Swal.fire('Error', data.message || 'Could not load draft.', 'error');
+                    });
+                });
+            });
+
+            document.querySelectorAll('.discard-draft-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const id = this.dataset.id;
+                    Swal.fire({
+                        title: 'Discard this draft?',
+                        text: 'The reserved orders will become available again.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, discard'
+                    }).then(res => {
+                        if (!res.isConfirmed) return;
+                        postJson('{{ route('admin.invoice-generator.draft.discard') }}', { invoice_id: id }).then(data => {
+                            if (data.success) {
+                                const row = document.querySelector(`[data-draft-row="${id}"]`);
+                                if (row) row.remove();
+                            } else {
+                                Swal.fire('Error', data.message || 'Could not discard.', 'error');
+                            }
+                        });
+                    });
+                });
             });
 
         });
