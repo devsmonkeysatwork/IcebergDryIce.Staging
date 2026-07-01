@@ -33,7 +33,7 @@
             <table width="100%">
                 <tr>
                     <td style="width:55px;vertical-align: top;">
-                        <img src="{{asset('idi_logo.png')}}" width="54" height="54" alt="logo" />
+{{--                        <img src="{{asset('idi_logo.png')}}" width="54" height="54" alt="logo" />--}}
                     </td>
                     <td>
                         <p style="font-weight: 700;font-size: 18px;color:#1A1C21;">Iceberg Dry Ice</p>

@@ -27,7 +27,7 @@
 @section('content')
 
     <div class="row" bp-section="crud-operation-edit">
-        <div class="{{ $crud->getCreateContentClass() }}">
+        <div class="">
             @include('crud::inc.grouped_errors')
 
             {{-- Customer Information Form --}}
@@ -137,7 +137,7 @@
                                     <tbody>
                                     @foreach($entry->invoices as $invoice)
                                         <tr>
-                                            <td>{{$invoice->invoice_number}}</td>
+                                            <td>{{$invoice->status == \App\Models\Invoice::STATUS_FINALIZED ? $invoice->invoice_number : 'Draft'}}</td>
                                             <td>{{$invoice->total_amount}}</td>
                                             <td>{{$invoice->payment_status}}</td>
                                             <td>
@@ -147,6 +147,14 @@
                                                         title="View Invoice">
                                                     <i class=""></i>
                                                 </button>
+                                                @if($invoice->status == \App\Models\Invoice::STATUS_FINALIZED)
+                                                    <button class="btn btn-primary btn-view la la-envelope send-invoice-btn"
+                                                            onclick="sendInvoiceEmail('{{ route('consolidated.invoice.email', $invoice->id) }}')"
+                                                            data-invoice-id="{{$invoice->id}}"
+                                                            title="Mail Invoice">
+                                                        <i class=""></i>
+                                                    </button>
+                                                @endif
                                             </td>
                                         </tr>
                                     @endforeach
@@ -689,6 +697,40 @@
                 invoiceModalBody.innerHTML = '';
             });
         });
+
+        function sendInvoiceEmail(url) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You want to send this incoice to the customer.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e3342f',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, send it!',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`${url}`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        }
+                    })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire('Sent!', data.message, 'success').then(() => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                Swal.fire('Error', data.message, 'error');
+                            }
+                        })
+                        .catch(err => {
+                            Swal.fire('Error', 'Failed to send an email', 'error');
+                        });
+                }
+            });
+        }
 
     </script>
 @endpush
