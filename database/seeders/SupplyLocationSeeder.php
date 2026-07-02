@@ -16,7 +16,7 @@ class SupplyLocationSeeder extends Seeder
         $data = [
             [
                 'id' => 1,
-                'name' => 'Vancouver',
+                'name' => 'Praxair',
                 'address' => '2080 Clark Drive',
                 'city' => 'Vancouver',
                 'province' => 'BC',
