@@ -43,11 +43,11 @@
                         <p style="font-size: 10px;color:#5E6470;">Office 604-524-0601</p>
                     </td>
                     <td style="vertical-align: top; text-align: right;">
-                        @if($invoice->payment_status === 'paid')
-                            <p style="background-color: #28A745; border-radius: 25px; font-weight: 600; font-size: 14px; color: #000; width: 80px; text-align: center; padding: 5px 0;">PAID</p>
-                        @else
-                            <p style="background-color: #FFC107; border-radius: 25px; font-weight: 600; font-size: 14px; color: #000; width: 80px; text-align: center; padding: 5px 0;">UNPAID</p>
-                        @endif
+{{--                        @if($invoice->payment_status === 'paid')--}}
+{{--                            <p style="background-color: #28A745; border-radius: 25px; font-weight: 600; font-size: 14px; color: #000; width: 80px; text-align: center; padding: 5px 0;">PAID</p>--}}
+{{--                        @else--}}
+{{--                            <p style="background-color: #FFC107; border-radius: 25px; font-weight: 600; font-size: 14px; color: #000; width: 80px; text-align: center; padding: 5px 0;">UNPAID</p>--}}
+{{--                        @endif--}}
                         <p style="font-size: 36px; font-weight: 700; color:#B2B7C2; margin-top:10px;">Invoice</p>
                         <p style="font-size: 12px; color:#5E6470;">#{{ $invoice->invoice_number }}</p>
                     </td>
@@ -198,6 +198,10 @@
             <p style="border-top:1px solid #D7DAE0; margin:4px 0;"></p>
             <p style="font-size:10px;color:#5E6470;">
                 Net 15 days, interest of 2% per month (24% per annum) charged on all overdue accounts.
+            </p>
+            <p style="font-size:10px;color:#5685e8;font-weight: 700;">
+                All totes must be returned within two weeks of delivery unless arrangements have
+                been made with Iceberg. Late fees will apply.
             </p>
             <p style="margin-top:20px;font-size:10px;color:#5E6470;">Thank you for your business!</p>
         </td>

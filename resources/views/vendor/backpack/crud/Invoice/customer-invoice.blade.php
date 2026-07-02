@@ -26,7 +26,7 @@
                         <select id="gen-customer-id" class="form-select">
                             <option value="">Select customer...</option>
                             @foreach($customers as $customer)
-                                <option value="{{ $customer->id }}">{{ $customer->name }} ({{ $customer->email }})</option>
+                                <option {{ request('customer') == $customer->id ? 'selected' : '' }} value="{{ $customer->id }}">{{ $customer->name }} ({{ $customer->email }})</option>
                             @endforeach
                         </select>
                     </div>

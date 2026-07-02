@@ -70,11 +70,11 @@
                                                 <p style="font-family: Inter;font-weight: 500;font-size: 10px;line-height: 14px;letter-spacing: 0%;color:#5E6470;">OFFICE 604-524-0601</p>
                                             </td>
                                             <td style="vertical-align: top;padding-top: 10px;">
-                                                @if($order->payment_status)
-                                                    <p style="background-color: #28A745;width: 89px;height: 25px;border-radius: 25px;font-family: Inter;font-weight: 600;font-size: 16px;line-height: 12px;letter-spacing: 0%;text-transform: uppercase;color:#000000;padding: 7.5px 0px 0px 0px !important;text-align: center;box-sizing: border-box;">PAID</p>
-                                                @else
-                                                    <p style="background-color: #FFC107;width: 89px;height: 25px;border-radius: 25px;font-family: Inter;font-weight: 600;font-size: 16px;line-height: 12px;letter-spacing: 0%;text-transform: uppercase;color:#000000;padding: 7.5px 0px 0px 0px !important;text-align: center;box-sizing: border-box;">UNPAID</p>
-                                                @endif
+{{--                                                @if($order->payment_status)--}}
+{{--                                                    <p style="background-color: #28A745;width: 89px;height: 25px;border-radius: 25px;font-family: Inter;font-weight: 600;font-size: 16px;line-height: 12px;letter-spacing: 0%;text-transform: uppercase;color:#000000;padding: 7.5px 0px 0px 0px !important;text-align: center;box-sizing: border-box;">PAID</p>--}}
+{{--                                                @else--}}
+{{--                                                    <p style="background-color: #FFC107;width: 89px;height: 25px;border-radius: 25px;font-family: Inter;font-weight: 600;font-size: 16px;line-height: 12px;letter-spacing: 0%;text-transform: uppercase;color:#000000;padding: 7.5px 0px 0px 0px !important;text-align: center;box-sizing: border-box;">UNPAID</p>--}}
+{{--                                                @endif--}}
 
                                             </td>
                                             <td style="vertical-align: top;">
@@ -301,6 +301,10 @@
                                 <tr>
                                     <td colspan="2">
                                         <p style="color:#5E6470;font-family: Inter;font-weight: 400;font-size: 10px;line-height: 14px;letter-spacing: 0%;">{{ $order->notes }}</p>
+                                        <p style="font-family: Inter;font-weight: 700;font-size: 10px;line-height: 14px;letter-spacing: 0%;color:#5685e8;">
+                                            All totes must be returned within two weeks of delivery unless arrangements have
+                                            been made with Iceberg. Late fees will apply.
+                                        </p>
                                     </td>
                                 </tr>
                             @endif

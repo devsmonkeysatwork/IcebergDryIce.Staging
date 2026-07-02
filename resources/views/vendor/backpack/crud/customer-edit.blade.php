@@ -119,9 +119,9 @@
                             <h3 class="form-group-heading m-0">
                                 <i class="la la-file-invoice-dollar me-2"></i>  Invoices
                             </h3>
-                            <button type="button" class="btn btn-primary btn-sm">
+                            <a href="{{route('admin.invoice-generator.index').'?customer='.$entry->id}}" type="button" class="btn btn-primary btn-sm">
                                 <i class="la la-plus"></i> Generate New Invoice
-                            </button>
+                            </a>
                         </div>
                         <div>
                             @if($entry->invoices && $entry->invoices->count() > 0)
