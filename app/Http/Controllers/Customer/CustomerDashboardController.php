@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Mail\OrderPlacedMail;
+use App\Models\Invoice;
+use App\Models\InvoiceOrders;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -19,12 +21,6 @@ class CustomerDashboardController extends Controller
         // You can pass data to the view if needed
 
         $customerId = auth()->guard('customer')->id();
-
-
-        // Get all recurring orders for the customer
-        $recurringOrders = Order::where('recurring', Order::RECURRING)
-            ->where('customer_id', $customerId)
-            ->get();
 
         // Get the order which has the next recurring due
         $orderWithNextRecurringDue = Order::where('recurring', Order::RECURRING)
@@ -69,7 +65,7 @@ class CustomerDashboardController extends Controller
         });
 
         // Sort by invoice_id descending
-        $allOrders = $allOrders->sortByDesc('invoice_id')->values();
+        $allOrders = $allOrders->sortByDesc('created_at')->values();
 
         // Manual pagination
         $perPage = request('per_page', 10);
@@ -232,6 +228,37 @@ class CustomerDashboardController extends Controller
                 'html' => view('website.customer.partials.invoice', compact('order'))->render()
             ]);
         }
+    }
+
+    /**
+     * Fetch a finalized CONSOLIDATED invoice (rendered) for the modal, by invoice id.
+     * Used by account-holder orders whose invoice is the new consolidated shape
+     * (invoiceable is null, so the legacy per-order view can't render it).
+     * Scoped to the logged-in customer and to finalized invoices only (never drafts).
+     */
+    public function consolidatedInvoice($invoiceId)
+    {
+        $customerId = auth()->guard('customer')->id();
+
+        $invoice = Invoice::where('status', Invoice::STATUS_FINALIZED)
+            ->where('customer_id', $customerId)
+            ->with(['lineItems.product', 'flatCharges', 'customer'])
+            ->findOrFail($invoiceId);
+
+        $invoiceOrders = InvoiceOrders::where('invoice_id', $invoice->id)->get();
+
+        return response()->json([
+            'html' => view('emails.invoice-pdf-consolidated', [
+                'invoice'          => $invoice,
+                'invoiceOrders'    => $invoiceOrders,
+                'customer'         => $invoice->customer,
+                'lineItems'        => $invoice->lineItems,
+                'flatCharges'      => $invoice->flatCharges,
+                'subTotal'         => $invoice->lineItems->sum('total_price'),
+                'flatChargesTotal' => $invoice->flatCharges->sum('amount'),
+                'totalAmount'      => $invoice->total_amount,
+            ])->render(),
+        ]);
     }
 
     function getOrderStatus($orderNumber)

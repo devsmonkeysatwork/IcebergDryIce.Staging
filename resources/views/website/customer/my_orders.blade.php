@@ -150,7 +150,7 @@
                                                         @if($order instanceof \App\Models\RecurringOrder)
                                                             <i class="la la-repeat me-1 text-info"></i>
                                                         @endif
-                                                        {{ str_pad($order->invoice_id, 4, '0', STR_PAD_LEFT) }}
+                                                        {{ str_pad($order->id, 4, '0', STR_PAD_LEFT) }}
                                                         @if($order instanceof \App\Models\RecurringOrder)
                                                             <small class="badge badge-info ms-1">Recurring</small>
                                                         @endif
@@ -203,6 +203,13 @@
 {{--                                                                    data-is-recurring="1">--}}
 {{--                                                                <i class="las la-file-invoice fs-2"></i>--}}
 {{--                                                            </button>--}}
+                                                            @if($order->invoice_id && !optional($order->invoice)->id)
+                                                                {{-- Consolidated (account-holder) invoice --}}
+                                                                <button class="btn btn-sm btn-primary view-consolidated-invoice mx-2"
+                                                                        data-invoice-id="{{ $order->invoice_id }}">
+                                                                    <i class="las la-file-invoice fs-2"></i>
+                                                                </button>
+                                                            @endif
                                                             @if(optional($order->invoice)->payment_status === 'pending')
                                                                 <button class="btn btn-sm btn-success pay-your-order fs-4" data-id="{{ $order->invoice->id }}">
                                                                     <i class="las la-credit-card mx-2"></i>Pay Now
@@ -224,6 +231,13 @@
 {{--                                                                    data-is-recurring="0">--}}
 {{--                                                                <i class="las la-file-invoice fs-2"></i>--}}
 {{--                                                            </button>--}}
+                                                            @if($order->invoice_id && !optional($order->invoice)->id)
+                                                                {{-- Consolidated (account-holder) invoice --}}
+                                                                <button class="btn btn-sm btn-primary view-consolidated-invoice mx-2"
+                                                                        data-invoice-id="{{ $order->invoice_id }}">
+                                                                    <i class="las la-file-invoice fs-2"></i>
+                                                                </button>
+                                                            @endif
                                                             @if(optional($order->invoice)->payment_status === 'pending')
                                                                 <button class="btn btn-sm btn-success pay-your-order fs-4" data-id="{{ $order->invoice_id }}">
                                                                     <i class="las la-credit-card mx-2"></i>Pay Now
@@ -349,6 +363,23 @@
 
                 $.ajax({
                     url: `/customer/invoice/${orderId}?is_recurring=${isRecurring}`,
+                    type: 'GET',
+                    success: function (response) {
+                        $('#invoice-modal-body').html(response.html);
+                        $('#invoiceModal').modal('show');
+                    },
+                    error: function (xhr) {
+                        alert('Failed to load invoice. Please try again.');
+                    }
+                });
+            });
+
+            // Consolidated (account-holder) invoice — fetch by invoice id
+            $(document).on('click', '.view-consolidated-invoice', function () {
+                const invoiceId = $(this).data('invoice-id');
+
+                $.ajax({
+                    url: `/customer/consolidated-invoice/${invoiceId}`,
                     type: 'GET',
                     success: function (response) {
                         $('#invoice-modal-body').html(response.html);
