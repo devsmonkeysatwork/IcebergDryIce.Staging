@@ -64,6 +64,17 @@
                                                 <i class="las la-file-invoice-dollar"></i>
                                             </button>
                                         @endisset
+                                        @if($order->origin === 'manual' && is_null($order->invoice_id))
+                                            {{-- Generate a consolidated invoice draft for this account-holder order --}}
+                                            <form action="{{ route('admin.invoice-generator.draft.from-order') }}" method="POST" class="d-inline">
+                                                @csrf
+                                                <input type="hidden" name="order_id" value="{{ $order->id }}">
+                                                <input type="hidden" name="is_recurring" value="0">
+                                                <button type="submit" class="btn btn-sm btn-success" title="Generate Invoice">
+                                                    <i class="las la-file-invoice-dollar"></i>
+                                                </button>
+                                            </form>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach
@@ -145,6 +156,21 @@
                                                 <i class="las la-file-invoice-dollar"></i>
                                             </button>
                                         @endisset
+                                        @php
+                                            $isRec = $order instanceof \App\Models\RecurringOrder;
+                                            $genOrigin = $isRec ? optional($order->order)->origin : $order->origin;
+                                        @endphp
+                                        @if($genOrigin === 'manual' && is_null($order->invoice_id))
+                                            {{-- Generate a consolidated invoice draft for this account-holder order --}}
+                                            <form action="{{ route('admin.invoice-generator.draft.from-order') }}" method="POST" class="d-inline">
+                                                @csrf
+                                                <input type="hidden" name="order_id" value="{{ $order->id }}">
+                                                <input type="hidden" name="is_recurring" value="{{ $isRec ? 1 : 0 }}">
+                                                <button type="submit" class="btn btn-sm btn-success" title="Generate Invoice">
+                                                    <i class="las la-file-invoice-dollar"></i>
+                                                </button>
+                                            </form>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach

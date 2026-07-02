@@ -609,6 +609,15 @@
                 });
             });
 
+            // Auto-open a draft when arriving from an order-list "Generate Invoice" click (?draft=<id>).
+            @if(!empty($openDraftId))
+            fetch('{{ url('admin/invoice-generator/draft') }}/{{ $openDraftId }}/resume', {
+                headers: { 'Accept': 'application/json' }
+            }).then(r => r.json()).then(data => {
+                if (data.success) renderDraft(data.draft);
+            });
+            @endif
+
         });
     </script>
 @endpush

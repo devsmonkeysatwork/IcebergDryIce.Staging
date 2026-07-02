@@ -30,9 +30,17 @@ class InvoiceGeneratorController extends Controller
             ->orderByDesc('id')
             ->get();
 
+        // When arriving from an order-list "Generate Invoice" click (?draft=<id>),
+        // auto-open that draft in the editor.
+        $openDraftId = null;
+        if (request()->filled('draft')) {
+            $openDraftId = optional(Invoice::draft()->find(request('draft')))->id;
+        }
+
         return view('vendor.backpack.crud.Invoice.customer-invoice', [
-            'customers' => $customers,
-            'drafts'    => $drafts,
+            'customers'   => $customers,
+            'drafts'      => $drafts,
+            'openDraftId' => $openDraftId,
         ]);
     }
 
@@ -91,8 +99,32 @@ class InvoiceGeneratorController extends Controller
             ->with(['order.items.product'])
             ->get();
 
-        $lineItems = [];
-        $orderRefs = [];
+        $invoice = $this->createDraftFromOrders($customerId, $orders, $recurringOrders, $pricing);
+
+        if (!$invoice) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No eligible orders found for this customer in the selected range.',
+            ], 422);
+        }
+
+        return response()->json([
+            'success'               => true,
+            'draft'                 => $this->serializeDraft($invoice->fresh()),
+            'using_default_pricing' => $usingDefaultPricing,
+        ]);
+    }
+
+    /**
+     * Build + persist a draft invoice from the given orders / recurring orders,
+     * applying customer pricing, once-per-invoice fees, and reserving each order
+     * via invoice_orders. Returns null if there is nothing invoiceable.
+     * Shared by buildDraft (customer + date range) and buildDraftFromOrder.
+     */
+    private function createDraftFromOrders($customerId, $orders, $recurringOrders, $pricing): ?Invoice
+    {
+        $lineItems   = [];
+        $orderRefs   = [];
         $hasDelivery = false;
         $hasPickup   = false;
 
@@ -110,13 +142,14 @@ class InvoiceGeneratorController extends Controller
                 'invoiceable_type' => Order::class,
                 'invoiceable_id'   => $order->id,
                 'order_type'       => 'one_time',
-                'label'            => 'Order #'.$order->id,
-                'delivery_date'    => $order->delivery_date,
             ];
         }
 
         foreach ($recurringOrders as $recurring) {
             $parentOrder = $recurring->order;
+            if (!$parentOrder) {
+                continue;
+            }
             if ($parentOrder->pickup_delivery === 'pickup') {
                 $hasPickup = true;
             } elseif ($parentOrder->pickup_delivery === 'delivery') {
@@ -130,16 +163,11 @@ class InvoiceGeneratorController extends Controller
                 'invoiceable_type' => RecurringOrder::class,
                 'invoiceable_id'   => $recurring->id,
                 'order_type'       => 'recurring',
-                'label'            => 'Recurring #' . $recurring->id . ' (Order #' . str_pad($parentOrder->invoice_id ?? $parentOrder->id, 4, '0', STR_PAD_LEFT) . ')',
-                'delivery_date'    => Carbon::parse($recurring->scheduled_delivery_date)->format('Y:m:d h:i:s'),
             ];
         }
 
         if (empty($orderRefs)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No eligible orders found for this customer in the selected range.',
-            ], 422);
+            return null;
         }
 
         // Once-per-invoice flat charges from customer_pricing.
@@ -149,35 +177,18 @@ class InvoiceGeneratorController extends Controller
         if ($pricing) {
             foreach (['hazmat_fee', 'other_charges'] as $key) {
                 if (!empty($pricing->$key) && (float) $pricing->$key != 0) {
-                    $flatCharges[] = [
-                        'charge_key' => $key,
-                        'label'      => null,
-                        'amount'     => (float) $pricing->$key,
-                    ];
+                    $flatCharges[] = ['charge_key' => $key, 'label' => null, 'amount' => (float) $pricing->$key];
                 }
             }
-
             if ($hasDelivery && !empty($pricing->delivery_fee) && (float) $pricing->delivery_fee != 0) {
-                $flatCharges[] = [
-                    'charge_key' => 'delivery_fee',
-                    'label'      => null,
-                    'amount'     => (float) $pricing->delivery_fee,
-                ];
+                $flatCharges[] = ['charge_key' => 'delivery_fee', 'label' => null, 'amount' => (float) $pricing->delivery_fee];
             }
-
             if ($hasPickup && !empty($pricing->pickup_fee) && (float) $pricing->pickup_fee != 0) {
-                $flatCharges[] = [
-                    'charge_key' => 'pickup_fee',
-                    'label'      => null,
-                    'amount'     => (float) $pricing->pickup_fee,
-                ];
+                $flatCharges[] = ['charge_key' => 'pickup_fee', 'label' => null, 'amount' => (float) $pricing->pickup_fee];
             }
         }
 
-        // Persist the draft as a real invoice with status='draft'. The included
-        // orders become reserved via invoice_orders so no other draft can claim
-        // them. The permanent invoice_number is assigned only at finalize.
-        $invoice = DB::transaction(function () use ($customerId, $orderRefs, $lineItems, $flatCharges) {
+        return DB::transaction(function () use ($customerId, $orderRefs, $lineItems, $flatCharges) {
             $invoice = Invoice::create([
                 'status'             => Invoice::STATUS_DRAFT,
                 'invoice_number'     => null,
@@ -224,12 +235,68 @@ class InvoiceGeneratorController extends Controller
 
             return $invoice;
         });
+    }
 
-        return response()->json([
-            'success'               => true,
-            'draft'                 => $this->serializeDraft($invoice->fresh()),
-            'using_default_pricing' => $usingDefaultPricing,
+    /**
+     * One-click from the order list: build a draft invoice from a single order
+     * (or recurring instance) and land the admin in the editor. Account-holder
+     * (manual) orders only. If the order is already reserved in a draft, redirect
+     * to that draft instead of creating a duplicate.
+     */
+    public function buildDraftFromOrder(Request $request)
+    {
+        $request->validate([
+            'order_id'     => 'required|integer',
+            'is_recurring' => 'nullable|boolean',
         ]);
+
+        $isRecurring = (bool) $request->input('is_recurring', false);
+
+        if ($isRecurring) {
+            $recurring = RecurringOrder::with('order.items.product')->find($request->order_id);
+
+            if (!$recurring || !$recurring->order || $recurring->order->origin !== 'manual') {
+                return back()->with('error', 'This recurring order cannot be invoiced here.');
+            }
+            if (!is_null($recurring->invoice_id)) {
+                return back()->with('error', 'This recurring order is already invoiced.');
+            }
+
+            $existing = InvoiceOrders::where('invoiceable_type', RecurringOrder::class)
+                ->where('invoiceable_id', $recurring->id)->first();
+            if ($existing) {
+                return redirect()->route('admin.invoice-generator.index', ['draft' => $existing->invoice_id]);
+            }
+
+            $customerId = $recurring->order->customer_id;
+            $pricing    = CustomerPricing::where('customer_id', $customerId)->first();
+            $invoice    = $this->createDraftFromOrders($customerId, collect(), collect([$recurring]), $pricing);
+        } else {
+            $order = Order::with('items.product')->find($request->order_id);
+
+            if (!$order || $order->origin !== 'manual') {
+                return back()->with('error', 'Only account-holder orders can be invoiced here.');
+            }
+            if (!is_null($order->invoice_id)) {
+                return back()->with('error', 'This order is already invoiced.');
+            }
+
+            $existing = InvoiceOrders::where('invoiceable_type', Order::class)
+                ->where('invoiceable_id', $order->id)->first();
+            if ($existing) {
+                return redirect()->route('admin.invoice-generator.index', ['draft' => $existing->invoice_id]);
+            }
+
+            $customerId = $order->customer_id;
+            $pricing    = CustomerPricing::where('customer_id', $customerId)->first();
+            $invoice    = $this->createDraftFromOrders($customerId, collect([$order]), collect(), $pricing);
+        }
+
+        if (!$invoice) {
+            return back()->with('error', 'This order has no invoiceable items.');
+        }
+
+        return redirect()->route('admin.invoice-generator.index', ['draft' => $invoice->id]);
     }
 
     /**
@@ -595,7 +662,7 @@ class InvoiceGeneratorController extends Controller
                 $parent = $rec?->order;
                 $date   = $rec?->scheduled_delivery_date;
                 $label  = 'Recurring #' . $ref->invoiceable_id
-                    . ' (Order #' . str_pad($parent->invoice_id ?? $parent->id ?? 0, 4, '0', STR_PAD_LEFT) . ')';
+                    . ' (Order #' . str_pad($parent->id ?? 0, 4, '0', STR_PAD_LEFT) . ')';
             } else {
                 $order = Order::find($ref->invoiceable_id);
                 $date  = $order?->delivery_date;

@@ -107,7 +107,7 @@
                     <tr>
                         <td style="font-size: 9px; color:#1A1C21;">
                             {{ $isRecurring ? 'Recurring' : 'One-Time' }} —
-                            Order #{{ str_pad(optional($sourceOrder)->invoice_id ?? optional($sourceOrder)->id, 4, '0', STR_PAD_LEFT) }}
+                            Order #{{ str_pad(optional($sourceOrder)->id ?? optional($sourceOrder)->id, 4, '0', STR_PAD_LEFT) }}
                         </td>
                         <td style="font-size: 9px; color:#5E6470; text-align:right;">
                             {{ $refDate ? \Carbon\Carbon::parse($refDate)->format('d.m.Y') : 'N/A' }}
