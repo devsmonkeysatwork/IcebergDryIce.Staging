@@ -1745,6 +1745,7 @@ class OrderCrudController extends CrudController
 
             // Fetch orders from database where delivery_location and delivery_date match
             $orders = Order::whereRaw('DATE(delivery_date) = ?', [$deliveryDate])
+                ->with('items.product')
 //                ->where('delivery_location', $location)
                 ->orderBy('created_at', 'asc')
                 ->get([

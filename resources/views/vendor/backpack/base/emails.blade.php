@@ -229,9 +229,12 @@
                     // Format orders for email body
                     let ordersList = `Dear Team,\n\nPlease find below the dry ice orders for ${location} scheduled on ${new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}:\n\n`;
 
-                    ordersList += orders.map((order, index) =>
-                        `${index + 1}. Customer: ${order.customer_name}\n   Dry Ice : ${order.amount_of_ice} lbs \n   Contact: ${order.phone || 'N/A'}\n`
-                    ).join('\n');
+                    ordersList += orders.map((order, index) => {
+                        const productsList = order.items.map(item =>
+                            `   - ${item.product.product_name}: ${item.amount_of_items} ${item.product.unit}`
+                        ).join('\n');
+                        return `${index + 1}. Customer: ${order.customer_name}\n${productsList}\n   Contact: ${order.phone || 'N/A'}\n`;
+                    }).join('\n');
 
                     ordersList += `\nTotal Orders: ${orders.length}\n\nBest regards,\nDry Ice Management System`;
 
