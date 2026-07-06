@@ -221,7 +221,10 @@ class SupplierController extends Controller
     public function pushToNovex($id, ClosestSupplierService $service)
     {
         try {
-            $order = Order::findOrFail($id);
+            $order = Order::with('items.product')->findOrFail($id);
+            $pelletItem = $order->items->first(function ($item) {
+                return str_contains(strtolower($item->product->product_name), 'pellets');
+            });
 
             if ($order->push == 1) {
                 return response()->json(['success' => false, 'error' => 'Order already pushed']);
@@ -238,11 +241,9 @@ class SupplierController extends Controller
             if (!$supplier || !$supplier->id) {
                 return response()->json(['success' => false, 'error' => 'Closest supplier not found']);
             }
-
             // Build delivery payload
-            $weight = $order->amount ?: 1;
+            $weight = $order->amount_of_ice ? ($pelletItem?->amount_of_items ?? 1) : 1;
             $dimensions = max(12, ceil($weight / 2));
-
             $payload = [
                 'callerName' => 'Tyler',
                 'reference' => 'ORDER_' . $order->id,
@@ -284,7 +285,7 @@ class SupplierController extends Controller
                     'count' => 1
                 ]]
             ];
-
+//            dd($payload);
             Log::info('Pushing order to Novex', ['order_id' => $order->id, 'payload' => $payload]);
 
             $response = Http::withOptions([
