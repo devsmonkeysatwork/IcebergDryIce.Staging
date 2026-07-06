@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Models\Customer;
 use App\Models\CustomerAddress;
 use App\Models\CustomerPricing;
+use App\Models\SupplyLocation;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 use App\Http\Requests\CustomerRequest;
@@ -83,6 +84,11 @@ class CustomersCrudController extends CrudController
         CRUD::field('city');
         CRUD::field('postal_code');
         CRUD::field('province')->type('enum')->options(['BC' => 'BC', 'AB' => 'AB']);
+        CRUD::field('supply_location_id')
+            ->type('select')
+            ->entity('supplyLocation')
+            ->model(SupplyLocation::class)
+            ->attribute('name');
     }
 
     public function view($id)
@@ -126,6 +132,7 @@ class CustomersCrudController extends CrudController
                 'city' => $request->city,
                 'postal_code' => $request->postal_code,
                 'province' => $request->province,
+                'supply_location_id' => $request->supply_location_id,
             ]);
 
             // Update or create default address in customer_addresses table

@@ -98,6 +98,24 @@
                                 <input type="text" class="form-control" id="country" name="country"
                                        value="Canada" readonly>
                             </div>
+                            @php
+                                $supplyLocations = \App\Models\SupplyLocation::where('active', 1)
+                                    ->orderBy('name')
+                                    ->get();
+                            @endphp
+                            <div class="form-group col-md-4">
+                                <label for="supply_location_id">Supply Location</label>
+                                <select class="form-control" id="supply_location_id" name="supply_location_id" required>
+                                    <option value="">-- Select Supply Location --</option>
+
+                                    @foreach($supplyLocations as $location)
+                                        <option value="{{ $location->id }}"
+                                            {{ old('supply_location_id', $entry->supply_location_id ?? '') == $location->id ? 'selected' : '' }}>
+                                            {{ $location->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
 
                         <div class="mt-4">

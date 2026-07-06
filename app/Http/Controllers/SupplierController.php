@@ -221,7 +221,7 @@ class SupplierController extends Controller
     public function pushToNovex($id, ClosestSupplierService $service)
     {
         try {
-            $order = Order::with('items.product')->findOrFail($id);
+            $order = Order::with(['items.product','customer'])->findOrFail($id);
             $pelletItem = $order->items->first(function ($item) {
                 return str_contains(strtolower($item->product->product_name), 'pellets');
             });
@@ -229,21 +229,48 @@ class SupplierController extends Controller
             if ($order->push == 1) {
                 return response()->json(['success' => false, 'error' => 'Order already pushed']);
             }
-
-            // Use ClosestSupplierService
-            $supplier = $service->findClosest(
-                $order->address,
-                $order->city,
-                $order->province,
-                false // set to false if you want to skip Google API on backend
-            );
-
+            $supplier = null;
+           if($order->origin == 'manual'){
+               $supplier = SupplyLocation::whereId($order->customer?->supply_location_id)->first();
+           }else{
+               // Use ClosestSupplierService
+               $supplier = $service->findClosest(
+                   $order->address,
+                   $order->city,
+                   $order->province,
+                   false // set to false if you want to skip Google API on backend
+               );
+           }
             if (!$supplier || !$supplier->id) {
                 return response()->json(['success' => false, 'error' => 'Closest supplier not found']);
             }
             // Build delivery payload
             $weight = $order->amount_of_ice ? ($pelletItem?->amount_of_items ?? 1) : 1;
             $dimensions = max(12, ceil($weight / 2));
+            // Determine delivery details: use customer fields for manual orders, fallback to order fields
+            $customer = $order->customer;
+
+            if ($order->origin == 'manual' && $customer) {
+                $deliveryName    = $customer->name ?? $order->location_name ?? $order->customer_name ?? 'Customer';
+                $deliveryStreet  = $customer->address ?? $order->address;
+                $deliveryUnit    = $order->unit ?? '';
+                $deliveryCity    = $customer->city ?? $order->city;
+                $deliveryProvince = $customer->province ?? $order->province;
+                $deliveryPostal  = $customer->postal_code ?? $order->postal_code;
+                $deliveryContact = $customer->name ?? $order->contact_name ?? 'Customer';
+                $deliveryPhone   = $customer->phone ?? $order->phone ?? '604 524-0609';
+                $deliveryEmail   = $customer->email ?? $order->email;
+            } else {
+                $deliveryName    = $order->location_name ?? $order->customer_name ?? 'Customer';
+                $deliveryStreet  = $order->address;
+                $deliveryUnit    = $order->unit ?? '';
+                $deliveryCity    = $order->city;
+                $deliveryProvince = $order->province;
+                $deliveryPostal  = $order->postal_code;
+                $deliveryContact = $order->contact_name ?? 'Customer';
+                $deliveryPhone   = $order->phone ?? '604 524-0609';
+                $deliveryEmail   = $order->email;
+            }
             $payload = [
                 'callerName' => 'Tyler',
                 'reference' => 'ORDER_' . $order->id,
@@ -260,17 +287,17 @@ class SupplierController extends Controller
                     'instructions' => 'Call 604-255-6007 if given phone is not responding',
                 ],
                 'delivery' => [
-                    'name' => $order->location_name ?? $order->customer_name ?? 'Customer',
-                    'street' => $order->address,
-                    'unit' => $order->unit ?? '',
-                    'city' => $order->city,
-                    'province' => $order->province,
-                    'postalCode' => $order->postal_code,
+                    'name' => $deliveryName,
+                    'street' => $deliveryStreet,
+                    'unit' => $deliveryUnit,
+                    'city' => $deliveryCity,
+                    'province' => $deliveryProvince,
+                    'postalCode' => $deliveryPostal,
                     'country' => 'CAN',
                     'instructions' => 'Call 604-255-6007 if given phone is not responding',
-                    'contact' => $order->contact_name ?? 'Customer',
-                    'phone' => $order->phone ?? '604 524-0609',
-                    'notificationEmail' => $order->email,
+                    'contact' => $deliveryContact,
+                    'phone' => $deliveryPhone,
+                    'notificationEmail' => $deliveryEmail,
                 ],
                 'serviceTypeId' => 4,
                 'vehicleTypeId' => 1,

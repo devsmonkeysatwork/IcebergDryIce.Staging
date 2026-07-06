@@ -24,7 +24,8 @@ class Customer extends Authenticatable
     'address',
     'city',
     'postal_code',
-    'province'
+    'province',
+    'supply_location_id'
   ];
 
     protected $hidden = ['password'];
@@ -131,6 +132,11 @@ class Customer extends Authenticatable
     public function invoices()
     {
         return $this->hasMany(Invoice::class,'customer_id');
+    }
+
+    public function supplyLocation()
+    {
+        return $this->belongsTo(SupplyLocation::class, 'supply_location_id');
     }
 
 }
