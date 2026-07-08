@@ -84,6 +84,7 @@
                             <th>Origin</th>
                             <th>Recurring</th>
                             <th>Payment</th>
+                            <th>Notes</th>
                             <th></th>
                         </tr>
                         </thead>
@@ -132,6 +133,24 @@
                                         <span class="badge p-2 {{ $paymentStatus == 'paid' ? 'bg-success' : 'bg-danger' }}">
                                             {{ $paymentStatus == 'paid' ? 'PAID' : 'PENDING' }}
                                         </span>
+                                </td>
+                                <td>
+                                    {{-- Order Notes (truncated; click to expand) --}}
+                                    @php
+                                        $notesText = trim((string) ($order instanceof \App\Models\RecurringOrder
+                                            ? optional($order->order)->notes
+                                            : $order->notes));
+                                    @endphp
+                                    @if($notesText === '')
+                                        <span class="text-secondary">—</span>
+                                    @elseif(\Illuminate\Support\Str::length($notesText) > 5)
+                                        <span class="order-notes"
+                                              data-full="{{ $notesText }}"
+                                              data-short="{{ \Illuminate\Support\Str::limit($notesText, 5) }}"
+                                              title="Click to show full note">{{ \Illuminate\Support\Str::limit($notesText, 5) }}</span>
+                                    @else
+                                        <span class="order-notes-short">{{ $notesText }}</span>
+                                    @endif
                                 </td>
                                 <td>
                                     {{-- View Button --}}
@@ -427,6 +446,26 @@
         }
         .view-invoice-btn i{
             font-size: 27px;
+        }
+
+        /* Order notes: single line + ellipsis, click to expand */
+        .order-notes, .order-notes-short {
+            display: inline-block;
+            max-width: 180px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            vertical-align: middle;
+        }
+        .order-notes {
+            cursor: pointer;
+            text-decoration: underline dotted;
+        }
+        .order-notes.expanded {
+            white-space: normal;
+            overflow: visible;
+            max-width: 320px;
+            text-decoration: none;
         }
 
     </style>
@@ -1501,5 +1540,14 @@
 
     </script>
 
+    <script>
+        // Order notes: toggle between truncated and full text on click.
+        document.addEventListener('click', function (e) {
+            const el = e.target.closest('.order-notes');
+            if (!el) return;
+            const expanded = el.classList.toggle('expanded');
+            el.textContent = expanded ? el.dataset.full : el.dataset.short;
+        });
+    </script>
 
 @endpush
