@@ -146,8 +146,8 @@
         let selectedEmail = null;
 
         const locationEmails = {
-            'Kuehne & Nagel': 'ange@monkeysatwork.dev',
-            'Praxair': 'hamza40javed@gmail.com'
+            'Kuehne & Nagel': 'admin@icebergdryice.com',
+            'Praxair': 'vancouver@linde.com'
         };
 
         function selectLocation(button) {
