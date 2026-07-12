@@ -84,8 +84,8 @@
                     <td style="vertical-align: top;">
                         <p style="font-size: 10px;color:#5E6470;">Invoice Date</p>
                         <p style="font-weight: 600;font-size: 10px;color:#1A1C21;">{{ $order->created_at->format('d.m.Y') }}</p>
-                        <p style="margin-top:10px;font-size: 10px;color:#5E6470;">Due Date</p>
-                        <p style="font-weight: 600;font-size: 10px;color:#1A1C21;">{{ $order->delivery_date ? \Carbon\Carbon::parse($order->delivery_date)->format('d.m.Y') : 'N/A' }}</p>
+{{--                        <p style="margin-top:10px;font-size: 10px;color:#5E6470;">Due Date</p>--}}
+{{--                        <p style="font-weight: 600;font-size: 10px;color:#1A1C21;">{{ $order->delivery_date ? \Carbon\Carbon::parse($order->delivery_date)->format('d.m.Y') : 'N/A' }}</p>--}}
                     </td>
                     <td style="vertical-align: top;text-align:right;">
                         <p style="font-size: 10px;color:#5E6470;">Amount</p>
