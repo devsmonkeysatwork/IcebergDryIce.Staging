@@ -84,12 +84,13 @@ class InvoiceGeneratorController extends Controller
             })
             ->whereNull('invoice_id')
             ->whereNotIn('id', $claimedOrderIds)
-            ->whereBetween('delivery_date', [$startDate, $endDate])
+            ->whereBetween('delivery_date', [$startDate, $endDate . ' 23:59:59'])
             ->with(['items.product'])
             ->get();
 
         // ---- Recurring orders ----
-        $recurringOrders = RecurringOrder::whereNull('recurring_payment_status')
+        $recurringOrders = RecurringOrder::whereIn('status', ['open', 'completed'])
+            ->whereNull('recurring_payment_status')
             ->whereNull('invoice_id')
             ->whereNotIn('id', $claimedRecurringIds)
             ->whereBetween('scheduled_delivery_date', [$startDate, $endDate])

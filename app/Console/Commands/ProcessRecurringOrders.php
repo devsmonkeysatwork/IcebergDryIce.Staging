@@ -116,8 +116,7 @@ class ProcessRecurringOrders extends Command
 
             $payload = [
                 'callerName' => 'Tyler',
-                'reference' => 'ORDER_' . $order->id,
-//                'reference' => 'ICEBERG_TESTING_ORDER',
+                'reference' => '',
                 'pickup' => [
                     'name' => $supplier->name,
                     'street' => $supplier->address,
@@ -125,9 +124,9 @@ class ProcessRecurringOrders extends Command
                     'city' => $supplier->city,
                     'province' => $supplier->province,
                     'postalCode' => $supplier->postal,
-                    "phone" => "604 524-0609",
+                    "phone" => "604 255-6007",
                     'country' => 'CAN',
-                    'instructions' => 'Call  604-255-6007 if given phone is not responding',
+                    'instructions' => 'Call 604-255-6007 if given phone is not responding',
                 ],
                 'delivery' => [
                     'name' => $order->location_name ?? 'Customer',
@@ -139,7 +138,7 @@ class ProcessRecurringOrders extends Command
                     'country' => 'CAN',
                     'instructions' => 'Call 604-255-6007 if given phone is not responding',
                     'contact' => $order->contact_name ?? 'Customer',
-                    'phone' => $order->phone,
+                    'phone' => $order->phone ?? '604 524-0609',
                     'notificationEmail' => $order->email,
                 ],
                 'serviceTypeId' => 4,

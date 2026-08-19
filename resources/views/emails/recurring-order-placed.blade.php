@@ -122,8 +122,7 @@
                                 <td style="vertical-align: top;">
                                     <p style="font-family: Inter;font-weight: 400;font-size: 10px;line-height: 14px;letter-spacing: 0%;color:#5E6470;">Invoice date</p>
                                     <p style="font-family: Inter;font-weight: 600;font-size: 10px;line-height: 14px;letter-spacing: 0%;color:#1A1C21;">{{ $order->created_at->format('d.m.Y') }}</p>
-                                    <p style="font-family: Inter;font-weight: 400;font-size: 10px;line-height: 14px;letter-spacing: 0%;color:#5E6470;margin-top:15px !important;">Due date</p>
-                                    <p style="font-family: Inter;font-weight: 600;font-size: 10px;line-height: 14px;letter-spacing: 0%;color:#1A1C21;">{{ $order->scheduled_delivery_date ? \Carbon\Carbon::parse($order->scheduled_delivery_date)->format('d.m.Y') : 'N/A' }}</p>
+                                    {{-- Due date hidden on customer-facing invoice (DEC-009) --}}
                                 </td>
                                 <td style="vertical-align: top;text-align:right;">
                                     <p style="font-family: Inter;font-weight: 400;font-size: 10px;line-height: 14px;letter-spacing: 0%;color:#5E6470;">Amount</p>

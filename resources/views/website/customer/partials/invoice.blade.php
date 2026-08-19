@@ -47,14 +47,11 @@
                 @endif
             </p>
 
-            <p class="label">{{ ($order->is_recurring_instance ?? false) ? 'Scheduled Delivery' : 'Due Date' }}</p>
-            <p class="value">
-                @if($order->is_recurring_instance ?? false)
-                    {{ \Carbon\Carbon::parse($order->recurring_delivery_date)->format('d.m.Y') }}
-                @else
-                    {{ $order->delivery_date ? \Carbon\Carbon::parse($order->delivery_date)->format('d.m.Y') : 'N/A' }}
-                @endif
-            </p>
+            {{-- Due date hidden on customer-facing invoice (DEC-009). Scheduled delivery kept for recurring instances only. --}}
+            @if($order->is_recurring_instance ?? false)
+            <p class="label">Scheduled Delivery</p>
+            <p class="value">{{ \Carbon\Carbon::parse($order->recurring_delivery_date)->format('d.m.Y') }}</p>
+            @endif
         </div>
         <div class="amount-box">
             <span>Amount</span>

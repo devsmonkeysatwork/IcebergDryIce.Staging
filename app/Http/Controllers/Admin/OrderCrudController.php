@@ -472,7 +472,7 @@ class OrderCrudController extends CrudController
             'product'       => 'required|exists:products,id',
             'amount'           => 'required|numeric|min:1',
             'pickup_delivery'  => 'required|in:pickup,delivery',
-            'po'        => 'nullable|string|max:255',
+            'po_number'        => 'nullable|string|max:255',
             'recurring'        => 'required|in:recurring,non-recurring',
             'delivery_date'    => 'required|date',
             'delivery_time'    => 'required',
@@ -502,8 +502,7 @@ class OrderCrudController extends CrudController
                 'pickup_delivery'  => $request->pickup_delivery,
                 'po'        => $request->po_number,
                 'recurring'        => $request->recurring,
-                'delivery_date'    => $request->delivery_date,
-                'delivery_time'    => $request->delivery_time,
+                'delivery_date'    => \Carbon\Carbon::parse($request->delivery_date . ' ' . ($request->delivery_time ?? '00:00')),
                 'notes'            => $request->notes,
                 'origin'           => 'manual',
                 'status'           => 'valid',
@@ -1279,10 +1278,8 @@ class OrderCrudController extends CrudController
                 'pickup_delivery'  => $request->pickup_delivery,
                 'po'        => $request->po_number,
                 'recurring'        => $request->recurring,
-                'delivery_date'    => $request->delivery_date,
-                'delivery_time'    => $request->delivery_time,
+                'delivery_date'    => \Carbon\Carbon::parse($request->delivery_date . ' ' . ($request->delivery_time ?? '00:00')),
                 'notes'            => $request->notes,
-                'updated_by'       => auth()->id(),
             ]);
 
             $orderItem = OrderItem::where('order_id', $order->id)->first();
