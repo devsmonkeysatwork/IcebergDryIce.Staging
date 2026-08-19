@@ -502,7 +502,7 @@ class OrderCrudController extends CrudController
                 'pickup_delivery'  => $request->pickup_delivery,
                 'po'        => $request->po_number,
                 'recurring'        => $request->recurring,
-                'delivery_date'    => \Carbon\Carbon::parse($request->delivery_date . ' ' . ($request->delivery_time ?? '00:00')),
+                'delivery_date'    => \Carbon\Carbon::parse($request->delivery_date),
                 'notes'            => $request->notes,
                 'origin'           => 'manual',
                 'status'           => 'valid',
