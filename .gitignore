@@ -25,3 +25,8 @@ yarn-error.log
 TECHNICAL_DOCUMENTATION.md
 FLOW_ANALYSIS_Orders_Customers_Invoices.md
 TESTING_NewFlow.md
+
+.env.testing
+/Docs/
+/database/seeders/E2ETestSeeder.php
+/playwright-e2e/
