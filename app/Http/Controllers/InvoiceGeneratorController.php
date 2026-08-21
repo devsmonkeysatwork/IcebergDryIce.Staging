@@ -259,6 +259,12 @@ class InvoiceGeneratorController extends Controller
             if (!$recurring || !$recurring->order || $recurring->order->origin !== 'manual') {
                 return back()->with('error', 'This recurring order cannot be invoiced here.');
             }
+            if (!in_array($recurring->status, ['open', 'completed'])) {
+                return back()->with('error', 'This recurring order is not eligible for invoicing (status: ' . $recurring->status . ').');
+            }
+            if (!is_null($recurring->recurring_payment_status)) {
+                return back()->with('error', 'This recurring order is already paid.');
+            }
             if (!is_null($recurring->invoice_id)) {
                 return back()->with('error', 'This recurring order is already invoiced.');
             }
@@ -277,6 +283,12 @@ class InvoiceGeneratorController extends Controller
 
             if (!$order || $order->origin !== 'manual') {
                 return back()->with('error', 'Only account-holder orders can be invoiced here.');
+            }
+            if (!in_array($order->status, ['valid', 'completed'])) {
+                return back()->with('error', 'This order is not eligible for invoicing (status: ' . $order->status . ').');
+            }
+            if ($order->payment_status && $order->payment_status !== 'unpaid') {
+                return back()->with('error', 'This order is already paid.');
             }
             if (!is_null($order->invoice_id)) {
                 return back()->with('error', 'This order is already invoiced.');
