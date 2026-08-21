@@ -140,7 +140,7 @@ class ProcessRecurringOrders extends Command
                     'instructions' => 'Call 604-255-6007 if given phone is not responding',
                 ],
                 'delivery' => [
-                    'name' => $order->location_name ?? 'Customer',
+                    'name' => $order->customer?->name ?? $order->location_name ?? $order->customer_name ?? 'Customer',
                     'street' => $order->address,
                     'unit' => $order->unit ?? '',
                     'city' => $order->city,
