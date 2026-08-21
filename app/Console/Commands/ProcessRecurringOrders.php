@@ -99,19 +99,30 @@ class ProcessRecurringOrders extends Command
         try {
             $order = $recurringOrder->order;
 
-            if (!$order->supplier_id) {
-                Log::error('No supplier_id found for order', ['order_id' => $order->id]);
-                return false;
+            // Resolve supplier: explicit supplier_id first, falling back to the
+            // customer's assigned supply location for manual/account-holder orders
+            // (manual orders never set supplier_id directly).
+            $supplier = null;
+            if ($order->supplier_id) {
+                $supplier = SupplyLocation::find($order->supplier_id);
+            } elseif ($order->origin === 'manual') {
+                $supplier = SupplyLocation::find($order->customer?->supply_location_id);
             }
 
-            $supplier = SupplyLocation::find($order->supplier_id);
             if (!$supplier) {
-                Log::error('Supplier not found', ['supplier_id' => $order->supplier_id]);
+                Log::error('Supplier not found for recurring order', [
+                    'order_id' => $order->id,
+                    'supplier_id' => $order->supplier_id,
+                ]);
                 return false;
             }
 
-            // Build delivery payload
-            $weight = $order->amount ?: 1;
+            // Build delivery payload — weight from the pellet line item (matches the
+            // manual push logic in SupplierController), not the non-existent orders.amount.
+            $pelletItem = $order->items->first(function ($item) {
+                return $item->product && str_contains(strtolower($item->product->product_name), 'pellets');
+            });
+            $weight = $pelletItem?->amount_of_items ?: 1;
             $dimensions = max(12, ceil($weight / 2));
 
             $payload = [
@@ -143,7 +154,7 @@ class ProcessRecurringOrders extends Command
                 ],
                 'serviceTypeId' => 4,
                 'vehicleTypeId' => 1,
-                'readyBy'=> $order->delivery_date,
+                'readyBy'=> $recurringOrder->scheduled_delivery_date,
                 'instructions'=> "",
                 'packages' => [[
                     'typeId' => 3,
