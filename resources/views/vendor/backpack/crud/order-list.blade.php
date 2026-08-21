@@ -1379,16 +1379,13 @@
                     'Accept': 'application/json'
                 }
             })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
+                .then(response => response.json()
+                    .catch(() => ({}))
+                    .then(data => ({ ok: response.ok, data })))
+                .then(({ ok, data }) => {
                     console.log('Push response:', data);
 
-                    if (data.success) {
+                    if (ok && data.success) {
                         if (statusLabel) {
                             statusLabel.textContent = '✔ Pushed';
                             statusLabel.style.color = 'green';
@@ -1397,13 +1394,15 @@
                             pushButton.style.display = 'none';
                         }
                     } else {
-                        throw new Error(data.error || 'Push failed');
+                        const detail = data.response ? `${data.error || 'Push failed'}: ${data.response}` : (data.error || 'Push failed');
+                        throw new Error(detail);
                     }
                 })
                 .catch(error => {
                     console.error('Push error:', error);
                     if (statusLabel) {
                         statusLabel.textContent = '⚠ Push Failed';
+                        statusLabel.title = error.message;
                         statusLabel.style.color = 'orange';
                     }
                     if (pushButton) {

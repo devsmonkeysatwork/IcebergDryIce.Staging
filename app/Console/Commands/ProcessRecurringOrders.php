@@ -178,6 +178,7 @@ class ProcessRecurringOrders extends Command
             if ($response->successful()) {
                 $body = json_decode($response->getBody());
                 $recurringOrder->novex_order_id = $body->orderNumber ?? null;
+                $recurringOrder->push = true;
                 $recurringOrder->save();
 
                 return true;

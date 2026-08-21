@@ -225,7 +225,7 @@ class SupplierController extends Controller
                 return str_contains(strtolower($item->product->product_name), 'pellets');
             });
 
-            if ($order->push == 1) {
+            if ($order->push == 1 && $order->novex_order_id) {
                 return response()->json(['success' => false, 'error' => 'Order already pushed']);
             }
             $supplier = null;
