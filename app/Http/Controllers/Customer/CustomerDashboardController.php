@@ -242,7 +242,7 @@ class CustomerDashboardController extends Controller
 
         $invoice = Invoice::where('status', Invoice::STATUS_FINALIZED)
             ->where('customer_id', $customerId)
-            ->with(['lineItems.product', 'flatCharges', 'customer'])
+            ->with(['lineItems.product', 'lineItems.order', 'flatCharges', 'customer'])
             ->findOrFail($invoiceId);
 
         $invoiceOrders = InvoiceOrders::where('invoice_id', $invoice->id)->get();
@@ -255,6 +255,8 @@ class CustomerDashboardController extends Controller
                 'lineItems'        => $invoice->lineItems,
                 'flatCharges'      => $invoice->flatCharges,
                 'subTotal'         => $invoice->lineItems->sum('total_price'),
+                'gstTotal'         => $invoice->lineItems->sum('gst'),
+                'pstTotal'         => $invoice->lineItems->sum('pst'),
                 'flatChargesTotal' => $invoice->flatCharges->sum('amount'),
                 'totalAmount'      => $invoice->total_amount,
             ])->render(),

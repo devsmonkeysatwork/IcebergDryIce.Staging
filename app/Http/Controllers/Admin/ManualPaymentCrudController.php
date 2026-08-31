@@ -379,7 +379,7 @@ class ManualPaymentCrudController extends CrudController
                 return;
             }
 
-            $invoice->loadMissing(['lineItems.product', 'flatCharges']);
+            $invoice->loadMissing(['lineItems.product', 'lineItems.order', 'flatCharges']);
             $invoiceOrders = InvoiceOrders::where('invoice_id', $invoice->id)->get();
 
             $pdfData = Pdf::loadView('emails.invoice-pdf-consolidated', [
@@ -389,6 +389,8 @@ class ManualPaymentCrudController extends CrudController
                 'lineItems'        => $invoice->lineItems,
                 'flatCharges'      => $invoice->flatCharges,
                 'subTotal'         => $invoice->lineItems->sum('total_price'),
+                'gstTotal'         => $invoice->lineItems->sum('gst'),
+                'pstTotal'         => $invoice->lineItems->sum('pst'),
                 'flatChargesTotal' => $invoice->flatCharges->sum('amount'),
                 'totalAmount'      => $invoice->total_amount,
             ])->output();

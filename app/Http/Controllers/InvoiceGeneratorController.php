@@ -124,21 +124,19 @@ class InvoiceGeneratorController extends Controller
      */
     private function createDraftFromOrders($customerId, $orders, $recurringOrders, $pricing): ?Invoice
     {
-        $lineItems   = [];
-        $orderRefs   = [];
-        $hasDelivery = false;
-        $hasPickup   = false;
+        $lineItems = [];
+        $orderRefs = [];
 
         foreach ($orders as $order) {
-            if ($order->pickup_delivery === 'pickup') {
-                $hasPickup = true;
-            } elseif ($order->pickup_delivery === 'delivery') {
-                $hasDelivery = true;
-            }
+            $deliveryDate = $order->delivery_date;
 
             foreach ($order->items as $item) {
-                $lineItems[] = $this->buildLineItem($item, $pricing, $order->id);
+                $lineItems[] = $this->buildLineItem($item, $pricing, $order->id, $deliveryDate);
             }
+            foreach ($this->buildFeeLineItems($pricing, $order->id, $deliveryDate, $order->pickup_delivery) as $fee) {
+                $lineItems[] = $fee;
+            }
+
             $orderRefs[] = [
                 'invoiceable_type' => Order::class,
                 'invoiceable_id'   => $order->id,
@@ -151,15 +149,15 @@ class InvoiceGeneratorController extends Controller
             if (!$parentOrder) {
                 continue;
             }
-            if ($parentOrder->pickup_delivery === 'pickup') {
-                $hasPickup = true;
-            } elseif ($parentOrder->pickup_delivery === 'delivery') {
-                $hasDelivery = true;
-            }
+            $deliveryDate = $recurring->scheduled_delivery_date;
 
             foreach ($parentOrder->items as $item) {
-                $lineItems[] = $this->buildLineItem($item, $pricing, $parentOrder->id);
+                $lineItems[] = $this->buildLineItem($item, $pricing, $parentOrder->id, $deliveryDate);
             }
+            foreach ($this->buildFeeLineItems($pricing, $parentOrder->id, $deliveryDate, $parentOrder->pickup_delivery) as $fee) {
+                $lineItems[] = $fee;
+            }
+
             $orderRefs[] = [
                 'invoiceable_type' => RecurringOrder::class,
                 'invoiceable_id'   => $recurring->id,
@@ -171,22 +169,13 @@ class InvoiceGeneratorController extends Controller
             return null;
         }
 
-        // Once-per-invoice flat charges from customer_pricing.
-        // Delivery vs pickup fee is added at most once each, based on whether
-        // any invoiced order is a delivery / pickup (an invoice can mix both).
+        // Only "other charges" remains an invoice-level flat charge. Hazmat,
+        // delivery and pickup fees are now per-order dated line items (see
+        // buildFeeLineItems), matching the reference invoice's one-line-per-
+        // delivery format. GST/PST are computed live per line, not stored here.
         $flatCharges = [];
-        if ($pricing) {
-            foreach (['hazmat_fee', 'other_charges'] as $key) {
-                if (!empty($pricing->$key) && (float) $pricing->$key != 0) {
-                    $flatCharges[] = ['charge_key' => $key, 'label' => null, 'amount' => (float) $pricing->$key];
-                }
-            }
-            if ($hasDelivery && !empty($pricing->delivery_fee) && (float) $pricing->delivery_fee != 0) {
-                $flatCharges[] = ['charge_key' => 'delivery_fee', 'label' => null, 'amount' => (float) $pricing->delivery_fee];
-            }
-            if ($hasPickup && !empty($pricing->pickup_fee) && (float) $pricing->pickup_fee != 0) {
-                $flatCharges[] = ['charge_key' => 'pickup_fee', 'label' => null, 'amount' => (float) $pricing->pickup_fee];
-            }
+        if ($pricing && !empty($pricing->other_charges) && (float) $pricing->other_charges != 0) {
+            $flatCharges[] = ['charge_key' => 'other_charges', 'label' => null, 'amount' => (float) $pricing->other_charges];
         }
 
         return DB::transaction(function () use ($customerId, $orderRefs, $lineItems, $flatCharges) {
@@ -213,13 +202,14 @@ class InvoiceGeneratorController extends Controller
 
             foreach ($lineItems as $li) {
                 InvoiceLineItems::create([
-                    'invoice_id'  => $invoice->id,
-                    'order_id'    => $li['order_id'],
-                    'product_id'  => $li['product_id'],
-                    'description' => $li['description'],
-                    'quantity'    => $li['quantity'],
-                    'unit_price'  => $li['unit_price'],
-                    'total_price' => $li['total_price'],
+                    'invoice_id'    => $invoice->id,
+                    'order_id'      => $li['order_id'],
+                    'product_id'    => $li['product_id'],
+                    'description'   => $li['description'],
+                    'quantity'      => $li['quantity'],
+                    'unit_price'    => $li['unit_price'],
+                    'total_price'   => $li['total_price'],
+                    'delivery_date' => $li['delivery_date'] ?? null,
                 ]);
             }
 
@@ -501,7 +491,7 @@ class InvoiceGeneratorController extends Controller
      */
     public function downloadPdf($invoiceId)
     {
-        $invoice = Invoice::with(['lineItems.product', 'flatCharges'])->findOrFail($invoiceId);
+        $invoice = Invoice::with(['lineItems.product', 'lineItems.order', 'flatCharges'])->findOrFail($invoiceId);
 
         $invoiceOrders = InvoiceOrders::where('invoice_id', $invoice->id)->get();
 
@@ -509,6 +499,8 @@ class InvoiceGeneratorController extends Controller
         $customer = $invoice->customer;
 
         $subTotal = $invoice->lineItems->sum('total_price');
+        $gstTotal = $invoice->lineItems->sum('gst');
+        $pstTotal = $invoice->lineItems->sum('pst');
         $flatChargesTotal = $invoice->flatCharges->sum('amount');
 
         $pdf = Pdf::loadView('emails.invoice-pdf-consolidated', [
@@ -518,6 +510,8 @@ class InvoiceGeneratorController extends Controller
             'lineItems'      => $invoice->lineItems,
             'flatCharges'    => $invoice->flatCharges,
             'subTotal'       => $subTotal,
+            'gstTotal'       => $gstTotal,
+            'pstTotal'       => $pstTotal,
             'flatChargesTotal' => $flatChargesTotal,
             'totalAmount'    => $invoice->total_amount,
         ])->setOption('isHtml5ParserEnabled', true)
@@ -536,7 +530,7 @@ class InvoiceGeneratorController extends Controller
     public function sendInvoiceEmail($invoiceId)
     {
         try {
-            $invoice = Invoice::with(['lineItems.product', 'flatCharges'])->findOrFail($invoiceId);
+            $invoice = Invoice::with(['lineItems.product', 'lineItems.order', 'flatCharges'])->findOrFail($invoiceId);
 
             // Consolidated invoices carry the customer directly (customer_id).
             $customer = $invoice->customer;
@@ -563,6 +557,8 @@ class InvoiceGeneratorController extends Controller
 
             $invoiceOrders    = InvoiceOrders::where('invoice_id', $invoice->id)->get();
             $subTotal         = $invoice->lineItems->sum('total_price');
+            $gstTotal         = $invoice->lineItems->sum('gst');
+            $pstTotal         = $invoice->lineItems->sum('pst');
             $flatChargesTotal = $invoice->flatCharges->sum('amount');
 
             // Render the same PDF used for download, pass raw bytes to the Mailable.
@@ -573,6 +569,8 @@ class InvoiceGeneratorController extends Controller
                 'lineItems'        => $invoice->lineItems,
                 'flatCharges'      => $invoice->flatCharges,
                 'subTotal'         => $subTotal,
+                'gstTotal'         => $gstTotal,
+                'pstTotal'         => $pstTotal,
                 'flatChargesTotal' => $flatChargesTotal,
                 'totalAmount'      => $invoice->total_amount,
             ])->setOption('isHtml5ParserEnabled', true)
@@ -599,7 +597,7 @@ class InvoiceGeneratorController extends Controller
 
     // ===================== Helpers =====================
 
-    private function buildLineItem($item, $pricing, $orderId): array
+    private function buildLineItem($item, $pricing, $orderId, $deliveryDate = null): array
     {
         if ($pricing) {
             if ($item->product_id == 1 && $pricing->ice_price !== null) {
@@ -615,12 +613,54 @@ class InvoiceGeneratorController extends Controller
         }
 
         return [
-            'order_id'    => $orderId,
-            'product_id'  => $item->product_id,
-            'description' => $item->product->product_name ?? 'Product',
-            'quantity'    => $item->amount_of_items,
-            'unit_price'  => (float) $unitPrice,
-            'total_price' => (float) $unitPrice * $item->amount_of_items,
+            'order_id'      => $orderId,
+            'product_id'    => $item->product_id,
+            'description'   => $item->product->product_name ?? 'Product',
+            'quantity'      => $item->amount_of_items,
+            'unit_price'    => (float) $unitPrice,
+            'total_price'   => (float) $unitPrice * $item->amount_of_items,
+            'delivery_date' => $deliveryDate,
+        ];
+    }
+
+    /**
+     * Hazmat/delivery/pickup fees as per-order dated line items (product_id
+     * null — not a box product, so PST never applies to these). Hazmat has
+     * no per-order flag today, so it is charged on every order in the
+     * invoice when the customer has a non-zero hazmat_fee, matching the
+     * previous once-per-invoice behaviour but now itemised per delivery.
+     */
+    private function buildFeeLineItems($pricing, $orderId, $deliveryDate, $pickupDelivery): array
+    {
+        if (!$pricing) {
+            return [];
+        }
+
+        $fees = [];
+
+        if (!empty($pricing->hazmat_fee) && (float) $pricing->hazmat_fee != 0) {
+            $fees[] = $this->feeLineItem('Hazmat Fee', (float) $pricing->hazmat_fee, $orderId, $deliveryDate);
+        }
+        if ($pickupDelivery === 'delivery' && !empty($pricing->delivery_fee) && (float) $pricing->delivery_fee != 0) {
+            $fees[] = $this->feeLineItem('Delivery', (float) $pricing->delivery_fee, $orderId, $deliveryDate);
+        }
+        if ($pickupDelivery === 'pickup' && !empty($pricing->pickup_fee) && (float) $pricing->pickup_fee != 0) {
+            $fees[] = $this->feeLineItem('Pickup Fee', (float) $pricing->pickup_fee, $orderId, $deliveryDate);
+        }
+
+        return $fees;
+    }
+
+    private function feeLineItem(string $label, float $amount, $orderId, $deliveryDate): array
+    {
+        return [
+            'order_id'      => $orderId,
+            'product_id'    => null,
+            'description'   => $label,
+            'quantity'      => 1,
+            'unit_price'    => $amount,
+            'total_price'   => $amount,
+            'delivery_date' => $deliveryDate,
         ];
     }
 
@@ -650,13 +690,17 @@ class InvoiceGeneratorController extends Controller
     }
 
     /**
-     * Keep invoices.total_amount in sync with line items + flat charges.
+     * Keep invoices.total_amount in sync with line items (+ their live
+     * GST/PST) and flat charges.
      */
     private function recomputeTotal(Invoice $invoice): void
     {
-        $sub  = InvoiceLineItems::where('invoice_id', $invoice->id)->sum('total_price');
+        $lineItems = InvoiceLineItems::with('product')->where('invoice_id', $invoice->id)->get();
+        $sub  = $lineItems->sum('total_price');
+        $gst  = $lineItems->sum('gst');
+        $pst  = $lineItems->sum('pst');
         $flat = InvoiceFlatCharges::where('invoice_id', $invoice->id)->sum('amount');
-        $invoice->update(['total_amount' => round($sub + $flat, 2)]);
+        $invoice->update(['total_amount' => round($sub + $gst + $pst + $flat, 2)]);
     }
 
     /**
@@ -664,7 +708,7 @@ class InvoiceGeneratorController extends Controller
      */
     private function serializeDraft(Invoice $invoice): array
     {
-        $invoice->loadMissing(['lineItems', 'flatCharges']);
+        $invoice->loadMissing(['lineItems.product', 'flatCharges']);
 
         $orderRefs = [];
         $dates = [];
@@ -696,13 +740,16 @@ class InvoiceGeneratorController extends Controller
         }
 
         $lineItems = $invoice->lineItems->map(fn ($li) => [
-            'id'          => $li->id,
-            'order_id'    => $li->order_id,
-            'product_id'  => $li->product_id,
-            'description' => $li->description,
-            'quantity'    => $li->quantity,
-            'unit_price'  => (float) $li->unit_price,
-            'total_price' => (float) $li->total_price,
+            'id'            => $li->id,
+            'order_id'      => $li->order_id,
+            'product_id'    => $li->product_id,
+            'description'   => $li->description,
+            'quantity'      => $li->quantity,
+            'unit_price'    => (float) $li->unit_price,
+            'total_price'   => (float) $li->total_price,
+            'delivery_date' => $li->delivery_date ? Carbon::parse($li->delivery_date)->format('Y-m-d') : null,
+            'gst'           => (float) $li->gst,
+            'pst'           => (float) $li->pst,
         ])->values()->all();
 
         $flatCharges = $invoice->flatCharges->map(fn ($fc) => [
@@ -713,6 +760,8 @@ class InvoiceGeneratorController extends Controller
         ])->values()->all();
 
         $subTotal  = $invoice->lineItems->sum('total_price');
+        $gstTotal  = $invoice->lineItems->sum('gst');
+        $pstTotal  = $invoice->lineItems->sum('pst');
         $flatTotal = $invoice->flatCharges->sum('amount');
 
         return [
@@ -726,8 +775,10 @@ class InvoiceGeneratorController extends Controller
             'flat_charges' => $flatCharges,
             'totals'       => [
                 'sub_total'  => round($subTotal, 2),
+                'gst_total'  => round($gstTotal, 2),
+                'pst_total'  => round($pstTotal, 2),
                 'flat_total' => round($flatTotal, 2),
-                'total'      => round($subTotal + $flatTotal, 2),
+                'total'      => round($subTotal + $gstTotal + $pstTotal + $flatTotal, 2),
             ],
         ];
     }
@@ -740,7 +791,7 @@ class InvoiceGeneratorController extends Controller
         }
 
 
-        $invoice = Invoice::with(['lineItems.product', 'flatCharges'])->findOrFail($invoiceId);
+        $invoice = Invoice::with(['lineItems.product', 'lineItems.order', 'flatCharges'])->findOrFail($invoiceId);
 
         $invoiceOrders = InvoiceOrders::where('invoice_id', $invoice->id)->get();
 
@@ -748,6 +799,8 @@ class InvoiceGeneratorController extends Controller
         $customer = $invoice->customer;
 
         $subTotal = $invoice->lineItems->sum('total_price');
+        $gstTotal = $invoice->lineItems->sum('gst');
+        $pstTotal = $invoice->lineItems->sum('pst');
         $flatChargesTotal = $invoice->flatCharges->sum('amount');
 
         if (request()->ajax()) {
@@ -758,6 +811,8 @@ class InvoiceGeneratorController extends Controller
                 'lineItems'      => $invoice->lineItems,
                 'flatCharges'    => $invoice->flatCharges,
                 'subTotal'       => $subTotal,
+                'gstTotal'       => $gstTotal,
+                'pstTotal'       => $pstTotal,
                 'flatChargesTotal' => $flatChargesTotal,
                 'totalAmount'    => $invoice->total_amount,
             ])->render();
