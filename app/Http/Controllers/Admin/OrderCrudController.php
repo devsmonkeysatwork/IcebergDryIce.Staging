@@ -1173,20 +1173,29 @@ class OrderCrudController extends CrudController
 
             DB::beginTransaction();
 
-            // Calculate costs server-side using actual product prices from DB
+            // Calculate costs server-side using actual product prices from DB.
+            // GST 5% applies broadly; PST 7% applies only to Styrofoam box
+            // (unit='box') products. Confirmed by Tyler 2026-08-27.
             $subtotal = 0;
+            $pstableSubtotal = 0;
             foreach ($request->products as $productId => $amount) {
                 if ($amount > 0) {
                     $product = Product::find($productId);
                     if ($product) {
-                        $subtotal += $amount * $product->price;
+                        $lineTotal = $amount * $product->price;
+                        $subtotal += $lineTotal;
+                        if ($product->unit === 'box') {
+                            $pstableSubtotal += $lineTotal;
+                        }
                     }
                 }
             }
 
             $delivery_cost = $validatedData['delivery_cost'];
             $hazmat_cost = $validatedData['hazmat'];
-            $tax = $subtotal * 0.15;
+            $gst = round(($subtotal + floatval($delivery_cost) + floatval($hazmat_cost)) * 0.05, 2);
+            $pst = round($pstableSubtotal * 0.07, 2);
+            $tax = $gst + $pst;
 
             // Add calculated fields
             $validatedData['sub_total'] = $subtotal;
