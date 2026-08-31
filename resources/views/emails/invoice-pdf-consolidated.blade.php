@@ -43,13 +43,9 @@
                         <p style="font-size: 10px;color:#5E6470;">Office 604-524-0601</p>
                     </td>
                     <td style="vertical-align: top; text-align: right;">
-{{--                        @if($invoice->payment_status === 'paid')--}}
-{{--                            <p style="background-color: #28A745; border-radius: 25px; font-weight: 600; font-size: 14px; color: #000; width: 80px; text-align: center; padding: 5px 0;">PAID</p>--}}
-{{--                        @else--}}
-{{--                            <p style="background-color: #FFC107; border-radius: 25px; font-weight: 600; font-size: 14px; color: #000; width: 80px; text-align: center; padding: 5px 0;">UNPAID</p>--}}
-{{--                        @endif--}}
                         <p style="font-size: 36px; font-weight: 700; color:#B2B7C2; margin-top:10px;">Invoice</p>
-                        <p style="font-size: 12px; color:#5E6470;">#{{ $invoice->invoice_number }}</p>
+                        <p style="font-size: 12px; color:#5E6470;">Invoice Number: <strong>{{ $invoice->invoice_number }}</strong></p>
+                        <p style="font-size: 12px; color:#5E6470;">Customer Number: <strong>{{ $customer->id ?? 'N/A' }}</strong></p>
                     </td>
                 </tr>
             </table>
@@ -72,8 +68,6 @@
                     <td style="vertical-align: top;">
                         <p style="font-size: 10px;color:#5E6470;">Invoice Date</p>
                         <p style="font-weight: 600;font-size: 10px;color:#1A1C21;">{{ \Carbon\Carbon::parse($invoice->invoice_date)->format('d.m.Y') }}</p>
-                        <p style="margin-top:10px;font-size: 10px;color:#5E6470;">Orders Included</p>
-                        <p style="font-weight: 600;font-size: 10px;color:#1A1C21;">{{ $invoiceOrders->count() }}</p>
                     </td>
                     <td style="vertical-align: top;text-align:right;">
                         <p style="font-size: 10px;color:#5E6470;">Amount</p>
@@ -87,38 +81,6 @@
     </tr>
 </table>
 
-<!-- Order References -->
-<table align="center" class="fullTable" bgcolor="#ffffff">
-    <tr>
-        <td style="padding: 20px 20px 0 20px;">
-            <p style="font-size: 9px; color:#5E6470; font-weight:600;">Orders Included In This Invoice</p>
-            <p style="border-top:1px solid #D7DAE0; margin:4px 0 8px;"></p>
-            <table width="100%" cellspacing="0" cellpadding="4">
-                @foreach($invoiceOrders as $ref)
-                    @php
-                        $isRecurring = $ref->invoiceable_type === \App\Models\RecurringOrder::class;
-                        $sourceOrder = $isRecurring
-                            ? optional(\App\Models\RecurringOrder::find($ref->invoiceable_id))->order
-                            : \App\Models\Order::find($ref->invoiceable_id);
-                        $refDate = $isRecurring
-                            ? optional(\App\Models\RecurringOrder::find($ref->invoiceable_id))->scheduled_delivery_date
-                            : optional($sourceOrder)->delivery_date;
-                    @endphp
-                    <tr>
-                        <td style="font-size: 9px; color:#1A1C21;">
-                            {{ $isRecurring ? 'Recurring' : 'One-Time' }} —
-                            Order #{{ str_pad(optional($sourceOrder)->id ?? optional($sourceOrder)->id, 4, '0', STR_PAD_LEFT) }}
-                        </td>
-                        <td style="font-size: 9px; color:#5E6470; text-align:right;">
-                            {{ $refDate ? \Carbon\Carbon::parse($refDate)->format('d.m.Y') : 'N/A' }}
-                        </td>
-                    </tr>
-                @endforeach
-            </table>
-        </td>
-    </tr>
-</table>
-
 <!-- Line Items Table -->
 <table align="center" class="fullTable" bgcolor="#ffffff">
     <tr>
@@ -126,21 +88,27 @@
             <table width="100%" border="1" cellspacing="0" cellpadding="5" style="border-color:#D7DAE0;">
                 <thead style="background-color:#f8f9fa;">
                 <tr>
-                    <th style="font-size: 9px; color:#5E6470; text-align:left;">#</th>
-                    <th style="font-size: 9px; color:#5E6470; text-align:left;">Item</th>
-                    <th style="font-size: 9px; color:#5E6470; text-align:center;">Unit Price</th>
+                    <th style="font-size: 9px; color:#5E6470; text-align:left;">Date</th>
+                    <th style="font-size: 9px; color:#5E6470; text-align:left;">PO#</th>
                     <th style="font-size: 9px; color:#5E6470; text-align:center;">Quantity</th>
-                    <th style="font-size: 9px; color:#5E6470; text-align:right;">Subtotal</th>
+                    <th style="font-size: 9px; color:#5E6470; text-align:left;">Item</th>
+                    <th style="font-size: 9px; color:#5E6470; text-align:center;">Price/Unit</th>
+                    <th style="font-size: 9px; color:#5E6470; text-align:right;">Product Cost</th>
+                    <th style="font-size: 9px; color:#5E6470; text-align:right;">GST</th>
+                    <th style="font-size: 9px; color:#5E6470; text-align:right;">PST</th>
                 </tr>
                 </thead>
                 <tbody>
-                @foreach($lineItems as $index => $item)
+                @foreach($lineItems as $item)
                     <tr>
-                        <td style="font-size: 10px; color:#1A1C21;">{{ $index + 1 }}</td>
+                        <td style="font-size: 10px; color:#1A1C21;">{{ $item->delivery_date ? \Carbon\Carbon::parse($item->delivery_date)->format('M d, y') : '' }}</td>
+                        <td style="font-size: 10px; color:#1A1C21;">{{ $item->order->po ?? '' }}</td>
+                        <td style="font-size: 10px; color:#1A1C21; text-align:center;">{{ $item->quantity }}</td>
                         <td style="font-size: 10px; color:#1A1C21;">{{ $item->description }}</td>
                         <td style="font-size: 10px; color:#1A1C21; text-align:center;">${{ number_format($item->unit_price, 2) }}</td>
-                        <td style="font-size: 10px; color:#1A1C21; text-align:center;">{{ $item->quantity }}</td>
                         <td style="font-size: 10px; color:#1A1C21; text-align:right;">${{ number_format($item->total_price, 2) }}</td>
+                        <td style="font-size: 10px; color:#1A1C21; text-align:right;">${{ number_format($item->gst, 2) }}</td>
+                        <td style="font-size: 10px; color:#1A1C21; text-align:right;">${{ number_format($item->pst, 2) }}</td>
                     </tr>
                 @endforeach
                 </tbody>
@@ -155,7 +123,7 @@
         <td style="padding: 20px;">
             <table width="100%">
                 <tr>
-                    <td style="font-size:10px;font-weight:700;color:#1A1C21;">Subtotal</td>
+                    <td style="font-size:10px;font-weight:700;color:#1A1C21;">Total Product Cost</td>
                     <td style="font-size:10px;font-weight:700;color:#1A1C21;text-align:right;">${{ number_format($subTotal, 2) }}</td>
                 </tr>
                 @foreach($flatCharges as $charge)
@@ -169,7 +137,15 @@
                     </tr>
                 @endforeach
                 <tr>
-                    <td style="font-size:12px;font-weight:700;color:#1A1C21;border-top:1px solid #D7DAE0;padding-top:6px;">Total</td>
+                    <td style="font-size:10px;font-weight:700;color:#1A1C21;">GST Tax</td>
+                    <td style="font-size:10px;font-weight:700;color:#1A1C21;text-align:right;">${{ number_format($gstTotal, 2) }}</td>
+                </tr>
+                <tr>
+                    <td style="font-size:10px;font-weight:700;color:#1A1C21;">PST Tax</td>
+                    <td style="font-size:10px;font-weight:700;color:#1A1C21;text-align:right;">${{ number_format($pstTotal, 2) }}</td>
+                </tr>
+                <tr>
+                    <td style="font-size:12px;font-weight:700;color:#1A1C21;border-top:1px solid #D7DAE0;padding-top:6px;">Invoice Total</td>
                     <td style="font-size:12px;font-weight:700;color:#1A1C21;text-align:right;border-top:1px solid #D7DAE0;padding-top:6px;">${{ number_format($totalAmount, 2) }}</td>
                 </tr>
             </table>
@@ -231,4 +207,4 @@
 </table>
 
 </body>
-</html>`
+</html>

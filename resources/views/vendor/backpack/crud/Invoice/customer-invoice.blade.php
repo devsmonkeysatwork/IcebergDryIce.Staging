@@ -115,10 +115,13 @@
                             <table id="line-items-table">
                                 <thead>
                                 <tr>
+                                    <th>Date</th>
                                     <th>Description</th>
                                     <th>Qty</th>
                                     <th>Unit Price</th>
                                     <th>Total</th>
+                                    <th>GST</th>
+                                    <th>PST</th>
                                 </tr>
                                 </thead>
                                 <tbody id="line-items-body">
@@ -154,6 +157,16 @@
                             <div class="m-1">
                                 <p class="m-0 d-flex justify-content-between align-items-center">
                                     Sub-Total: <strong id="summary-subtotal">$0.00</strong>
+                                </p>
+                            </div>
+                            <div class="m-1">
+                                <p class="m-0 d-flex justify-content-between align-items-center">
+                                    GST (5%): <strong id="summary-gsttotal">$0.00</strong>
+                                </p>
+                            </div>
+                            <div class="m-1">
+                                <p class="m-0 d-flex justify-content-between align-items-center">
+                                    PST (7%, boxes only): <strong id="summary-psttotal">$0.00</strong>
                                 </p>
                             </div>
                             <div class="m-1">
@@ -393,10 +406,13 @@
                 draft.line_items.forEach((li) => {
                     liBody.insertAdjacentHTML('beforeend', `
                 <tr>
+                    <td>${li.delivery_date || ''}</td>
                     <td>${li.description}</td>
                     <td><input type="number" class="form-control form-control-sm line-item-input li-qty" data-id="${li.id}" value="${li.quantity}" min="0"></td>
                     <td><input type="number" class="form-control form-control-sm line-item-input li-price" data-id="${li.id}" value="${li.unit_price}" step="0.01" min="0"></td>
                     <td>${fmt(li.total_price)}</td>
+                    <td>${fmt(li.gst)}</td>
+                    <td>${fmt(li.pst)}</td>
                 </tr>
             `);
                 });
@@ -420,6 +436,8 @@
                 document.getElementById('invoice-notes').value = draft.notes || '';
 
                 document.getElementById('summary-subtotal').textContent  = fmt(draft.totals.sub_total);
+                document.getElementById('summary-gsttotal').textContent  = fmt(draft.totals.gst_total);
+                document.getElementById('summary-psttotal').textContent  = fmt(draft.totals.pst_total);
                 document.getElementById('summary-flattotal').textContent = fmt(draft.totals.flat_total);
                 document.getElementById('summary-total').textContent     = fmt(draft.totals.total);
 
