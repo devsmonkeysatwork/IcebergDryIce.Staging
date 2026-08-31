@@ -650,7 +650,51 @@ class OrderCrudController extends CrudController
         DB::beginTransaction();
 
         try {
-            // Step 2: Create the order
+            // Step 2: Resolve products and compute authoritative totals server-side.
+            // GST 5% applies broadly (products, delivery, hazmat); PST 7% applies
+            // only to the Styrofoam box (unit='box') portion of the subtotal.
+            // Confirmed by Tyler 2026-08-27. Tax is recomputed here rather than
+            // trusting the posted 'tax'/'total_cost' values.
+            $subTotal = 0;
+            $pstableSubtotal = 0;
+            $resolvedItems = [];
+
+            foreach ($validated['items'] as $item) {
+                $amount = $item['amount_of_items'];
+                $unitPrice = $item['unit_price'] ?? 0;
+                $totalPrice = $item['total_price'] ?? ($amount * $unitPrice);
+
+                $product = Product::find($item['product_id']);
+
+                if ($product && $product->id == 1 && $amount < 10) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Dry Ice Pellets requires a minimum order of 10 lbs.'
+                    ]);
+                }
+
+                $subTotal += $totalPrice;
+                if ($product && $product->unit === 'box') {
+                    $pstableSubtotal += $totalPrice;
+                }
+
+                $resolvedItems[] = [
+                    'product_id' => $item['product_id'],
+                    'amount_of_items' => $amount,
+                    'unit_price' => $unitPrice,
+                    'total_price' => $totalPrice,
+                ];
+            }
+
+            $deliveryCost = (float) ($validated['delivery_cost'] ?? 0);
+            $hazmat = (float) ($validated['hazmat'] ?? 0);
+            $gst = round(($subTotal + $deliveryCost + $hazmat) * 0.05, 2);
+            $pst = round($pstableSubtotal * 0.07, 2);
+            $tax = $gst + $pst;
+            $totalCost = round($subTotal + $deliveryCost + $hazmat + $tax, 2);
+
+            // Step 3: Create the order
             $order = Order::create([
                 'customer_name' => $validated['customer_name'],
                 'email' => $validated['email'],
@@ -670,41 +714,17 @@ class OrderCrudController extends CrudController
                 'status' => $validated['status'] ?? 'valid',
                 'pickup_delivery' => $validated['pickup_delivery'],
                 'supplier_id' => $validated['supplier_id'],
-                'sub_total' => $validated['sub_total'] ?? 0,
-                'tax' => $validated['tax'] ?? 0,
-                'delivery_cost' => $validated['delivery_cost'],
-                'total_cost' => $validated['total_cost'] ?? 0,
+                'sub_total' => $subTotal,
+                'tax' => $tax,
+                'delivery_cost' => $deliveryCost,
+                'total_cost' => $totalCost,
                 'origin' => 'online',
-                'hazmat' => $validated['hazmat'],
+                'hazmat' => $hazmat,
             ]);
-            // Step 3: Process items
-            foreach ($validated['items'] as $item) {
-                $amount = $item['amount_of_items'];
-                $unitPrice = $item['unit_price'] ?? 0;
-                $totalPrice = $item['total_price'] ?? ($amount * $unitPrice);
 
-                $product = Product::find($item['product_id']);
-
-                if ($product && $product->id == 1) {
-                    if ($amount < 10) {
-                        DB::rollBack(); // rollback before returning
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Dry Ice Pellets requires a minimum order of 10 lbs.'
-                        ]);
-                    }
-                }
-
-                // Create order item
-                $order->items()->create([
-                    'order_id' => $order->id,
-                    'product_id' => $item['product_id'],
-                    'amount_of_items' => $amount,
-                    'unit_price' => $unitPrice,
-                    'total_price' => $totalPrice,
-                ]);
-
-
+            // Step 4: Create order items
+            foreach ($resolvedItems as $resolvedItem) {
+                $order->items()->create(array_merge(['order_id' => $order->id], $resolvedItem));
             }
 
             $invoiceService = new InvoiceService();

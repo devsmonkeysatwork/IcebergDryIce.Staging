@@ -193,6 +193,7 @@
                                     id="{{ $safeId }}"
                                     value="0"
                                     data-unit-price="{{ $product->price }}"
+                                    data-unit="{{ $product->unit }}"
                                     onblur="calculateProductCost({{ $product->id }}, {{ $product->price }})"
                                 >
                             </td>
@@ -1310,6 +1311,7 @@
 
             // ✅ Calculate subtotal from all products
             let subtotal = 0;
+            let pstableSubtotal = 0; // portion subject to PST (box-unit products only)
             let summaryHtml = '';
             let costsHtml = '';
             let totalIceAmount = 0;
@@ -1340,6 +1342,9 @@
                 const cost = parseFloat(costInput?.value) || (quantity * unitPrice);
 
                 subtotal += cost;
+                if (input.getAttribute('data-unit') === 'box') {
+                    pstableSubtotal += cost;
+                }
                 totalIceAmount += quantity;
 
                 // Build review display rows
@@ -1379,7 +1384,7 @@
             if (deliveryType === 'pickup') {
                 if (pickupDeliveryInput) pickupDeliveryInput.value = 'pickup';
                 if (deliveryCostElement) deliveryCostElement.textContent = '$0.00';
-                calculateTotalsAndFinalize(subtotal, deliveryCost);
+                calculateTotalsAndFinalize(subtotal, deliveryCost, pstableSubtotal);
 
             } else if (deliveryType === 'delivery') {
                 if (pickupDeliveryInput) pickupDeliveryInput.value = 'delivery';
@@ -1390,13 +1395,13 @@
                     .then(quoteTotal => {
                         deliveryCost = quoteTotal || 0.00;
                         if (deliveryCostElement) deliveryCostElement.textContent = `$${deliveryCost.toFixed(2)}`;
-                        calculateTotalsAndFinalize(subtotal, deliveryCost);
+                        calculateTotalsAndFinalize(subtotal, deliveryCost, pstableSubtotal);
                     })
                     .catch(error => {
                         console.error('❌ Error getting delivery quote:', error);
                         deliveryCost = 0.00;
                         if (deliveryCostElement) deliveryCostElement.textContent = `$${deliveryCost.toFixed(2)}`;
-                        calculateTotalsAndFinalize(subtotal, deliveryCost);
+                        calculateTotalsAndFinalize(subtotal, deliveryCost, pstableSubtotal);
                     });
                 return;
 
@@ -1404,14 +1409,19 @@
                 deliveryCost = 0.00;
                 if (pickupDeliveryInput) pickupDeliveryInput.value = '0.00';
                 if (deliveryCostElement) deliveryCostElement.textContent = `$${deliveryCost.toFixed(2)}`;
-                calculateTotalsAndFinalize(subtotal, deliveryCost);
+                calculateTotalsAndFinalize(subtotal, deliveryCost, pstableSubtotal);
             }
         }
 
-        function calculateTotalsAndFinalize(subtotal, delivery) {
+        function calculateTotalsAndFinalize(subtotal, delivery, pstableSubtotal = 0) {
             // Delivery, Tax & Total
+            // GST 5% applies broadly (products, delivery, hazmat). PST 7% applies
+            // only to the Styrofoam box portion of the subtotal. Confirmed by
+            // Tyler 2026-08-27.
             const hazmat = 12.00;
-            const tax = (subtotal + delivery) * 0.15;
+            const gst = (subtotal + delivery + hazmat) * 0.05;
+            const pst = pstableSubtotal * 0.07;
+            const tax = gst + pst;
             const total = subtotal + delivery + tax + hazmat;
 
             document.getElementById('tax-total').innerHTML =
