@@ -494,6 +494,14 @@ class OrderCrudController extends CrudController
             $customer = Customer::findOrFail($request->customer_id);
             $product  = Product::findOrFail($request->product);
 
+            if ($product && $product->id == 1 && $request->amount < 15) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dry Ice Pellets requires a minimum order of 15 lbs.'
+                ]);
+            }
+
             $order = Order::create([
                 'customer_name' => isset($customer->name) ? $customer->name : null,
                 'email' => isset($customer->email) ? $customer->email : null,
@@ -1298,6 +1306,14 @@ class OrderCrudController extends CrudController
 
             $customer = Customer::findOrFail($request->customer_id);
             $product  = Product::findOrFail($request->product);
+
+            if ($product && $product->id == 1 && $request->amount < 15) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dry Ice Pellets requires a minimum order of 15 lbs.'
+                ]);
+            }
 
             $order->update([
                 'customer_name'    => $customer->name ?? null,
