@@ -16,6 +16,7 @@ class SupplyLocation extends Model
         'province',
         'country',
         'postal',
+        'phone',
         'ice_cost',
         'courier',
         'active',

@@ -280,7 +280,7 @@ class SupplierController extends Controller
                     'city' => $supplier->city,
                     'province' => $supplier->province,
                     'postalCode' => $supplier->postal,
-                    "phone" => "604 255-6007",
+                    "phone" => $supplier->phone ?? "604 255-6007",
                     'country' => 'CAN',
                     'instructions' => 'Call 604-255-6007 if given phone is not responding',
                 ],
@@ -300,7 +300,7 @@ class SupplierController extends Controller
                 'serviceTypeId' => 4,
                 'vehicleTypeId' => 1,
                 'readyBy'=> $order->delivery_date,
-                'instructions'=> "",
+                'instructions'=> $order->notes ?? "",
                 'packages' => [[
                     'typeId' => 3,
                     'length' => $dimensions,
