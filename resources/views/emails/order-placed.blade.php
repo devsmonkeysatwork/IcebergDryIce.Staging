@@ -60,7 +60,7 @@
                                         <tbody>
                                         <tr>
                                             <td align="left" style="width:55px;vertical-align: top;">
-                                                <img src="https://idi.monkeysatwork.dev/public/idi_logo.png" style="width: 54px" width="54" height="54" alt="logo" border="0" />
+                                                <img src="{{asset('idi_logo.png')}}" style="width: 54px" width="54" height="54" alt="logo" border="0" />
                                             </td>
                                             <td align="left">
                                                 <p style="font-family: Inter;font-weight: 700;font-size: 18px;line-height: 24px;letter-spacing: 0%;color:#1A1C21;">Iceberg Dry Ice</p>
