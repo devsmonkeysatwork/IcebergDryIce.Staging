@@ -17,6 +17,9 @@
                                 <label for="invoice-number">Invoice #</label>
                                 <select id="invoice-number" class="form-control" style="width: 100%" required></select>
                             </div>
+                            <button type="button" id="quick-view-invoice-btn" class="btn btn-outline-secondary btn-sm mt-1" style="display:none;">
+                                <i class="la la-eye"></i> Quick View
+                            </button>
                         </div>
 
                         <div class="col-6 px-4">
@@ -53,6 +56,29 @@
                         </div>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="quickViewInvoiceModal" tabindex="-1" aria-labelledby="quickViewInvoiceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="quickViewInvoiceModalLabel">Invoice</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0" id="quickViewInvoiceModalBody">
+                    <div class="text-center py-5" id="quickViewInvoiceLoader">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-2 text-muted">Loading invoice...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a href="#" id="quickViewDownloadInvoiceBtn" class="btn btn-success" target="_blank">
+                        <i class="fas fa-download"></i> Download PDF
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
     </div>
@@ -165,6 +191,58 @@
                 $('#contact-email').val(data.customer_email);
                 $('#amount').val(data.total_cost);
                 $('#invoice-id').val(data.invoice_num);
+
+                // data.id is the invoice's DB primary key (invoice_num is the
+                // display invoice_number), needed for the quick-view/PDF routes.
+                $('#quick-view-invoice-btn')
+                    .data('invoiceDbId', data.id)
+                    .show();
+            });
+
+            // Quick-view: same fetch-into-modal pattern used on the customer
+            // edit page's invoice list.
+            const quickViewModal     = new bootstrap.Modal(document.getElementById('quickViewInvoiceModal'));
+            const quickViewModalBody = document.getElementById('quickViewInvoiceModalBody');
+            const quickViewLoader    = document.getElementById('quickViewInvoiceLoader');
+
+            const quickViewUrlTemplate = @json(route('consolidated.invoice.view', ['invoice' => 999999999]));
+            const quickViewPdfUrlTemplate = @json(route('admin.invoice-generator.pdf', ['invoice' => 999999999]));
+
+            $('#quick-view-invoice-btn').on('click', function () {
+                const invoiceId = $(this).data('invoiceDbId');
+                if (!invoiceId) return;
+
+                quickViewModalBody.innerHTML = '';
+                quickViewLoader.style.display = 'block';
+                quickViewModalBody.appendChild(quickViewLoader);
+                document.getElementById('quickViewDownloadInvoiceBtn').href = quickViewPdfUrlTemplate.replace('999999999', invoiceId);
+
+                quickViewModal.show();
+
+                fetch(quickViewUrlTemplate.replace('999999999', invoiceId), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    }
+                })
+                    .then(res => {
+                        if (!res.ok) throw new Error('Failed to load invoice');
+                        return res.text();
+                    })
+                    .then(html => {
+                        quickViewLoader.style.display = 'none';
+                        quickViewModalBody.innerHTML = html;
+                    })
+                    .catch(() => {
+                        quickViewModalBody.innerHTML = `
+                    <div class="alert alert-danger m-3">
+                        Failed to load invoice. Please try again.
+                    </div>`;
+                    });
+            });
+
+            document.getElementById('quickViewInvoiceModal').addEventListener('hidden.bs.modal', function () {
+                quickViewModalBody.innerHTML = '';
             });
 
             // Credit card button handler
