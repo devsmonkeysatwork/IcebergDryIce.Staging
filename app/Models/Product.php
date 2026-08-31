@@ -15,6 +15,7 @@ class Product extends Model
         'product_name',
         'price',
         'unit',
+        'available_to_account_holders',
     ];
 
 

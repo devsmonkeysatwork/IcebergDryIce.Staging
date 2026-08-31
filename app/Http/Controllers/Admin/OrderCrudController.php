@@ -1449,7 +1449,8 @@ class OrderCrudController extends CrudController
     {
         $customers = Customer::orderBy('name')->get();
 
-        $products = Product::all();
+        // Some products (e.g. Styrofoam boxes) are public/credit-card only.
+        $products = Product::where('available_to_account_holders', true)->get();
 
         $defaultValues = [
             'customer_id'      => null,
@@ -1490,9 +1491,14 @@ class OrderCrudController extends CrudController
 
         $customers = Customer::orderBy('name')->get();
 
-        $products = Product::all();
-
         $item = $order->items->first();
+
+        // Some products (e.g. Styrofoam boxes) are public/credit-card only,
+        // but keep an already-selected product visible so an existing order
+        // can still be edited/saved without silently changing its product.
+        $products = Product::where('available_to_account_holders', true)
+            ->when($item?->product_id, fn ($q) => $q->orWhere('id', $item->product_id))
+            ->get();
 
         $defaultValues = [
             'customer_id'      => $order->customer_id,
